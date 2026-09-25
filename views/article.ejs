@@ -1,0 +1,22 @@
+<%- include('partials/head', { title: 'Article' }) %>
+<%- include('partials/header') %>
+
+<div class="layout">
+  <main class="page">
+    <!-- T1: the whole article has to be rendered here on the server. The spec
+         needs the text present in the HTML with JavaScript turned off. -->
+    <article>
+      <h1>TODO: article</h1>
+    </article>
+
+    <!-- comments load with the page, new ones get appended without a reload -->
+    <section class="comments">
+      <h2>Comments</h2>
+      <p class="muted">TODO</p>
+    </section>
+  </main>
+  <%- include('partials/sidebar') %>
+</div>
+
+<script src="/js/article.js"></script>
+<%- include('partials/footer') %>

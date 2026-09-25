@@ -6,7 +6,7 @@ const { MongoStore } = require('connect-mongo')   // v6 renamed this from a defa
 const path = require('path')
 
 const { connectDb } = require('./config/db')
-const { attachUser } = require('./middleware/auth')
+const { attachViewData } = require('./middleware/auth')
 const { notFound, errorHandler } = require('./middleware/errorHandler')
 
 const app = express()
@@ -29,7 +29,7 @@ app.use(session({
   cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 }   // a week
 }))
 
-app.use(attachUser)
+app.use(attachViewData)
 
 app.use('/', require('./routes/public'))
 app.use('/', require('./routes/auth'))

@@ -10,9 +10,9 @@ router.use(requireRole(ROLES.REPORTER))
 const todo = name => (req, res) => res.status(501).send(`TODO: ${name}`)
 
 // --- pages ---
-router.get('/', todo('my articles'))
-router.get('/article/new', todo('new article form'))
-router.get('/article/:id', todo('edit article form'))
+router.get('/', (req, res) => res.render('reporter/dashboard'))
+router.get('/article/new', (req, res) => res.render('reporter/edit'))
+router.get('/article/:id', (req, res) => res.render('reporter/edit'))
 
 // --- json ---
 router.post('/api/article', todo('create article'))

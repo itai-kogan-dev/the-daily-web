@@ -12,9 +12,10 @@ function isApiRequest(req) {
   return req.originalUrl.includes('/api/')
 }
 
-// puts the user on every rendered page, so views can do user.role
-function attachUser(req, res, next) {
+// what every rendered page gets for free: who is looking, and where they are
+function attachViewData(req, res, next) {
   res.locals.user = currentUser(req)
+  res.locals.currentPath = req.path
   next()
 }
 
@@ -39,4 +40,4 @@ function requireRole(...roles) {
   }
 }
 
-module.exports = { currentUser, attachUser, requireRole }
+module.exports = { currentUser, attachViewData, requireRole }

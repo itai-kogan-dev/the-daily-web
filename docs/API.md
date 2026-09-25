@@ -54,6 +54,29 @@ Whole file is behind `requireRole('editor')`.
 | POST | `/editor/api/article/:id/publish` | Approve. Copies draft over published, sets `isLive`, adds an `updateEvent`. |
 | POST | `/editor/api/article/:id/return` | Body `{ note }`. Sends it back for revision. |
 | DELETE | `/editor/api/article/:id` | Delete. |
+| DELETE | `/editor/api/article/:id/views` | Clear the view stats for one article. |
+
+### Users (T2)
+
+There is no sign up. Reporters and editors are staff, so an editor creates their
+accounts - and an editor can create other editors. The first editor comes from
+the seed script, otherwise nobody could log in to create anyone.
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/editor/users` | List all reporters and editors. |
+| GET | `/editor/users/new` | Create form. |
+| GET | `/editor/users/:id` | Edit form. |
+| POST | `/editor/api/users` | Body `{ username, displayName, password, role }`. Password goes through `User.hashPassword`. |
+| PATCH | `/editor/api/users/:id` | Update. Only re-hash the password if a new one was sent. |
+| DELETE | `/editor/api/users/:id` | Delete. Refuse to delete the last editor, or nobody can log in. |
+
+### Comment moderation (T3)
+
+| Method | Path | Notes |
+|---|---|---|
+| PATCH | `/editor/api/comments/:id` | Edit a comment. |
+| DELETE | `/editor/api/comments/:id` | Delete a comment. |
 
 ## Analytics - `routes/analytics.js` (T4)
 
@@ -72,3 +95,14 @@ Behind `requireRole('editor')`.
 | No such route | `404` page | `404 { error }` |
 | Illegal state change | - | `400 { error }` |
 | Crash | `500` page, generic message | `500 { error }` |
+
+## CRUD coverage
+
+The spec wants full CRUD on every model. Where each operation lives:
+
+| Model | Create | Read | Update | Delete |
+|---|---|---|---|---|
+| User | `POST /editor/api/users` | `GET /editor/users` | `PATCH /editor/api/users/:id` | `DELETE /editor/api/users/:id` |
+| Article | `POST /reporter/api/article` | `GET /api/articles` | `PATCH /reporter/api/article/:id` | `DELETE /editor/api/article/:id` |
+| Comment | `POST /api/articles/:id/comments` | `GET /api/articles/:id/comments` | `PATCH /editor/api/comments/:id` | `DELETE /editor/api/comments/:id` |
+| ViewBucket | on every article view | `GET /api/analytics/article/:id` | the increment on each view | `DELETE /editor/api/article/:id/views` |

@@ -1,0 +1,15 @@
+<header class="site-header">
+  <nav>
+    <a class="brand" href="/">The Daily Web</a>
+    <div class="nav-right">
+      <% if (user.role === 'guest') { %>
+        <% if (currentPath !== '/login') { %><a href="/login">Log in</a><% } %>
+      <% } else { %>
+        <% if (user.role === 'reporter') { %><a href="/reporter">My articles</a><% } %>
+        <% if (user.role === 'editor') { %><a href="/editor">Editor</a><% } %>
+        <span class="who"><%= user.displayName %></span>
+        <form method="post" action="/logout"><button type="submit">Log out</button></form>
+      <% } %>
+    </div>
+  </nav>
+</header>

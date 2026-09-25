@@ -77,3 +77,25 @@ default in-memory store would lose every login on restart, which is exactly what
 that requirement is testing. JWT would also survive a restart, but logging out
 does not really work with it - a token stays valid until it expires unless you
 keep a blocklist on the server, which makes it stateful anyway.
+
+## No sign up page - editors create accounts
+
+The spec never mentions registration, and it shouldn't: reporters and editors
+are staff. A public sign up page would let anyone register as a reporter and
+publish to the news site.
+
+So accounts are created in two places:
+
+1. `npm run seed` creates the first editor, plus a few reporters to work with.
+2. After that an editor creates accounts at `/editor/users/new`, and can create
+   both reporters and other editors.
+
+The seed has to create that first editor, otherwise nobody could log in to
+create anyone - the usual bootstrap admin. Guests need no account at all; they
+read and comment without one.
+
+This is also what gives the User model its full CRUD, which the spec asks for on
+every model. `docs/API.md` has the coverage table.
+
+One thing to handle when building it: refuse to delete the last editor, or
+nobody can log in afterwards.
