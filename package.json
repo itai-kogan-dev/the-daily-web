@@ -1,0 +1,44 @@
+{
+  "name": "the-daily-web",
+  "version": "1.0.0",
+  "description": "The Daily Web - news publishing system",
+  "main": "app.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node --watch app.js",
+    "seed": "node scripts/seed.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/itai-kogan-dev/the-daily-web.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/itai-kogan-dev/the-daily-web/issues"
+  },
+  "homepage": "https://github.com/itai-kogan-dev/the-daily-web#readme",
+  "dependencyNotes": {
+    "express": "HTTP server and routing",
+    "mongoose": "MongoDB schemas, validation and queries",
+    "ejs": "server-rendered HTML templates (required by the spec)",
+    "express-session": "keeps users logged in between requests",
+    "connect-mongo": "stores sessions in MongoDB so login survives a server restart",
+    "bcrypt": "one-way password hashing",
+    "dotenv": "loads .env into process.env"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "connect-mongo": "^6.0.0",
+    "dotenv": "^18.0.3",
+    "ejs": "^6.0.1",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "mongoose": "^9.10.2"
+  }
+}
