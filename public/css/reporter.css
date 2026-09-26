@@ -95,3 +95,10 @@
 .save-status.error   { color: var(--accent); font-weight: 600; }
 
 .image-preview[src=""] { display: none; }
+
+.submit-bar {
+  margin-top: var(--gap);
+  padding-top: var(--gap);
+  border-top: 1px solid var(--line);
+}
+.submit-bar .muted { font-size: .85rem; margin: .4rem 0 0; }

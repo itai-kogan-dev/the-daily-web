@@ -43,6 +43,7 @@ function showNewEditor(req, res) {
     article: null,
     content: { title: '', summary: '', body: '', category: CATEGORIES[0], imageUrl: '' },
     canEdit: true,
+    canSubmit: false,   // nothing exists until the first save
     CATEGORIES, CATEGORY_LABELS, STATUS, STATUS_LABELS
   })
 }
@@ -56,6 +57,8 @@ async function showEditor(req, res) {
     article,
     content: article.draftContent,
     canEdit: EDITABLE.includes(article.status),
+    // a published article with no edits yet has nothing to submit
+    canSubmit: [STATUS.IN_PROGRESS, STATUS.NEEDS_REVISION].includes(article.status),
     CATEGORIES, CATEGORY_LABELS, STATUS, STATUS_LABELS
   })
 }
@@ -115,8 +118,33 @@ async function saveDraft(req, res) {
   })
 }
 
+// Drafts can be half written, but an article going to an editor cannot be.
+// Everything checked here ends up on the public page.
+function missingFields(content) {
+  const missing = []
+  if (!content.title.trim() || content.title === 'Untitled') missing.push('title')
+  if (!content.summary.trim()) missing.push('summary')
+  if (!content.body.trim()) missing.push('body')
+  if (!content.imageUrl.trim()) missing.push('image')
+  return missing
+}
+
+async function submitArticle(req, res) {
+  const article = await findOwn(req.params.id, req.session.user.id)
+
+  const missing = missingFields(article.draftContent)
+  if (missing.length) throw fail(400, 'Still missing: ' + missing.join(', '))
+
+  // the workflow checks the move is legal - a published article has to be
+  // edited first, which puts it back to in_progress
+  workflow.submitForReview(article)
+  await article.save()
+
+  res.json({ status: article.status, statusLabel: STATUS_LABELS[article.status] })
+}
+
 module.exports = {
   showDashboard, showNewEditor, showEditor,
-  createArticle, saveDraft,
-  findOwn, readContent, EDITABLE, fail
+  createArticle, saveDraft, submitArticle,
+  findOwn, readContent, missingFields, EDITABLE, fail
 }

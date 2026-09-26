@@ -113,4 +113,29 @@ if (form && !form.dataset.readonly) {
     const img = document.getElementById('image-preview')
     if (img) img.src = field('imageUrl').value
   })
+
+  // --- send to editor ---
+  const submitBtn = document.getElementById('submit-btn')
+  const submitError = document.getElementById('submit-error')
+
+  if (submitBtn) submitBtn.addEventListener('click', async () => {
+    submitError.hidden = true
+    submitBtn.disabled = true
+
+    // flush anything still waiting, or we would submit a stale draft
+    if (dirty) await save()
+
+    const res = await fetch(`/reporter/api/article/${articleId}/submit`, { method: 'POST' })
+    const data = await res.json()
+
+    if (!res.ok) {
+      submitError.textContent = data.error
+      submitError.hidden = false
+      submitBtn.disabled = false
+      return
+    }
+
+    // reload so the page comes back read only, with the new status
+    location.reload()
+  })
 }

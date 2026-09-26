@@ -63,6 +63,14 @@
     <img id="image-preview" class="image-preview" src="<%= content.imageUrl %>" alt=""
          <%= content.imageUrl ? '' : 'hidden' %>>
   </form>
+
+  <div class="submit-bar" <%= canEdit ? '' : 'hidden' %>>
+    <p id="submit-error" class="error" hidden></p>
+    <button id="submit-btn" type="button" <%= canSubmit ? '' : 'hidden' %>>
+      Send to editor
+    </button>
+    <p class="muted">Once sent, you cannot edit it until the editor replies.</p>
+  </div>
 </main>
 
 <script src="/js/autosave.js"></script>

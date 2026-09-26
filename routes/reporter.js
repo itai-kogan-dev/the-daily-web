@@ -8,8 +8,6 @@ const router = express.Router()
 // guards every route in this file
 router.use(requireRole(ROLES.REPORTER))
 
-const todo = name => (req, res) => res.status(501).send(`TODO: ${name}`)
-
 // --- pages ---
 router.get('/', reporter.showDashboard)
 // /article/new has to come first, otherwise :id would match the word "new"
@@ -19,6 +17,6 @@ router.get('/article/:id', reporter.showEditor)
 // --- json ---
 router.post('/api/article', reporter.createArticle)
 router.patch('/api/article/:id', reporter.saveDraft)
-router.post('/api/article/:id/submit', todo('send to editor'))
+router.post('/api/article/:id/submit', reporter.submitArticle)
 
 module.exports = router
