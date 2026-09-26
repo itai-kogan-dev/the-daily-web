@@ -7,6 +7,13 @@
     <a class="button" href="/reporter/article/new">New article</a>
   </div>
 
+  <% if (needsWorkCount > 0) { %>
+    <p class="notice warn">
+      <%= needsWorkCount %> <%= needsWorkCount === 1 ? 'article needs' : 'articles need' %>
+      changes before <%= needsWorkCount === 1 ? 'it can' : 'they can' %> go back to the editor.
+    </p>
+  <% } %>
+
   <% if (articles.length === 0) { %>
     <p class="muted">Nothing here yet. Start with a new article.</p>
   <% } else { %>

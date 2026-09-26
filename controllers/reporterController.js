@@ -34,7 +34,16 @@ async function showDashboard(req, res) {
     .sort({ updatedAt: -1 })
     .lean()
 
-  res.render('reporter/dashboard', { articles, STATUS, STATUS_LABELS, CATEGORY_LABELS })
+  // Anything the editor sent back goes to the top - it is the only thing on
+  // this page that is actually waiting on the reporter.
+  const needsWork = articles.filter(a => a.status === STATUS.NEEDS_REVISION)
+  const rest = articles.filter(a => a.status !== STATUS.NEEDS_REVISION)
+
+  res.render('reporter/dashboard', {
+    articles: [...needsWork, ...rest],
+    needsWorkCount: needsWork.length,
+    STATUS, STATUS_LABELS, CATEGORY_LABELS
+  })
 }
 
 // Empty form. Nothing is written to the database until the first save.
