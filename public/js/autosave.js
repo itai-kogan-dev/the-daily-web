@@ -14,13 +14,6 @@ if (form && !form.dataset.readonly) {
   const submitError = document.getElementById('submit-error')
   const submitHint = document.getElementById('submit-hint')
 
-  // the error takes the hint's place so the bar does not grow
-  function showSubmitError(text) {
-    submitError.textContent = text
-    submitError.hidden = false
-    if (submitHint) submitHint.hidden = true
-  }
-
   let articleId = form.dataset.id || null
   let hasUnsavedChanges = false
   let idleTimer = null
@@ -30,13 +23,20 @@ if (form && !form.dataset.readonly) {
   // (the tooltip) and it would shadow the input named "title"
   const getField = name => form.elements[name]
 
-  const readForm = () => ({
-    title: getField('title').value,
-    summary: getField('summary').value,
-    body: getField('body').value,
-    category: getField('category').value,
-    imageUrl: getField('imageUrl').value
-  })
+  // The image can be a few hundred KB, so it only rides along on the save
+  // that changed it. The server keeps the stored one when the field is absent.
+  let imageChanged = false
+
+  function readForm() {
+    const content = {
+      title: getField('title').value,
+      summary: getField('summary').value,
+      body: getField('body').value,
+      category: getField('category').value
+    }
+    if (imageChanged) content.imageUrl = getField('imageUrl').value
+    return content
+  }
 
   function showStatus(text, state = '') {
     if (!statusEl) return
@@ -44,7 +44,15 @@ if (form && !form.dataset.readonly) {
     statusEl.className = 'save-status ' + state
   }
 
-  const isBlank = content => !content.title.trim() && !content.summary.trim() && !content.body.trim() && !content.imageUrl.trim()
+  // the error takes the hint's place so the bar does not grow
+  function showSubmitError(text) {
+    submitError.textContent = text
+    submitError.hidden = false
+    if (submitHint) submitHint.hidden = true
+  }
+
+  const isBlank = content => !content.title.trim() && !content.summary.trim() &&
+                             !content.body.trim() && !(content.imageUrl || '').trim()
 
   async function saveDraft() {
     if (!hasUnsavedChanges) return
@@ -61,6 +69,7 @@ if (form && !form.dataset.readonly) {
     // clear the flag before the request, so anything typed while it is in
     // flight is not swallowed
     hasUnsavedChanges = false
+    const sendingImage = imageChanged
     showStatus('Saving...')
 
     const isNew = !articleId
@@ -76,6 +85,8 @@ if (form && !form.dataset.readonly) {
       setTimeout(saveDraft, 3000)
       return
     }
+
+    if (sendingImage) imageChanged = false
 
     const data = await res.json()
 
@@ -122,15 +133,56 @@ if (form && !form.dataset.readonly) {
     })
   })
 
-  // live image preview - it starts hidden when the article has no image yet
-  getField('imageUrl').addEventListener('input', () => {
-    const img = document.getElementById('image-preview')
-    if (!img) return
-    const url = getField('imageUrl').value.trim()
-    img.src = url
-    img.hidden = !url
-  })
+  // --- image ---
+  // The picture is read in the browser and stored as a data URI, so it sits in
+  // the database with the article and everyone who opens the project sees it.
+  // Saving the file to disk instead would leave it on one laptop.
+  const MAX_IMAGE_BYTES = 300 * 1024
 
+  const preview = document.getElementById('image-preview')
+  const imageError = document.getElementById('image-error')
+  const imageName = document.getElementById('image-name')
+  const fileInput = document.getElementById('image-file')
+  const pickBtn = document.getElementById('image-pick-btn')
+
+  function showImageError(text) {
+    if (!imageError) return
+    imageError.textContent = text
+    imageError.hidden = !text
+  }
+
+  if (pickBtn && fileInput) {
+    pickBtn.addEventListener('click', () => fileInput.click())
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0]
+      fileInput.value = ''   // so picking the same file twice still fires
+      if (!file) return
+
+      if (file.size > MAX_IMAGE_BYTES) {
+        showImageError(`That picture is ${Math.round(file.size / 1024)} KB, the limit is 300 KB`)
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = () => {
+        getField('imageUrl').value = reader.result
+        imageChanged = true
+        showImageError('')
+        if (imageName) imageName.textContent = file.name
+        if (preview) {
+          preview.src = reader.result
+          preview.hidden = false
+        }
+        // the hidden field does not fire input events, so tell autosave directly
+        form.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+      reader.onerror = () => showImageError('Could not read that file')
+      reader.readAsDataURL(file)
+    })
+  }
+
+  // --- send to editor ---
   if (submitBtn) submitBtn.addEventListener('click', async () => {
     submitError.hidden = true
     if (submitHint) submitHint.hidden = false

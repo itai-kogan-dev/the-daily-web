@@ -11,6 +11,36 @@ const LEGAL_TRANSITIONS = {
   [STATUS.PUBLISHED]:      [STATUS.IN_PROGRESS]
 }
 
+// Reporters upload a file, which is stored as a data URI. The seeded demo
+// articles use plain links, so both count as a valid image.
+function isValidImageSource(value) {
+  if (/^data:image\/(png|jpeg|gif|webp);base64,/i.test(value)) return true
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+// A draft can be half written, but anything leaving the reporter has to be
+// complete - all of it ends up on the public page. Checked on the way in and
+// again on the way out, so an editor cannot publish a broken article either.
+function assertPublishable(article) {
+  const content = article.draftContent
+
+  const missing = []
+  if (!content.title.trim() || content.title === 'Untitled') missing.push('title')
+  if (!content.summary.trim()) missing.push('summary')
+  if (!content.body.trim()) missing.push('body')
+  if (!content.imageUrl.trim()) missing.push('image')
+  if (missing.length) throw httpError(400, 'Still missing: ' + missing.join(', '))
+
+  if (!isValidImageSource(content.imageUrl)) {
+    throw httpError(400, 'The image is not a valid picture')
+  }
+}
+
 // for views deciding which buttons to show
 function canTransition(from, to) {
   return (LEGAL_TRANSITIONS[from] || []).includes(to)
@@ -18,17 +48,22 @@ function canTransition(from, to) {
 
 // for routes enforcing it. the check has to happen on the server because
 // anyone can send a request without going through our UI
+function httpError(status, message) {
+  const err = new Error(message)
+  err.status = status
+  return err
+}
+
 function assertTransition(from, to) {
   if (!canTransition(from, to)) {
-    const err = new Error(`Illegal transition: ${from} -> ${to}`)
-    err.status = 400
-    throw err
+    throw httpError(400, `Illegal transition: ${from} -> ${to}`)
   }
 }
 
 // reporter sends their work to the editor
 function submitForReview(article) {
   assertTransition(article.status, STATUS.PENDING_EDITOR)
+  assertPublishable(article)
   article.status = STATUS.PENDING_EDITOR
   return article
 }
@@ -44,6 +79,7 @@ function startNewVersion(article) {
 // editor approves. this is the moment the draft becomes what readers see
 function publish(article, editorId) {
   assertTransition(article.status, STATUS.PUBLISHED)
+  assertPublishable(article)
 
   // toObject() so we copy the values. assigning the subdocument directly
   // would leave both fields pointing at the same object
@@ -73,6 +109,8 @@ module.exports = {
   LEGAL_TRANSITIONS,
   canTransition,
   assertTransition,
+  assertPublishable,
+  isValidImageSource,
   submitForReview,
   startNewVersion,
   publish,

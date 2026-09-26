@@ -147,17 +147,6 @@ async function saveDraft(req, res) {
   })
 }
 
-// Drafts can be half written, but an article going to an editor cannot be.
-// Everything checked here ends up on the public page.
-function findMissingFields(content) {
-  const missing = []
-  if (!content.title.trim() || content.title === 'Untitled') missing.push('title')
-  if (!content.summary.trim()) missing.push('summary')
-  if (!content.body.trim()) missing.push('body')
-  if (!content.imageUrl.trim()) missing.push('image')
-  return missing
-}
-
 async function submitArticle(req, res) {
   const article = await findOwnArticle(req.params.id, req.session.user.id)
 
@@ -165,11 +154,8 @@ async function submitArticle(req, res) {
     throw makeError(400, 'Nothing to send - change something first')
   }
 
-  const missing = findMissingFields(article.draftContent)
-  if (missing.length) throw makeError(400, 'Still missing: ' + missing.join(', '))
-
-  // the workflow checks the move is legal - a published article has to be
-  // edited first, which puts it back to in_progress
+  // the workflow checks both that the move is legal and that the article is
+  // complete enough to leave the reporter
   workflow.submitForReview(article)
   await article.save()
 

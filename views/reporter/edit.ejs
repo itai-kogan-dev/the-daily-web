@@ -58,9 +58,17 @@
       <textarea name="body" rows="16" <%= canEdit ? '' : 'disabled' %>><%= content.body %></textarea>
     </label>
 
-    <label>Image URL
-      <input name="imageUrl" value="<%= content.imageUrl %>" placeholder="https://..." <%= canEdit ? '' : 'disabled' %>>
-    </label>
+    <div class="field">
+      <span class="field-label">Image</span>
+      <div class="image-row">
+        <button type="button" id="image-pick-btn" class="button-secondary" <%= canEdit ? '' : 'disabled' %>>Choose image</button>
+        <span id="image-name" class="muted"><%= content.imageUrl ? 'Image set' : 'No image yet' %></span>
+      </div>
+      <input type="file" id="image-file" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
+      <!-- the picture itself travels in this field, as a data URI -->
+      <input type="hidden" name="imageUrl" value="<%= content.imageUrl %>">
+      <p id="image-error" class="error" hidden></p>
+    </div>
 
     <img id="image-preview" class="image-preview" src="<%= content.imageUrl %>" alt=""
          <%= content.imageUrl ? '' : 'hidden' %>>
