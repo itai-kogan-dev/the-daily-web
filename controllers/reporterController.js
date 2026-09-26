@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 const Article = require('../models/Article')
-const { STATUS, STATUS_LABELS, CATEGORIES, CATEGORY_LABELS } = require('../models/Article')
+const { STATUS, STATUS_LABELS, CATEGORIES, CATEGORY_LABELS } = Article
 const workflow = require('../services/articleWorkflow')
 
 // A reporter can work on an article in these states. pending_editor is missing
@@ -8,7 +8,7 @@ const workflow = require('../services/articleWorkflow')
 // back to the reporter.
 const EDITABLE = [STATUS.IN_PROGRESS, STATUS.NEEDS_REVISION, STATUS.PUBLISHED]
 
-function fail(status, message) {
+function makeError(status, message) {
   const err = new Error(message)
   err.status = status
   return err
@@ -16,12 +16,12 @@ function fail(status, message) {
 
 // Loads an article and checks it belongs to this reporter. Ownership is
 // compared against the session, never against anything the request sent.
-async function findOwn(id, userId) {
-  if (!mongoose.Types.ObjectId.isValid(id)) throw fail(404, 'Article not found')
+async function findOwnArticle(id, userId) {
+  if (!mongoose.Types.ObjectId.isValid(id)) throw makeError(404, 'Article not found')
 
   const article = await Article.findById(id)
-  if (!article) throw fail(404, 'Article not found')
-  if (String(article.author) !== String(userId)) throw fail(403, 'This is not your article')
+  if (!article) throw makeError(404, 'Article not found')
+  if (String(article.author) !== String(userId)) throw makeError(403, 'This is not your article')
 
   return article
 }
@@ -58,7 +58,7 @@ function showNewEditor(req, res) {
 }
 
 async function showEditor(req, res) {
-  const article = await findOwn(req.params.id, req.session.user.id)
+  const article = await findOwnArticle(req.params.id, req.session.user.id)
 
   // An article waiting for the editor still opens, just read only - sending a
   // reporter a 403 for clicking a row on their own dashboard would be unkind.
@@ -90,8 +90,8 @@ function readContent(body, current = {}) {
 // used to fill the database. Updating stays permissive so no work is lost.
 async function createArticle(req, res) {
   const content = readContent(req.body)
-  const empty = content.title === 'Untitled' && !content.summary && !content.body.trim() && !content.imageUrl
-  if (empty) throw fail(400, 'Write something before the article is created')
+  const isEmpty = content.title === 'Untitled' && !content.summary && !content.body.trim() && !content.imageUrl
+  if (isEmpty) throw makeError(400, 'Write something before the article is created')
 
   const article = await Article.create({
     author: req.session.user.id,
@@ -104,10 +104,10 @@ async function createArticle(req, res) {
 
 // Every save after the first one.
 async function saveDraft(req, res) {
-  const article = await findOwn(req.params.id, req.session.user.id)
+  const article = await findOwnArticle(req.params.id, req.session.user.id)
 
   if (!EDITABLE.includes(article.status)) {
-    throw fail(403, 'This article is with the editor and cannot be changed')
+    throw makeError(403, 'This article is with the editor and cannot be changed')
   }
 
   // Editing something already published starts a new version. It happens on
@@ -129,7 +129,7 @@ async function saveDraft(req, res) {
 
 // Drafts can be half written, but an article going to an editor cannot be.
 // Everything checked here ends up on the public page.
-function missingFields(content) {
+function findMissingFields(content) {
   const missing = []
   if (!content.title.trim() || content.title === 'Untitled') missing.push('title')
   if (!content.summary.trim()) missing.push('summary')
@@ -139,10 +139,10 @@ function missingFields(content) {
 }
 
 async function submitArticle(req, res) {
-  const article = await findOwn(req.params.id, req.session.user.id)
+  const article = await findOwnArticle(req.params.id, req.session.user.id)
 
-  const missing = missingFields(article.draftContent)
-  if (missing.length) throw fail(400, 'Still missing: ' + missing.join(', '))
+  const missing = findMissingFields(article.draftContent)
+  if (missing.length) throw makeError(400, 'Still missing: ' + missing.join(', '))
 
   // the workflow checks the move is legal - a published article has to be
   // edited first, which puts it back to in_progress
@@ -152,8 +152,4 @@ async function submitArticle(req, res) {
   res.json({ status: article.status, statusLabel: STATUS_LABELS[article.status] })
 }
 
-module.exports = {
-  showDashboard, showNewEditor, showEditor,
-  createArticle, saveDraft, submitArticle,
-  findOwn, readContent, missingFields, EDITABLE, fail
-}
+module.exports = { showDashboard, showNewEditor, showEditor, createArticle, saveDraft, submitArticle }
