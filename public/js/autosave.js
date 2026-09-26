@@ -10,6 +10,9 @@ if (form && !form.dataset.readonly) {
   const IDLE_MS = 1500     // save this long after typing stops
   const CEILING_MS = 10000 // ...but never go longer than this while typing
 
+  const submitBtn = document.getElementById('submit-btn')
+  const submitError = document.getElementById('submit-error')
+
   let articleId = form.dataset.id || null
   let hasUnsavedChanges = false
   let idleTimer = null
@@ -111,15 +114,14 @@ if (form && !form.dataset.readonly) {
     })
   })
 
-  // live image preview
+  // live image preview - it starts hidden when the article has no image yet
   getField('imageUrl').addEventListener('input', () => {
     const img = document.getElementById('image-preview')
-    if (img) img.src = getField('imageUrl').value
+    if (!img) return
+    const url = getField('imageUrl').value.trim()
+    img.src = url
+    img.hidden = !url
   })
-
-  // --- send to editor ---
-  const submitBtn = document.getElementById('submit-btn')
-  const submitError = document.getElementById('submit-error')
 
   if (submitBtn) submitBtn.addEventListener('click', async () => {
     submitError.hidden = true
@@ -127,6 +129,14 @@ if (form && !form.dataset.readonly) {
 
     // flush anything still waiting, or we would submit a stale draft
     if (hasUnsavedChanges) await saveDraft()
+
+    // still nothing saved, so there is no article to send
+    if (!articleId) {
+      submitError.textContent = 'Write something first'
+      submitError.hidden = false
+      submitBtn.disabled = false
+      return
+    }
 
     const res = await fetch(`/reporter/api/article/${articleId}/submit`, { method: 'POST' })
     const data = await res.json()

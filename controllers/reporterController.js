@@ -52,7 +52,6 @@ function showNewEditor(req, res) {
     article: null,
     content: { title: '', summary: '', body: '', category: CATEGORIES[0], imageUrl: '' },
     canEdit: true,
-    canSubmit: false,   // nothing exists until the first save
     CATEGORIES, CATEGORY_LABELS, STATUS, STATUS_LABELS
   })
 }
@@ -66,8 +65,6 @@ async function showEditor(req, res) {
     article,
     content: article.draftContent,
     canEdit: EDITABLE.includes(article.status),
-    // a published article with no edits yet has nothing to submit
-    canSubmit: [STATUS.IN_PROGRESS, STATUS.NEEDS_REVISION].includes(article.status),
     CATEGORIES, CATEGORY_LABELS, STATUS, STATUS_LABELS
   })
 }
@@ -140,6 +137,10 @@ function findMissingFields(content) {
 
 async function submitArticle(req, res) {
   const article = await findOwnArticle(req.params.id, req.session.user.id)
+
+  if (article.status === STATUS.PUBLISHED) {
+    throw makeError(400, 'Nothing to send - change something first')
+  }
 
   const missing = findMissingFields(article.draftContent)
   if (missing.length) throw makeError(400, 'Still missing: ' + missing.join(', '))
