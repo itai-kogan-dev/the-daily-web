@@ -7,7 +7,18 @@
     <a class="button" href="/reporter/article/new">New article</a>
   </div>
 
-  <% if (needsWorkCount > 0) { %>
+  <nav class="tabs">
+    <a href="/reporter" class="tab <%= filter ? '' : 'active' %>">
+      All <span class="tab-count"><%= counts.all %></span>
+    </a>
+    <% statuses.forEach(status => { %>
+      <a href="/reporter?status=<%= status %>" class="tab <%= filter === status ? 'active' : '' %>">
+        <%= STATUS_LABELS[status] %> <span class="tab-count"><%= counts[status] %></span>
+      </a>
+    <% }) %>
+  </nav>
+
+  <% if (needsWorkCount > 0 && filter !== STATUS.NEEDS_REVISION) { %>
     <p class="notice warn">
       <%= needsWorkCount %> <%= needsWorkCount === 1 ? 'article needs' : 'articles need' %>
       changes before <%= needsWorkCount === 1 ? 'it can' : 'they can' %> go back to the editor.
@@ -15,24 +26,26 @@
   <% } %>
 
   <% if (articles.length === 0) { %>
-    <p class="muted">Nothing here yet. Start with a new article.</p>
+    <p class="muted">
+      <%= filter ? 'No articles with this status.' : 'Nothing here yet. Start with a new article.' %>
+    </p>
   <% } else { %>
     <ul class="article-list">
-      <% articles.forEach(a => { %>
+      <% articles.forEach(article => { %>
         <li class="article-row">
           <div class="article-main">
-            <a class="article-title" href="/reporter/article/<%= a._id %>">
-              <%= a.draftContent.title %>
+            <a class="article-title" href="/reporter/article/<%= article._id %>">
+              <%= article.draftContent.title %>
             </a>
             <div class="article-meta">
-              <span class="badge status-<%= a.status %>"><%= STATUS_LABELS[a.status] %></span>
-              <% if (a.isLive) { %><span class="badge live">Live</span><% } %>
-              <span><%= CATEGORY_LABELS[a.draftContent.category] %></span>
-              <span>edited <%= new Date(a.updatedAt).toLocaleDateString() %></span>
+              <span class="badge status-<%= article.status %>"><%= STATUS_LABELS[article.status] %></span>
+              <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
+              <span><%= CATEGORY_LABELS[article.draftContent.category] %></span>
+              <span>edited <%= new Date(article.updatedAt).toLocaleDateString() %></span>
             </div>
 
-            <% if (a.status === STATUS.NEEDS_REVISION && a.editorNote) { %>
-              <p class="editor-note"><strong>Editor:</strong> <%= a.editorNote %></p>
+            <% if (article.status === STATUS.NEEDS_REVISION && article.editorNote) { %>
+              <p class="editor-note"><strong>Editor:</strong> <%= article.editorNote %></p>
             <% } %>
           </div>
         </li>

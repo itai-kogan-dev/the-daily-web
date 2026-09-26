@@ -44,8 +44,8 @@
 
     <label>Category
       <select name="category" <%= canEdit ? '' : 'disabled' %>>
-        <% CATEGORIES.forEach(c => { %>
-          <option value="<%= c %>" <%= content.category === c ? 'selected' : '' %>><%= CATEGORY_LABELS[c] %></option>
+        <% CATEGORIES.forEach(category => { %>
+          <option value="<%= category %>" <%= content.category === category ? 'selected' : '' %>><%= CATEGORY_LABELS[category] %></option>
         <% }) %>
       </select>
     </label>

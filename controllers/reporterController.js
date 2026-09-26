@@ -30,18 +30,41 @@ async function findOwnArticle(id, userId) {
 // thing doing that - it runs on the server, off the session, so it cannot be
 // changed from the browser.
 async function showDashboard(req, res) {
-  const articles = await Article.find({ author: req.session.user.id })
-    .sort({ updatedAt: -1 })
-    .lean()
+  const author = req.session.user.id
+  const statuses = Object.values(STATUS)
+
+  // ?status=x narrows the list. Anything else in the query is ignored, so a
+  // made up value shows everything rather than erroring.
+  const filter = statuses.includes(req.query.status) ? req.query.status : null
+
+  const query = { author }
+  if (filter) query.status = filter
+
+  const articles = await Article.find(query).sort({ updatedAt: -1 }).lean()
+
+  // one pass over the whole set for the tab counts, filtered or not
+  const grouped = await Article.aggregate([
+    { $match: { author: new mongoose.Types.ObjectId(author) } },
+    { $group: { _id: '$status', count: { $sum: 1 } } }
+  ])
+  const counts = { all: 0 }
+  for (const status of statuses) counts[status] = 0
+  for (const row of grouped) {
+    counts[row._id] = row.count
+    counts.all += row.count
+  }
 
   // Anything the editor sent back goes to the top - it is the only thing on
   // this page that is actually waiting on the reporter.
-  const needsWork = articles.filter(a => a.status === STATUS.NEEDS_REVISION)
-  const rest = articles.filter(a => a.status !== STATUS.NEEDS_REVISION)
+  const needsWork = articles.filter(article => article.status === STATUS.NEEDS_REVISION)
+  const rest = articles.filter(article => article.status !== STATUS.NEEDS_REVISION)
 
   res.render('reporter/dashboard', {
     articles: [...needsWork, ...rest],
-    needsWorkCount: needsWork.length,
+    needsWorkCount: counts[STATUS.NEEDS_REVISION],
+    counts,
+    filter,
+    statuses,
     STATUS, STATUS_LABELS, CATEGORY_LABELS
   })
 }
