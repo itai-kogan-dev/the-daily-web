@@ -2,10 +2,13 @@
 <%- include('../partials/header') %>
 
 <main class="page">
-  <div class="page-top">
-    <h1><%= article ? 'Edit article' : 'New article' %></h1>
-    <a href="/reporter">Back to my articles</a>
-  </div>
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/reporter">My articles</a>
+    <span aria-hidden="true">&rsaquo;</span>
+    <span><%= article ? 'Edit article' : 'New article' %></span>
+  </nav>
+
+  <h1><%= article ? 'Edit article' : 'New article' %></h1>
 
   <% if (article) { %>
     <div class="article-meta">
@@ -31,8 +34,6 @@
       This article is with the editor, so it cannot be changed right now.
     </p>
   <% } %>
-
-  <p id="save-status" class="save-status"></p>
 
   <form id="article-form" class="stack"
         data-id="<%= article ? article._id : '' %>"
@@ -65,10 +66,17 @@
          <%= content.imageUrl ? '' : 'hidden' %>>
   </form>
 
-  <div class="submit-bar" <%= canEdit ? '' : 'hidden' %>>
-    <p id="submit-error" class="error" hidden></p>
-    <button id="submit-btn" type="button">Send to editor</button>
-    <p class="muted">Once sent, you cannot edit it until the editor replies.</p>
+  <div class="sticky-bar">
+    <div class="sticky-left" <%= canEdit ? '' : 'hidden' %>>
+      <button id="submit-btn" type="button">Send to editor</button>
+      <p id="submit-error" class="error" hidden></p>
+      <span id="submit-hint" class="muted hint">You cannot edit it until the editor replies</span>
+    </div>
+
+    <div class="sticky-right">
+      <p id="save-status" class="save-status"></p>
+      <a class="button-secondary" href="/reporter">&larr; My articles</a>
+    </div>
   </div>
 </main>
 

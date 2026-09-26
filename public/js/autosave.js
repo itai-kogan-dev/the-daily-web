@@ -12,6 +12,14 @@ if (form && !form.dataset.readonly) {
 
   const submitBtn = document.getElementById('submit-btn')
   const submitError = document.getElementById('submit-error')
+  const submitHint = document.getElementById('submit-hint')
+
+  // the error takes the hint's place so the bar does not grow
+  function showSubmitError(text) {
+    submitError.textContent = text
+    submitError.hidden = false
+    if (submitHint) submitHint.hidden = true
+  }
 
   let articleId = form.dataset.id || null
   let hasUnsavedChanges = false
@@ -125,6 +133,7 @@ if (form && !form.dataset.readonly) {
 
   if (submitBtn) submitBtn.addEventListener('click', async () => {
     submitError.hidden = true
+    if (submitHint) submitHint.hidden = false
     submitBtn.disabled = true
 
     // flush anything still waiting, or we would submit a stale draft
@@ -132,8 +141,7 @@ if (form && !form.dataset.readonly) {
 
     // still nothing saved, so there is no article to send
     if (!articleId) {
-      submitError.textContent = 'Write something first'
-      submitError.hidden = false
+      showSubmitError('Write something first')
       submitBtn.disabled = false
       return
     }
@@ -142,8 +150,7 @@ if (form && !form.dataset.readonly) {
     const data = await res.json()
 
     if (!res.ok) {
-      submitError.textContent = data.error
-      submitError.hidden = false
+      showSubmitError(data.error)
       submitBtn.disabled = false
       return
     }

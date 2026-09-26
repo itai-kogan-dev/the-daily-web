@@ -96,9 +96,59 @@
 
 .image-preview[src=""] { display: none; }
 
-.submit-bar {
+/* Stays on screen while writing. The body field is tall enough that the save
+   status and the submit button would otherwise both be scrolled away. */
+.sticky-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem var(--gap);
   margin-top: var(--gap);
-  padding-top: var(--gap);
+  padding: .75rem 0;
+  background: var(--bg);
   border-top: 1px solid var(--line);
 }
-.submit-bar .muted { font-size: .85rem; margin: .4rem 0 0; }
+
+.sticky-left,
+.sticky-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem;
+}
+.sticky-right { margin-left: auto }
+
+.button-secondary {
+  display: inline-block;
+  padding: .5rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.button-secondary:hover { border-color: var(--muted) }
+
+.sticky-bar .save-status { margin: 0 }
+.sticky-bar .error { margin: 0 }
+.hint { font-size: .85rem }
+
+/* on a narrow screen the hint is the first thing worth dropping */
+@media (max-width: 600px) {
+  .hint { display: none }
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .875rem;
+  color: var(--muted);
+  margin-bottom: .25rem;
+}
+.breadcrumb a { color: var(--muted); }
+.breadcrumb a:hover { color: var(--accent); }
