@@ -9,7 +9,10 @@ const ViewBucket = require('../models/ViewBucket')
 const { STATUS, CATEGORIES } = require('../models/Article')
 const { ROLES } = require('../models/User')
 
-const PASSWORD = 'password123'   // same for everyone, it is demo data
+// Same for every seeded user, but it comes from .env so no credential of any
+// kind lives in the repo.
+const PASSWORD = process.env.SEED_PASSWORD
+if (!PASSWORD) throw new Error('SEED_PASSWORD is missing - copy .env.example to .env')
 
 const pick = list => list[Math.floor(Math.random() * list.length)]
 const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min
@@ -181,7 +184,7 @@ async function seed() {
   })))
 
   console.log('')
-  console.log('log in with any of these, password: ' + PASSWORD)
+  console.log('log in with any of these, using SEED_PASSWORD from your .env')
   console.log('  editor  (editor)')
   console.log('  itai, nadav, idan, yuval  (reporters)')
 
