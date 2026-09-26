@@ -1,9 +1,37 @@
-<%- include('../partials/head', { title: 'My articles' }) %>
+<%- include('../partials/head', { title: 'My articles', extraCss: '/css/reporter.css' }) %>
 <%- include('../partials/header') %>
 
 <main class="page">
-  <!-- T2: the reporter's own articles and the status of each -->
-  <h1>TODO: my articles</h1>
+  <div class="page-top">
+    <h1>My articles</h1>
+    <a class="button" href="/reporter/article/new">New article</a>
+  </div>
+
+  <% if (articles.length === 0) { %>
+    <p class="muted">Nothing here yet. Start with a new article.</p>
+  <% } else { %>
+    <ul class="article-list">
+      <% articles.forEach(a => { %>
+        <li class="article-row">
+          <div class="article-main">
+            <a class="article-title" href="/reporter/article/<%= a._id %>">
+              <%= a.draftContent.title %>
+            </a>
+            <div class="article-meta">
+              <span class="badge status-<%= a.status %>"><%= STATUS_LABELS[a.status] %></span>
+              <% if (a.isLive) { %><span class="badge live">Live</span><% } %>
+              <span><%= CATEGORY_LABELS[a.draftContent.category] %></span>
+              <span>edited <%= new Date(a.updatedAt).toLocaleDateString() %></span>
+            </div>
+
+            <% if (a.status === STATUS.NEEDS_REVISION && a.editorNote) { %>
+              <p class="editor-note"><strong>Editor:</strong> <%= a.editorNote %></p>
+            <% } %>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
 </main>
 
 <%- include('../partials/footer') %>
