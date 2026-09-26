@@ -9,7 +9,7 @@
 
   <% if (article) { %>
     <div class="article-meta">
-      <span class="badge status-<%= article.status %>"><%= STATUS_LABELS[article.status] %></span>
+      <span id="status-badge" class="badge status-<%= article.status %>"><%= STATUS_LABELS[article.status] %></span>
       <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
     </div>
   <% } %>
@@ -31,7 +31,11 @@
     </p>
   <% } %>
 
-  <form id="article-form" class="stack" data-id="<%= article ? article._id : '' %>">
+  <p id="save-status" class="save-status"></p>
+
+  <form id="article-form" class="stack"
+        data-id="<%= article ? article._id : '' %>"
+        <%= canEdit ? '' : 'data-readonly="1"' %>>
     <label>Title
       <input name="title" value="<%= content.title %>" <%= canEdit ? '' : 'disabled' %>>
     </label>
@@ -56,9 +60,8 @@
       <input name="imageUrl" value="<%= content.imageUrl %>" placeholder="https://..." <%= canEdit ? '' : 'disabled' %>>
     </label>
 
-    <% if (content.imageUrl) { %>
-      <img class="image-preview" src="<%= content.imageUrl %>" alt="">
-    <% } %>
+    <img id="image-preview" class="image-preview" src="<%= content.imageUrl %>" alt=""
+         <%= content.imageUrl ? '' : 'hidden' %>>
   </form>
 </main>
 

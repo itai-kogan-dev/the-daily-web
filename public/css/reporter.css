@@ -84,3 +84,14 @@
   border-radius: var(--radius);
   border: 1px solid var(--line);
 }
+
+.save-status {
+  min-height: 1.2rem;
+  margin: .5rem 0 0;
+  font-size: .875rem;
+  color: var(--muted);
+}
+.save-status.pending { color: #7a5600; }
+.save-status.error   { color: var(--accent); font-weight: 600; }
+
+.image-preview[src=""] { display: none; }

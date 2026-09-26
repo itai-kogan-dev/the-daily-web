@@ -1,6 +1,7 @@
 const mongoose = require('mongoose')
 const Article = require('../models/Article')
 const { STATUS, STATUS_LABELS, CATEGORIES, CATEGORY_LABELS } = require('../models/Article')
+const workflow = require('../services/articleWorkflow')
 
 // A reporter can work on an article in these states. pending_editor is missing
 // on purpose - it is with the editor, and the spec has no transition out of it
@@ -59,4 +60,63 @@ async function showEditor(req, res) {
   })
 }
 
-module.exports = { showDashboard, showNewEditor, showEditor, findOwn, EDITABLE, fail }
+// Pulls the content fields out of a request body. A draft is allowed to be
+// half written, so nothing here is rejected for being empty - losing work to a
+// validation error is exactly what the spec says must not happen.
+function readContent(body, current = {}) {
+  return {
+    title:    (body.title    ?? current.title    ?? '').trim() || 'Untitled',
+    summary:  (body.summary  ?? current.summary  ?? '').trim(),
+    body:      body.body     ?? current.body     ?? '',
+    category: CATEGORIES.includes(body.category) ? body.category : (current.category || CATEGORIES[0]),
+    imageUrl: (body.imageUrl ?? current.imageUrl ?? '').trim()
+  }
+}
+
+// First save of a new article - nothing exists until this runs.
+// Creating is the one place we refuse empty content, otherwise the API could be
+// used to fill the database. Updating stays permissive so no work is lost.
+async function createArticle(req, res) {
+  const content = readContent(req.body)
+  const empty = content.title === 'Untitled' && !content.summary && !content.body.trim() && !content.imageUrl
+  if (empty) throw fail(400, 'Write something before the article is created')
+
+  const article = await Article.create({
+    author: req.session.user.id,
+    draftContent: content
+    // status defaults to in_progress, isLive to false
+  })
+
+  res.status(201).json({ id: article._id, savedAt: article.updatedAt, status: article.status })
+}
+
+// Every save after the first one.
+async function saveDraft(req, res) {
+  const article = await findOwn(req.params.id, req.session.user.id)
+
+  if (!EDITABLE.includes(article.status)) {
+    throw fail(403, 'This article is with the editor and cannot be changed')
+  }
+
+  // Editing something already published starts a new version. It happens on
+  // the first real edit, not when the form opens, so reading an article does
+  // not change its state.
+  if (article.status === STATUS.PUBLISHED) workflow.startNewVersion(article)
+
+  // publishedContent is never touched here. That is what keeps readers on the
+  // approved version while this is being written.
+  article.draftContent = readContent(req.body, article.draftContent.toObject())
+  await article.save()
+
+  res.json({
+    savedAt: article.updatedAt,
+    status: article.status,
+    statusLabel: STATUS_LABELS[article.status]
+  })
+}
+
+module.exports = {
+  showDashboard, showNewEditor, showEditor,
+  createArticle, saveDraft,
+  findOwn, readContent, EDITABLE, fail
+}

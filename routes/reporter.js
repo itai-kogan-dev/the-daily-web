@@ -17,8 +17,8 @@ router.get('/article/new', reporter.showNewEditor)
 router.get('/article/:id', reporter.showEditor)
 
 // --- json ---
-router.post('/api/article', todo('create article'))
-router.patch('/api/article/:id', todo('autosave draft'))
+router.post('/api/article', reporter.createArticle)
+router.patch('/api/article/:id', reporter.saveDraft)
 router.post('/api/article/:id/submit', todo('send to editor'))
 
 module.exports = router
