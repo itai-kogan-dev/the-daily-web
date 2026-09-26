@@ -1,11 +1,65 @@
-<%- include('../partials/head', { title: 'Edit article' }) %>
+<%- include('../partials/head', { title: article ? 'Edit article' : 'New article', extraCss: '/css/reporter.css' }) %>
 <%- include('../partials/header') %>
 
 <main class="page">
-  <!-- T2: the editing form. No save button - it autosaves while typing,
-       and picks up where the reporter left off. Shows editorNote if the
-       article came back for revision. -->
-  <h1>TODO: edit article</h1>
+  <div class="page-top">
+    <h1><%= article ? 'Edit article' : 'New article' %></h1>
+    <a href="/reporter">Back to my articles</a>
+  </div>
+
+  <% if (article) { %>
+    <div class="article-meta">
+      <span class="badge status-<%= article.status %>"><%= STATUS_LABELS[article.status] %></span>
+      <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
+    </div>
+  <% } %>
+
+  <% if (article && article.status === STATUS.NEEDS_REVISION && article.editorNote) { %>
+    <p class="editor-note"><strong>Editor asked for changes:</strong> <%= article.editorNote %></p>
+  <% } %>
+
+  <% if (article && article.isLive) { %>
+    <p class="notice">
+      Readers are seeing the approved version. Nothing you write here reaches
+      them until an editor approves it.
+    </p>
+  <% } %>
+
+  <% if (!canEdit) { %>
+    <p class="notice warn">
+      This article is with the editor, so it cannot be changed right now.
+    </p>
+  <% } %>
+
+  <form id="article-form" class="stack" data-id="<%= article ? article._id : '' %>">
+    <label>Title
+      <input name="title" value="<%= content.title %>" <%= canEdit ? '' : 'disabled' %>>
+    </label>
+
+    <label>Category
+      <select name="category" <%= canEdit ? '' : 'disabled' %>>
+        <% CATEGORIES.forEach(c => { %>
+          <option value="<%= c %>" <%= content.category === c ? 'selected' : '' %>><%= CATEGORY_LABELS[c] %></option>
+        <% }) %>
+      </select>
+    </label>
+
+    <label>Summary
+      <textarea name="summary" rows="2" <%= canEdit ? '' : 'disabled' %>><%= content.summary %></textarea>
+    </label>
+
+    <label>Body
+      <textarea name="body" rows="16" <%= canEdit ? '' : 'disabled' %>><%= content.body %></textarea>
+    </label>
+
+    <label>Image URL
+      <input name="imageUrl" value="<%= content.imageUrl %>" placeholder="https://..." <%= canEdit ? '' : 'disabled' %>>
+    </label>
+
+    <% if (content.imageUrl) { %>
+      <img class="image-preview" src="<%= content.imageUrl %>" alt="">
+    <% } %>
+  </form>
 </main>
 
 <script src="/js/autosave.js"></script>

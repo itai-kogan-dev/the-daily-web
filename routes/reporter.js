@@ -12,8 +12,9 @@ const todo = name => (req, res) => res.status(501).send(`TODO: ${name}`)
 
 // --- pages ---
 router.get('/', reporter.showDashboard)
-router.get('/article/new', (req, res) => res.render('reporter/edit'))
-router.get('/article/:id', (req, res) => res.render('reporter/edit'))
+// /article/new has to come first, otherwise :id would match the word "new"
+router.get('/article/new', reporter.showNewEditor)
+router.get('/article/:id', reporter.showEditor)
 
 // --- json ---
 router.post('/api/article', todo('create article'))

@@ -66,3 +66,21 @@
   border-radius: var(--radius);
   font-size: .9rem;
 }
+
+.notice {
+  padding: .6rem .75rem;
+  border-radius: var(--radius);
+  background: #eef4fb;
+  border-left: 3px solid #4a7fb5;
+  font-size: .9rem;
+}
+.notice.warn { background: #fff4d6; border-left-color: #c79a1f; }
+
+#article-form { margin-top: var(--gap); }
+#article-form textarea { resize: vertical; font-family: inherit; }
+
+.image-preview {
+  max-width: 320px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+}
