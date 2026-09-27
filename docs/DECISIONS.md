@@ -70,6 +70,18 @@ schema's enum.
 `currentUser()` returns a guest object rather than `null` so every request has a
 user and permission checks look the same everywhere.
 
+## Comment rate limiting counts in the session, not by IP
+
+The spec allows 3 comments a minute "from the same device", so there is no field
+for it on `Comment` - the count lives in the session. An IP is a network, and a
+dorm or an office would share the three between them; a session cookie is per
+browser, which is closer to a device.
+
+`saveUninitialized` is false, so a guest browsing creates no session. Writing the
+count is what creates one, so only people who comment cost us a row.
+
+See `middleware/rateLimit.js`.
+
 ## Interface language is English
 
 The spec never asks for Hebrew - its only mention of "languages" is about
