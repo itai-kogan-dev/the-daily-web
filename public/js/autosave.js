@@ -137,7 +137,7 @@ if (form && !form.dataset.readonly) {
   // The picture is read in the browser and stored as a data URI, so it sits in
   // the database with the article and everyone who opens the project sees it.
   // Saving the file to disk instead would leave it on one laptop.
-  const MAX_IMAGE_BYTES = 300 * 1024
+  const MAX_IMAGE_BYTES = 2 * 1024 * 1024
 
   const preview = document.getElementById('image-preview')
   const imageError = document.getElementById('image-error')
@@ -151,34 +151,70 @@ if (form && !form.dataset.readonly) {
     imageError.hidden = !text
   }
 
+  // The picture goes to the server on its own and comes back as a path. Only
+  // that short path is kept in the form, so the article document stays small
+  // and the browser can cache the picture like any other image.
+  async function sendImage(file) {
+    if (file.size > MAX_IMAGE_BYTES) {
+      showImageError(`That picture is ${Math.round(file.size / 1024)} KB, the limit is ${MAX_IMAGE_BYTES / 1024 / 1024} MB`)
+      return
+    }
+
+    showImageError('')
+    if (imageName) imageName.textContent = 'Uploading...'
+
+    const res = await fetch('/reporter/api/image', {
+      method: 'POST',
+      headers: { 'Content-Type': file.type, 'X-Image-Name': file.name },
+      body: file
+    }).catch(() => null)
+
+    if (!res || !res.ok) {
+      if (imageName) imageName.textContent = 'No image yet'
+      return showImageError('Could not upload that picture')
+    }
+
+    const data = await res.json()
+    getField('imageUrl').value = data.url
+    imageChanged = true
+    if (imageName) imageName.textContent = file.name
+    if (preview) {
+      preview.src = data.url
+      preview.hidden = false
+    }
+    // the hidden field fires no input events, so tell autosave directly
+    form.dispatchEvent(new Event('input', { bubbles: true }))
+  }
+
   if (pickBtn && fileInput) {
     pickBtn.addEventListener('click', () => fileInput.click())
 
     fileInput.addEventListener('change', () => {
       const file = fileInput.files[0]
       fileInput.value = ''   // so picking the same file twice still fires
-      if (!file) return
+      if (file) sendImage(file)
+    })
+  }
 
-      if (file.size > MAX_IMAGE_BYTES) {
-        showImageError(`That picture is ${Math.round(file.size / 1024)} KB, the limit is 300 KB`)
-        return
-      }
+  // --- drag and drop ---
+  const dropZone = document.getElementById('image-drop')
 
-      const reader = new FileReader()
-      reader.onload = () => {
-        getField('imageUrl').value = reader.result
-        imageChanged = true
-        showImageError('')
-        if (imageName) imageName.textContent = file.name
-        if (preview) {
-          preview.src = reader.result
-          preview.hidden = false
-        }
-        // the hidden field does not fire input events, so tell autosave directly
-        form.dispatchEvent(new Event('input', { bubbles: true }))
-      }
-      reader.onerror = () => showImageError('Could not read that file')
-      reader.readAsDataURL(file)
+  if (dropZone) {
+    // the browser opens a dropped file in the tab unless both of these are stopped
+    for (const name of ['dragenter', 'dragover']) {
+      dropZone.addEventListener(name, event => {
+        event.preventDefault()
+        dropZone.classList.add('dragging')
+      })
+    }
+    for (const name of ['dragleave', 'drop']) {
+      dropZone.addEventListener(name, () => dropZone.classList.remove('dragging'))
+    }
+
+    dropZone.addEventListener('drop', event => {
+      event.preventDefault()
+      const file = event.dataTransfer.files[0]
+      if (file) sendImage(file)
     })
   }
 

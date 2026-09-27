@@ -14,7 +14,9 @@ const LEGAL_TRANSITIONS = {
 // Reporters upload a file, which is stored as a data URI. The seeded demo
 // articles use plain links, so both count as a valid image.
 function isValidImageSource(value) {
-  if (/^data:image\/(png|jpeg|gif|webp);base64,/i.test(value)) return true
+  // an uploaded picture, stored in the database
+  if (/^\/images\/[a-f0-9]{24}$/i.test(value)) return true
+
   try {
     const url = new URL(value)
     return url.protocol === 'http:' || url.protocol === 'https:'

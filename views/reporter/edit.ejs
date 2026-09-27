@@ -60,12 +60,13 @@
 
     <div class="field">
       <span class="field-label">Image</span>
-      <div class="image-row">
+      <div id="image-drop" class="image-drop">
         <button type="button" id="image-pick-btn" class="button-secondary" <%= canEdit ? '' : 'disabled' %>>Choose image</button>
         <span id="image-name" class="muted"><%= content.imageUrl ? 'Image set' : 'No image yet' %></span>
+        <span class="muted hint">or drop one here</span>
       </div>
       <input type="file" id="image-file" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
-      <!-- the picture itself travels in this field, as a data URI -->
+      <!-- holds /images/<id> once the picture is in the database -->
       <input type="hidden" name="imageUrl" value="<%= content.imageUrl %>">
       <p id="image-error" class="error" hidden></p>
     </div>

@@ -185,4 +185,13 @@
 
 .field { display: flex; flex-direction: column; gap: .25rem }
 .field-label { font-size: inherit }
-.image-row { display: flex; align-items: center; gap: .75rem }
+.image-drop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem;
+  padding: .75rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+}
+.image-drop.dragging { border-color: var(--accent); background: #fdf6f6 }

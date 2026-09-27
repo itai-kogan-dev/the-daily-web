@@ -2,6 +2,7 @@ const mongoose = require('mongoose')
 const Article = require('../models/Article')
 const { STATUS, STATUS_LABELS, CATEGORIES, CATEGORY_LABELS } = Article
 const workflow = require('../services/articleWorkflow')
+const imageStore = require('../services/imageStore')
 
 // A reporter can work on an article in these states. pending_editor is missing
 // on purpose - it is with the editor, and the spec has no transition out of it
@@ -105,6 +106,22 @@ function readContent(body, current = {}) {
   }
 }
 
+// Stores the picture and hands back the path to it. The article is not touched
+// here - the client puts the path in the form and the next autosave carries it
+// like any other field.
+async function uploadImage(req, res) {
+  if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+    throw makeError(400, 'No picture received')
+  }
+
+  const url = await imageStore.saveImage(req.body, {
+    filename: (req.get('X-Image-Name') || 'image').slice(0, 120),
+    contentType: req.get('Content-Type')
+  })
+
+  res.status(201).json({ url })
+}
+
 // First save of a new article - nothing exists until this runs.
 // Creating is the one place we refuse empty content, otherwise the API could be
 // used to fill the database. Updating stays permissive so no work is lost.
@@ -162,4 +179,4 @@ async function submitArticle(req, res) {
   res.json({ status: article.status, statusLabel: STATUS_LABELS[article.status] })
 }
 
-module.exports = { showDashboard, showNewEditor, showEditor, createArticle, saveDraft, submitArticle }
+module.exports = { showDashboard, showNewEditor, showEditor, createArticle, saveDraft, submitArticle, uploadImage }
