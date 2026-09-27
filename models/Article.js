@@ -66,8 +66,9 @@ const articleSchema = new mongoose.Schema({
     _id:    false
   }],
 
-  // copied from ViewBucket so sorting by popularity is a plain indexed
-  // query instead of adding up every bucket
+  // A rollup of ViewBucket, so the feed can sort by popularity on an index
+  // instead of adding up every bucket. Update it on a cadence, never once per
+  // view - a bucket rotates every 5 minutes, this document stays hot forever.
   viewCount: { type: Number, default: 0 }
 }, { timestamps: true })
 

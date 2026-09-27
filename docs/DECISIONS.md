@@ -50,6 +50,16 @@ document per pageview. The spec assumes thousands of readers at once, which
 would mean millions of documents and a very slow analytics graph. We lose the
 exact second of each view, which nothing needs.
 
+`Article.viewCount` is a rollup of those buckets, not a second counter. The feed
+sorts by popularity and needs an indexed field to do it, which an aggregation
+over buckets cannot give us.
+
+It has to be updated on a cadence rather than once per view. A bucket only stays
+current for 5 minutes, so writes to it move on; `viewCount` is one document per
+article that would stay hot for the life of the article, and Mongo locks per
+document. The seed already does it the right way - it aggregates the buckets at
+the end instead of counting as it inserts.
+
 ## Guest is a role, but never stored
 
 The spec has three user types. Guest has no username and no password, so there
