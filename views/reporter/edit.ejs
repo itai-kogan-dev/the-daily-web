@@ -5,7 +5,7 @@
   <nav class="breadcrumb" aria-label="Breadcrumb">
     <a href="/reporter">My articles</a>
     <span aria-hidden="true">&rsaquo;</span>
-    <span><%= article ? 'Edit article' : 'New article' %></span>
+    <span class="crumb-current"><%= article ? content.title : 'New article' %></span>
   </nav>
 
   <h1><%= article ? 'Edit article' : 'New article' %></h1>
