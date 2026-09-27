@@ -1,20 +1,40 @@
 // nothing matched any route
-function notFound(req, res) {
+function handleNotFound(req, res) {
   if (req.originalUrl.includes('/api/')) return res.status(404).json({ error: 'Not found' })
   res.status(404).render('error', { status: 404, message: 'Page not found' })
+}
+
+// Mongo and Mongoose errors carry no status of their own, so all of them would
+// look like a crash. Map the ones we can actually explain.
+function resolveStatus(err) {
+  if (err.status) return err.status
+  if (err.name === 'ValidationError') return 400
+  if (err.name === 'CastError' || err.name === 'BSONError') return 400
+  if (err.code === 11000) return 409      // unique index, e.g. a username already taken
+  return 500
+}
+
+// err.status is the tell: we set it ourselves, so that message was written for
+// whoever is reading it. Without one the error came from Mongo, whose wording
+// names databases, collections, indexes and schema paths.
+function resolveMessage(err, status) {
+  if (err.status) return err.message
+  if (status === 400) return 'Some of the details are missing or invalid'
+  if (status === 409) return 'That already exists'
+  return 'Something went wrong'
 }
 
 // Express only treats a function as an error handler if it takes 4 arguments,
 // so next has to stay even though we never call it.
 function errorHandler(err, req, res, next) {
-  const status = err.status || 500
+  const status = resolveStatus(err)
+  const message = resolveMessage(err, status)
+
+  // the real message stays in the log, where we need it
   console.error('[error]', status, req.method, req.originalUrl, '-', err.message)
 
-  if (req.originalUrl.includes('/api/')) return res.status(status).json({ error: err.message })
-
-  // a real crash shouldn't leak internal messages to the page
-  const message = status === 500 ? 'Something went wrong' : err.message
+  if (req.originalUrl.includes('/api/')) return res.status(status).json({ error: message })
   res.status(status).render('error', { status, message })
 }
 
-module.exports = { notFound, errorHandler }
+module.exports = { handleNotFound, errorHandler }

@@ -7,7 +7,7 @@ const path = require('path')
 
 const { connectDb } = require('./config/db')
 const { attachViewData } = require('./middleware/auth')
-const { notFound, errorHandler } = require('./middleware/errorHandler')
+const { handleNotFound, errorHandler } = require('./middleware/errorHandler')
 
 const app = express()
 
@@ -38,7 +38,7 @@ app.use('/editor', require('./routes/editor'))
 app.use('/api/analytics', require('./routes/analytics'))
 
 // these two stay last, after every route had its chance
-app.use(notFound)
+app.use(handleNotFound)
 app.use(errorHandler)
 
 async function startServer() {
