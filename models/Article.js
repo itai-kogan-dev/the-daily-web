@@ -2,19 +2,20 @@ const mongoose = require('mongoose')
 
 // Values are what we store and compare in code, labels are what gets shown.
 // Split like this so changing the wording on screen never touches the DB.
-// Hebrew name next to each status is the one from the spec.
+// Listed in workflow order - write it, send it, maybe get it back, it goes
+// live. The dashboard tabs follow this order.
 const STATUS = {
   IN_PROGRESS:    'in_progress',     // בהכנה
   PENDING_EDITOR: 'pending_editor',  // ממתינה לאישור עורך
-  PUBLISHED:      'published',       // פורסמה
-  NEEDS_REVISION: 'needs_revision'   // הוחזרה לתיקונים
+  NEEDS_REVISION: 'needs_revision',  // הוחזרה לתיקונים
+  PUBLISHED:      'published'        // פורסמה
 }
 
 const STATUS_LABELS = {
   [STATUS.IN_PROGRESS]:    'In Progress',
   [STATUS.PENDING_EDITOR]: 'Pending Editor Approval',
-  [STATUS.PUBLISHED]:      'Published',
-  [STATUS.NEEDS_REVISION]: 'Needs Revision'
+  [STATUS.NEEDS_REVISION]: 'Needs Revision',
+  [STATUS.PUBLISHED]:      'Published'
 }
 
 const CATEGORIES = ['news', 'economy', 'sports', 'culture', 'technology', 'health']

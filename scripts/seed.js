@@ -16,7 +16,7 @@ if (!PASSWORD) throw new Error('SEED_PASSWORD is missing - copy .env.example to 
 
 const pick = list => list[Math.floor(Math.random() * list.length)]
 const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min
-const hoursAgo = h => new Date(Date.now() - h * 3600 * 1000)
+const hoursAgo = hours => new Date(Date.now() - hours * 3600 * 1000)
 
 const HEADLINES = {
   news:       ['Council approves', 'City reports', 'Officials confirm', 'Residents protest', 'Government announces'],
@@ -150,10 +150,10 @@ async function seed() {
     'Thanks for covering it.', 'Not sure I agree with the conclusion.'
   ]
   const comments = []
-  for (const a of articles.filter(x => x.isLive).slice(0, 180)) {
+  for (const article of articles.filter(one => one.isLive).slice(0, 180)) {
     for (let i = 0; i < randInt(0, 7); i++) {
       comments.push({
-        article: a._id,
+        article: article._id,
         authorName: pick(NAMES),
         body: pick(TEXTS),
         createdAt: hoursAgo(randInt(1, 24 * 20))
@@ -167,10 +167,10 @@ async function seed() {
   // Dense history for the articles the analytics graph will show, a light
   // sprinkle for the rest so the popularity sort has something to work with.
   const buckets = []
-  articles.forEach((a, i) => {
-    if (!a.isLive) return
-    const dense = featured.includes(i)
-    buckets.push(...makeBuckets(a, dense ? 1 : 12, dense ? 24 * 14 : 24 * 30))
+  articles.forEach((article, index) => {
+    if (!article.isLive) return
+    const isFeatured = featured.includes(index)
+    buckets.push(...makeBuckets(article, isFeatured ? 1 : 12, isFeatured ? 24 * 14 : 24 * 30))
   })
   await ViewBucket.insertMany(buckets)
   console.log(`created ${buckets.length} view buckets`)
@@ -179,8 +179,8 @@ async function seed() {
   const totals = await ViewBucket.aggregate([
     { $group: { _id: '$article', total: { $sum: '$count' } } }
   ])
-  await Article.bulkWrite(totals.map(t => ({
-    updateOne: { filter: { _id: t._id }, update: { $set: { viewCount: t.total } } }
+  await Article.bulkWrite(totals.map(row => ({
+    updateOne: { filter: { _id: row._id }, update: { $set: { viewCount: row.total } } }
   })))
 
   console.log('')

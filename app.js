@@ -41,10 +41,10 @@ app.use('/api/analytics', require('./routes/analytics'))
 app.use(notFound)
 app.use(errorHandler)
 
-async function start() {
+async function startServer() {
   await connectDb()
   const port = process.env.PORT || 3000
   app.listen(port, () => console.log(`[web] http://localhost:${port}`))
 }
 
-start()
+startServer()
