@@ -32,4 +32,14 @@ function openImage(id) {
   return getBucket().openDownloadStream(new mongoose.Types.ObjectId(id))
 }
 
-module.exports = { saveImage, findImage, openImage, MAX_BYTES, ALLOWED_TYPES }
+// The edit page shows the file name, and the only place it is kept is the
+// GridFS record, so it has to be looked up from the stored path.
+async function findImageName(url) {
+  const match = /^\/images\/([a-f0-9]{24})$/i.exec(url || '')
+  if (!match) return null
+
+  const file = await findImage(match[1])
+  return file ? file.filename : null
+}
+
+module.exports = { saveImage, findImage, openImage, findImageName, MAX_BYTES, ALLOWED_TYPES }

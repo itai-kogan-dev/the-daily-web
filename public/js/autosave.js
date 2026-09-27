@@ -139,7 +139,6 @@ if (form && !form.dataset.readonly) {
   // Saving the file to disk instead would leave it on one laptop.
   const MAX_IMAGE_BYTES = 2 * 1024 * 1024
 
-  const preview = document.getElementById('image-preview')
   const imageError = document.getElementById('image-error')
   const imageName = document.getElementById('image-name')
   const fileInput = document.getElementById('image-file')
@@ -178,10 +177,6 @@ if (form && !form.dataset.readonly) {
     getField('imageUrl').value = data.url
     imageChanged = true
     if (imageName) imageName.textContent = file.name
-    if (preview) {
-      preview.src = data.url
-      preview.hidden = false
-    }
     // the hidden field fires no input events, so tell autosave directly
     form.dispatchEvent(new Event('input', { bubbles: true }))
   }

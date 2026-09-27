@@ -79,12 +79,6 @@
 #article-form { margin-top: var(--gap); }
 #article-form textarea { resize: vertical; font-family: inherit; }
 
-.image-preview {
-  max-width: 320px;
-  border-radius: var(--radius);
-  border: 1px solid var(--line);
-}
-
 .save-status {
   min-height: 1.2rem;
   margin: .5rem 0 0;
@@ -94,7 +88,6 @@
 .save-status.pending { color: #7a5600; }
 .save-status.error   { color: var(--accent); font-weight: 600; }
 
-.image-preview[src=""] { display: none; }
 
 /* Stays on screen while writing. The body field is tall enough that the save
    status and the submit button would otherwise both be scrolled away. */

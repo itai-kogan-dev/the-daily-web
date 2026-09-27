@@ -75,6 +75,7 @@ function showNewEditor(req, res) {
   res.render('reporter/edit', {
     article: null,
     content: { title: '', summary: '', body: '', category: CATEGORIES[0], imageUrl: '' },
+    imageName: null,
     canEdit: true,
     CATEGORIES, CATEGORY_LABELS, STATUS, STATUS_LABELS
   })
@@ -88,6 +89,7 @@ async function showEditor(req, res) {
   res.render('reporter/edit', {
     article,
     content: article.draftContent,
+    imageName: await imageStore.findImageName(article.draftContent.imageUrl),
     canEdit: EDITABLE.includes(article.status),
     CATEGORIES, CATEGORY_LABELS, STATUS, STATUS_LABELS
   })
