@@ -13,16 +13,10 @@ const LEGAL_TRANSITIONS = {
 
 // Reporters upload a file, which is stored as a data URI. The seeded demo
 // articles use plain links, so both count as a valid image.
+// Every picture is uploaded and lives in the database, so the only shape a
+// valid image takes is the path to one.
 function isValidImageSource(value) {
-  // an uploaded picture, stored in the database
-  if (/^\/images\/[a-f0-9]{24}$/i.test(value)) return true
-
-  try {
-    const url = new URL(value)
-    return url.protocol === 'http:' || url.protocol === 'https:'
-  } catch {
-    return false
-  }
+  return /^\/images\/[a-f0-9]{24}$/i.test(value)
 }
 
 // A draft can be half written, but anything leaving the reporter has to be

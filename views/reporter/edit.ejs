@@ -65,7 +65,7 @@
         <span id="image-name" class="muted"><%= imageName || 'No image yet' %></span>
         <span class="muted hint">or drop one here</span>
       </div>
-      <input type="file" id="image-file" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
+      <input type="file" id="image-file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif" hidden>
       <!-- holds /images/<id> once the picture is in the database -->
       <input type="hidden" name="imageUrl" value="<%= content.imageUrl %>">
       <p id="image-error" class="error" hidden></p>

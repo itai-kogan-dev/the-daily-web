@@ -5,7 +5,9 @@ const mongoose = require('mongoose')
 // splits a file across two collections it manages itself.
 const BUCKET = 'images'
 const MAX_BYTES = 2 * 1024 * 1024
-const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
+// No SVG on purpose: it can contain a script, and we serve uploads from our
+// own origin, so it would run with the site's privileges.
+const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/avif']
 
 function getBucket() {
   return new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: BUCKET })
@@ -42,4 +44,17 @@ async function findImageName(url) {
   return file ? file.filename : null
 }
 
-module.exports = { saveImage, findImage, openImage, findImageName, MAX_BYTES, ALLOWED_TYPES }
+// The seed rebuilds everything, so the old pictures have to go with it or
+// each run would leave the previous one's files behind forever.
+async function clearImages() {
+  try {
+    await getBucket().drop()
+  } catch {
+    // nothing has been uploaded yet, so there is no bucket to drop
+  }
+}
+
+module.exports = {
+  saveImage, findImage, openImage, findImageName, clearImages,
+  MAX_BYTES, ALLOWED_TYPES
+}

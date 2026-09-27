@@ -153,7 +153,16 @@ if (form && !form.dataset.readonly) {
   // The picture goes to the server on its own and comes back as a path. Only
   // that short path is kept in the form, so the article document stays small
   // and the browser can cache the picture like any other image.
+  // Without this the server still refuses the file, but the message it can
+  // give is "no picture received", which does not say what went wrong.
+  const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/avif']
+
   async function sendImage(file) {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      showImageError('That file type is not supported - use PNG, JPEG, GIF, WebP or AVIF')
+      return
+    }
+
     if (file.size > MAX_IMAGE_BYTES) {
       showImageError(`That picture is ${Math.round(file.size / 1024)} KB, the limit is ${MAX_IMAGE_BYTES / 1024 / 1024} MB`)
       return
