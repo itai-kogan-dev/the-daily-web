@@ -58,6 +58,16 @@ if (form && results) {
     return link
   }
 
+  // Same as stepLink but wearing the square page-number styling, and with no
+  // rel: only Previous and Next are labelled that way.
+  function pageLink(page) {
+    const link = el('a', 'feed-page', String(page))
+    link.href = feedHref({ ...currentState(), page })
+    link.dataset.feedNav = ''
+    link.dataset.page = page
+    return link
+  }
+
   function buildCard(article) {
     const item = el('li', 'feed-card')
 
@@ -104,14 +114,52 @@ if (form && results) {
     return item
   }
 
+  // Copy of pageWindow in controllers/publicController.js. A browser cannot
+  // require the controller, so the same window is worked out again here. If one
+  // of the two changes, the other has to change with it.
+  function pageWindow(current, pages, span = 2) {
+    const wanted = new Set([1, pages])
+    for (let page = current - span; page <= current + span; page++) {
+      if (page >= 1 && page <= pages) wanted.add(page)
+    }
+
+    const entries = []
+    let previous = 0
+
+    for (const page of [...wanted].sort((a, b) => a - b)) {
+      if (page - previous > 1) entries.push({ gap: true })
+      entries.push({ page })
+      previous = page
+    }
+
+    return entries
+  }
+
   function buildPager(feed) {
     const nav = el('nav', 'feed-pager')
     nav.setAttribute('aria-label', 'Pages')
 
-    // An empty span rather than nothing, so "Page 2 of 5" stays in the middle
+    const numbers = el('div', 'feed-pages')
+    for (const entry of pageWindow(feed.page, feed.pages)) {
+      if (entry.gap) {
+        // stands in for pages that are not shown, so it is not clickable
+        const gap = el('span', 'feed-page-gap', '…')
+        gap.setAttribute('aria-hidden', 'true')
+        numbers.append(gap)
+      } else if (entry.page === feed.page) {
+        // the reader is already here, so this is a label rather than a link
+        const current = el('span', 'feed-page current', String(entry.page))
+        current.setAttribute('aria-current', 'page')
+        numbers.append(current)
+      } else {
+        numbers.append(pageLink(entry.page))
+      }
+    }
+
+    // An empty span rather than nothing, so the numbers stay in the middle
     // when only one of the two links exists
     nav.append(feed.page > 1 ? stepLink('Previous', feed.page - 1, 'prev') : el('span'))
-    nav.append(el('span', 'muted', `Page ${feed.page} of ${feed.pages}`))
+    nav.append(numbers)
     nav.append(feed.page < feed.pages ? stepLink('Next', feed.page + 1, 'next') : el('span'))
 
     return nav
