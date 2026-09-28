@@ -8,7 +8,7 @@ const router = express.Router()
 const todo = name => (req, res) => res.status(501).send(`TODO: ${name}`)
 
 // --- pages (server rendered) ---
-router.get('/', (req, res) => res.render('feed'))
+router.get('/', publicController.feedPage)
 // must render the full article server side - the spec requires the text to be
 // in the HTML with JavaScript turned off, for search engines
 router.get('/article/:id', (req, res) => res.render('article'))

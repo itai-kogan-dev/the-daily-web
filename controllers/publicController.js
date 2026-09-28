@@ -126,4 +126,37 @@ async function listArticles(req, res) {
   res.json(await findFeed(req.query))
 }
 
-module.exports = { findFeed, listArticles, PAGE_SIZE, SORTS, DEFAULT_SORT, readQuery }
+// Builds a link to the feed with some of the parameters replaced. Partial on
+// purpose: changing the sort must not throw away the search, and any change at
+// all starts again at page one. Empty values are left out, so a default URL is
+// just "/" rather than a string of no-ops.
+function feedLink(query, overrides = {}) {
+  const next = { q: '', category: '', sort: DEFAULT_SORT, page: 1, ...readQuery(query), ...overrides }
+  const params = new URLSearchParams()
+
+  if (next.q) params.set('q', next.q)
+  if (next.category) params.set('category', next.category)
+  if (next.sort !== DEFAULT_SORT) params.set('sort', next.sort)
+  if (next.page > 1) params.set('page', next.page)
+
+  const qs = params.toString()
+  return qs ? `/?${qs}` : '/'
+}
+
+// The controls need links that work on their own, before any script runs - and
+// the whole page is a working feed with the browser's JavaScript turned off.
+async function feedPage(req, res) {
+  const feed = await findFeed(req.query)
+
+  res.render('feed', {
+    ...feed,
+    CATEGORIES,
+    CATEGORY_LABELS,
+    feedLink: (overrides) => feedLink(req.query, overrides)
+  })
+}
+
+module.exports = {
+  findFeed, listArticles, feedPage, feedLink,
+  PAGE_SIZE, SORTS, DEFAULT_SORT, readQuery
+}

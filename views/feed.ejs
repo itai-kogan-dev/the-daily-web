@@ -3,9 +3,86 @@
 
 <div class="layout">
   <main class="page">
-    <!-- T1: search box, category filter, sort, then the article list.
-         Everything here updates through /api/articles without a page reload. -->
-    <h1>TODO: feed</h1>
+    <h1>Latest news</h1>
+
+    <!-- Every control below is a real link or a real form, so the feed works
+         with JavaScript turned off. feed.js takes over the same parameters
+         without reloading the page. -->
+    <form class="feed-search" method="get" action="/" role="search">
+      <input type="search" name="q" value="<%= q %>" placeholder="Search headlines"
+             aria-label="Search headlines" maxlength="80">
+      <input type="hidden" name="category" value="<%= category || '' %>">
+      <input type="hidden" name="sort" value="<%= sort %>">
+      <button type="submit">Search</button>
+      <% if (q) { %><a class="feed-clear" href="<%= feedLink({ q: '', page: 1 }) %>">Clear</a><% } %>
+    </form>
+
+    <nav class="feed-filters" aria-label="Filter by category">
+      <a class="chip<%= category ? '' : ' active' %>" href="<%= feedLink({ category: '', page: 1 }) %>">All</a>
+      <% CATEGORIES.forEach(name => { %>
+        <a class="chip<%= category === name ? ' active' : '' %>"
+           href="<%= feedLink({ category: name, page: 1 }) %>"><%= CATEGORY_LABELS[name] %></a>
+      <% }) %>
+    </nav>
+
+    <div class="feed-filters feed-sort" aria-label="Sort order">
+      <a class="chip<%= sort === 'date' ? ' active' : '' %>" href="<%= feedLink({ sort: 'date', page: 1 }) %>">Newest</a>
+      <a class="chip<%= sort === 'popular' ? ' active' : '' %>" href="<%= feedLink({ sort: 'popular', page: 1 }) %>">Most read</a>
+      <span class="feed-count muted"><%= total %> <%= total === 1 ? 'article' : 'articles' %></span>
+    </div>
+
+    <% if (!items.length) { %>
+      <p class="feed-empty muted" id="feed-empty">
+        <% if (q || category) { %>
+          Nothing matches that. <a href="/">Show everything</a>.
+        <% } else { %>
+          Nothing has been published yet.
+        <% } %>
+      </p>
+    <% } else { %>
+      <ul class="feed-list" id="feed-list">
+        <% items.forEach(article => { %>
+          <li class="feed-card">
+            <% if (article.imagePath) { %>
+              <a class="feed-thumb" href="/article/<%= article.id %>" tabindex="-1" aria-hidden="true">
+                <img src="<%= article.imagePath %>" alt="" loading="lazy" width="160" height="107">
+              </a>
+            <% } %>
+
+            <div class="feed-card-body">
+              <a class="feed-card-title" href="/article/<%= article.id %>"><%= article.title %></a>
+              <% if (article.summary) { %><p class="feed-summary"><%= article.summary %></p><% } %>
+
+              <div class="feed-meta">
+                <a class="feed-category" href="<%= feedLink({ category: article.category, page: 1 }) %>">
+                  <%= article.categoryLabel %>
+                </a>
+                <span><%= article.authorName %></span>
+                <time datetime="<%= new Date(article.publishedAt).toISOString() %>">
+                  <%= new Date(article.publishedAt).toLocaleDateString() %>
+                </time>
+              </div>
+            </div>
+          </li>
+        <% }) %>
+      </ul>
+
+      <% if (pages > 1) { %>
+        <nav class="feed-pager" id="feed-pager" aria-label="Pages">
+          <% if (page > 1) { %>
+            <a class="feed-step" href="<%= feedLink({ page: page - 1 }) %>" rel="prev">Previous</a>
+          <% } else { %><span></span><% } %>
+
+          <span class="muted">Page <%= page %> of <%= pages %></span>
+
+          <% if (page < pages) { %>
+            <a class="feed-step" href="<%= feedLink({ page: page + 1 }) %>" rel="next">Next</a>
+          <% } else { %><span></span><% } %>
+        </nav>
+      <% } %>
+    <% } %>
+
+    <p class="feed-status muted" id="feed-status" role="status" aria-live="polite" hidden></p>
   </main>
   <%- include('partials/sidebar') %>
 </div>
