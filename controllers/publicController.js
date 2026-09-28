@@ -188,6 +188,31 @@ function feedLink(query, overrides = {}) {
   return qs ? `/?${qs}` : '/'
 }
 
+// The numbers a pager shows: the first page, the last page, and up to five
+// around wherever the reader is standing. A gap is reported as { gap: true } and
+// rendered as an ellipsis that is not a link.
+//
+// Rendering every number would mean 42 buttons on this feed, and a reader on
+// page 1 would have to scroll past all of them. public/js/feed.js has a copy of
+// this, because a template cannot be required from the browser.
+function pageWindow(current, pages, span = 2) {
+  const wanted = new Set([1, pages])
+  for (let page = current - span; page <= current + span; page++) {
+    if (page >= 1 && page <= pages) wanted.add(page)
+  }
+
+  const entries = []
+  let previous = 0
+
+  for (const page of [...wanted].sort((a, b) => a - b)) {
+    if (page - previous > 1) entries.push({ gap: true })
+    entries.push({ page })
+    previous = page
+  }
+
+  return entries
+}
+
 // The controls need links that work on their own, before any script runs - and
 // the whole page is a working feed with the browser's JavaScript turned off.
 // Loads an article a reader is allowed to see. isLive and not status, for the
@@ -229,7 +254,9 @@ async function feedPage(req, res) {
     ...feed,
     CATEGORIES,
     CATEGORY_LABELS,
-    feedLink: (overrides) => feedLink(req.query, overrides)
+    feedLink: (overrides) => feedLink(req.query, overrides),
+    // the template cannot require the controller, so the pager gets it here
+    pageWindow
   })
 }
 
@@ -324,7 +351,7 @@ async function addComment(req, res) {
 }
 
 module.exports = {
-  findFeed, listArticles, feedPage, feedLink,
+  findFeed, listArticles, feedPage, feedLink, pageWindow,
   articlePage, findLiveArticle, toParagraphs,
   listComments, findComments, toComment, assertLiveArticle, addComment,
   escapeRegExp, searchTerms, PAGE_SIZE, SORTS, DEFAULT_SORT, SEARCH_MAX, COMMENTS_LIMIT, readQuery

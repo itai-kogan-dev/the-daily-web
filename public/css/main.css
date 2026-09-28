@@ -215,6 +215,40 @@ a { color: var(--accent); }
 }
 .feed-step:hover { border-color: var(--muted); }
 
+/* the numbers between Previous and Next */
+.feed-pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: .25rem;
+}
+
+.feed-page {
+  min-width: 2.1rem;
+  padding: .35rem .45rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  text-align: center;
+  text-decoration: none;
+}
+.feed-page:hover { border-color: var(--muted); background: #fafafa; }
+
+/* the page being read, so it is a label and not something to click */
+.feed-page.current {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* an ellipsis stands in for pages that are not shown, so it is never a link */
+.feed-page-gap {
+  padding: .35rem .2rem;
+  color: var(--muted);
+}
+
 .feed-empty { padding: 2rem 0; }
 
 /* written to by feed.js, and only ever visible while a request is in flight */

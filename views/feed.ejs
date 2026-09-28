@@ -87,7 +87,19 @@
                  href="<%= feedLink({ page: page - 1 }) %>" rel="prev">Previous</a>
             <% } else { %><span></span><% } %>
 
-            <span class="muted">Page <%= page %> of <%= pages %></span>
+            <div class="feed-pages">
+              <% pageWindow(page, pages).forEach(entry => { %>
+                <% if (entry.gap) { %>
+                  <span class="feed-page-gap" aria-hidden="true">&hellip;</span>
+                <% } else if (entry.page === page) { %>
+                  <%# not a link: the reader is already on this page %>
+                  <span class="feed-page current" aria-current="page"><%= entry.page %></span>
+                <% } else { %>
+                  <a class="feed-page" data-feed-nav data-page="<%= entry.page %>"
+                     href="<%= feedLink({ page: entry.page }) %>"><%= entry.page %></a>
+                <% } %>
+              <% }) %>
+            </div>
 
             <% if (page < pages) { %>
               <a class="feed-step" data-feed-nav data-page="<%= page + 1 %>"
