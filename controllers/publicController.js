@@ -1,5 +1,6 @@
 const mongoose = require('mongoose')
 const Article = require('../models/Article')
+const Comment = require('../models/Comment')
 const viewCounter = require('../services/viewCounter')
 const { CATEGORIES, CATEGORY_LABELS } = Article
 
@@ -7,6 +8,12 @@ const { CATEGORIES, CATEGORY_LABELS } = Article
 const PAGE_SIZE = 10
 const SORTS = ['date', 'popular']
 const DEFAULT_SORT = 'date'
+
+// The most recent hundred comments of one article. There is no paging on this
+// endpoint - the spec does not ask for one - so the cap is what stops a heavily
+// commented article from handing a guest an unbounded list. The newest are kept
+// rather than the oldest, because the earliest 100 of 5000 is no use to anyone.
+const COMMENTS_LIMIT = 100
 
 function makeError(status, message) {
   const err = new Error(message)
@@ -215,14 +222,57 @@ async function articlePage(req, res) {
     // null until an editor has approved a second version, so the page can say
     // "first published" instead of claiming it was never updated
     updatedAt: lastUpdateAt(article),
+    comments: await findComments(article._id),
     CATEGORY_LABELS,
     // the category link back to the feed, filtered
     feedLink: (overrides) => feedLink({}, overrides)
   })
 }
 
+// Comments of one article, oldest first because that is the order they were
+// written in, and new ones get appended under the form.
+async function findComments(articleId) {
+  const [recent, total] = await Promise.all([
+    Comment.find({ article: articleId })
+      .sort({ createdAt: -1 })
+      .limit(COMMENTS_LIMIT)
+      .lean(),
+    Comment.countDocuments({ article: articleId })
+  ])
+
+  return {
+    items: recent.reverse().map(toComment),
+    total,
+    limit: COMMENTS_LIMIT
+  }
+}
+
+function toComment(comment) {
+  return {
+    id: String(comment._id),
+    authorName: comment.authorName,
+    body: comment.body,
+    createdAt: comment.createdAt
+  }
+}
+
+// Cheap existence check for the endpoints that only need to know the article is
+// readable. It answers with a 404 rather than letting an unapproved article be
+// commented on, and the message is the same one a wrong id gets so the endpoint
+// cannot be used to find out what exists.
+async function assertLiveArticle(id) {
+  if (!mongoose.Types.ObjectId.isValid(id)) throw makeError(404, 'Article not found')
+  if (!(await Article.exists({ _id: id, isLive: true }))) throw makeError(404, 'Article not found')
+}
+
+async function listComments(req, res) {
+  await assertLiveArticle(req.params.id)
+  res.json(await findComments(req.params.id))
+}
+
 module.exports = {
   findFeed, listArticles, feedPage, feedLink,
   articlePage, findLiveArticle, toParagraphs,
-  PAGE_SIZE, SORTS, DEFAULT_SORT, readQuery
+  listComments, findComments, toComment, assertLiveArticle,
+  PAGE_SIZE, SORTS, DEFAULT_SORT, COMMENTS_LIMIT, readQuery
 }

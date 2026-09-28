@@ -15,7 +15,7 @@ router.get('/article/:id', publicController.articlePage)
 
 // --- json for the browser ---
 router.get('/api/articles', publicController.listArticles)
-router.get('/api/articles/:id/comments', todo('list comments'))
+router.get('/api/articles/:id/comments', publicController.listComments)
 router.post('/api/articles/:id/comments', commentRateLimit, todo('add comment'))
 router.get('/api/weather', todo('weather widget'))
 
