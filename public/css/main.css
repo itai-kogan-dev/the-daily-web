@@ -1,0 +1,117 @@
+/* Layout skeleton and shared tokens only. T1 owns the real styling. */
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --muted: #6b6b6b;
+  --line: #e2e2e2;
+  --accent: #b02020;
+  --radius: 6px;
+  --gap: 1rem;
+  --page-width: 1100px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.5;
+}
+
+/* --- header --- */
+.site-header { border-bottom: 1px solid var(--line); }
+
+.site-header nav {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: var(--gap);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.4rem;
+  letter-spacing: -.01em;
+  text-decoration: none;
+  color: var(--accent);
+}
+
+h1 { font-size: 1.6rem; margin: 0 0 .75rem; letter-spacing: -.01em; }
+
+.nav-right { display: flex; align-items: center; gap: var(--gap); }
+.nav-right form { margin: 0; }
+.nav-right a { color: var(--text); text-decoration: none; }
+.nav-right a:hover { text-decoration: underline; }
+
+.nav-right button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--muted);
+  cursor: pointer;
+}
+.nav-right button:hover { color: var(--accent); text-decoration: underline; }
+
+.who { color: var(--muted); }
+.nav-divider { color: var(--line); }
+
+/* --- page + sidebar --- */
+.layout {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: var(--gap);
+  display: flex;
+  gap: calc(var(--gap) * 2);
+  align-items: flex-start;
+}
+
+.page { flex: 1 1 auto; max-width: var(--page-width); margin: 0 auto; padding: var(--gap); }
+.page.narrow { max-width: 380px; }
+
+.sidebar { flex: 0 0 260px; }
+
+.widget {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--gap);
+}
+
+/* --- forms --- */
+.stack { display: flex; flex-direction: column; gap: var(--gap); }
+.stack label { display: flex; flex-direction: column; gap: .25rem; }
+
+input, button, select, textarea {
+  font: inherit;
+  padding: .5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+button { cursor: pointer; background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* --- links --- */
+a { color: var(--accent); }
+
+/* --- misc --- */
+.muted { color: var(--muted); }
+.error { color: var(--accent); font-weight: 600; }
+
+.site-footer {
+  border-top: 1px solid var(--line);
+  margin-top: calc(var(--gap) * 3);
+  padding: var(--gap);
+  text-align: center;
+}
+
+/* stack the sidebar under the page on narrow screens */
+@media (max-width: 800px) {
+  .layout { flex-direction: column; }
+  .sidebar { flex: 1 1 auto; width: 100%; }
+}
