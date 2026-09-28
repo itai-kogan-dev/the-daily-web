@@ -1,5 +1,6 @@
 const express = require('express')
 const { commentRateLimit } = require('../middleware/rateLimit')
+const publicController = require('../controllers/publicController')
 
 const router = express.Router()
 
@@ -13,7 +14,7 @@ router.get('/', (req, res) => res.render('feed'))
 router.get('/article/:id', (req, res) => res.render('article'))
 
 // --- json for the browser ---
-router.get('/api/articles', todo('list articles: search, filter, sort, paging'))
+router.get('/api/articles', publicController.listArticles)
 router.get('/api/articles/:id/comments', todo('list comments'))
 router.post('/api/articles/:id/comments', commentRateLimit, todo('add comment'))
 router.get('/api/weather', todo('weather widget'))
