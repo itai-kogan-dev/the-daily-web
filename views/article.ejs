@@ -74,6 +74,30 @@
           </li>
         <% }) %>
       </ul>
+
+      <!-- Commenting needs JavaScript. The endpoint is the JSON one the spec
+           lists, so a form post that was not intercepted has nowhere to go -
+           unlike reading, which is all in the page already. -->
+      <form class="comment-form stack" id="comment-form" method="post"
+            action="/api/articles/<%= article._id %>/comments"
+            data-article="<%= article._id %>">
+        <label>Your name
+          <input name="authorName" maxlength="60" required autocomplete="name" placeholder="How you want to be credited">
+        </label>
+
+        <label>Comment
+          <textarea name="body" rows="4" maxlength="1000" required
+                    placeholder="What did you make of it?"></textarea>
+        </label>
+
+        <div class="comment-actions">
+          <button type="submit" id="comment-submit">Post comment</button>
+          <span class="muted" id="comment-busy" role="status" aria-live="polite"></span>
+          <span class="muted comment-hint">Up to three a minute.</span>
+        </div>
+
+        <p class="error" id="comment-error" hidden></p>
+      </form>
     </section>
   </main>
   <%- include('partials/sidebar') %>

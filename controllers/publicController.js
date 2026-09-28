@@ -270,9 +270,33 @@ async function listComments(req, res) {
   res.json(await findComments(req.params.id))
 }
 
+async function addComment(req, res) {
+  await assertLiveArticle(req.params.id)
+
+  // Trimmed here as well as in the schema: a name of spaces would otherwise
+  // satisfy the maxlength and leave a blank comment on the page.
+  const authorName = String(req.body.authorName || '').trim()
+  const body = String(req.body.body || '').trim()
+
+  // The schema's own maxlength is the real check, but what it says is a Mongoose
+  // message naming the field. The two mistakes anyone actually makes get a
+  // sentence they can act on instead.
+  if (!authorName || !body) throw makeError(400, 'A name and a comment are both needed')
+  if (authorName.length > 60) throw makeError(400, 'That name is longer than 60 characters')
+  if (body.length > 1000) throw makeError(400, 'Comments are limited to 1000 characters')
+
+  const comment = await Comment.create({
+    article: req.params.id,
+    authorName,
+    body
+  })
+
+  res.status(201).json(toComment(comment))
+}
+
 module.exports = {
   findFeed, listArticles, feedPage, feedLink,
   articlePage, findLiveArticle, toParagraphs,
-  listComments, findComments, toComment, assertLiveArticle,
+  listComments, findComments, toComment, assertLiveArticle, addComment,
   PAGE_SIZE, SORTS, DEFAULT_SORT, COMMENTS_LIMIT, readQuery
 }

@@ -315,3 +315,14 @@ a { color: var(--accent); }
 .comment-author { font-weight: 700; color: var(--text); }
 
 .comment-body { margin: .25rem 0 0; white-space: pre-wrap; }
+
+.comment-form { margin-top: var(--gap); }
+.comment-form textarea { resize: vertical; font-family: inherit; }
+
+.comment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem .75rem;
+}
+.comment-hint { font-size: .8rem; }
