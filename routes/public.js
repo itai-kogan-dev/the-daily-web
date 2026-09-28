@@ -9,9 +9,9 @@ const todo = name => (req, res) => res.status(501).send(`TODO: ${name}`)
 
 // --- pages (server rendered) ---
 router.get('/', publicController.feedPage)
-// must render the full article server side - the spec requires the text to be
-// in the HTML with JavaScript turned off, for search engines
-router.get('/article/:id', (req, res) => res.render('article'))
+// must render the full article server side - the spec requires the text to be in
+// the HTML with JavaScript turned off, for search engines
+router.get('/article/:id', publicController.articlePage)
 
 // --- json for the browser ---
 router.get('/api/articles', publicController.listArticles)

@@ -1,3 +1,4 @@
+const mongoose = require('mongoose')
 const Article = require('../models/Article')
 const { CATEGORIES, CATEGORY_LABELS } = Article
 
@@ -5,6 +6,12 @@ const { CATEGORIES, CATEGORY_LABELS } = Article
 const PAGE_SIZE = 10
 const SORTS = ['date', 'popular']
 const DEFAULT_SORT = 'date'
+
+function makeError(status, message) {
+  const err = new Error(message)
+  err.status = status
+  return err
+}
 
 // Anything we do not recognise is dropped rather than rejected, so an old link
 // or a hand typed query still lands on a working page.
@@ -127,17 +134,18 @@ async function listArticles(req, res) {
 }
 
 // Builds a link to the feed with some of the parameters replaced. Partial on
-// purpose: changing the sort must not throw away the search, and any change at
-// all starts again at page one. Empty values are left out, so a default URL is
-// just "/" rather than a string of no-ops.
+// purpose: changing the sort must not throw away the search. Any change starts
+// again at page one, and only the pager asks for a specific page. Empty values
+// are left out, so a default feed is just "/" rather than a string of no-ops.
 function feedLink(query, overrides = {}) {
-  const next = { q: '', category: '', sort: DEFAULT_SORT, page: 1, ...readQuery(query), ...overrides }
+  const next = { q: '', category: '', sort: DEFAULT_SORT, ...readQuery(query), ...overrides }
+  const page = overrides.page ?? 1
   const params = new URLSearchParams()
 
   if (next.q) params.set('q', next.q)
   if (next.category) params.set('category', next.category)
   if (next.sort !== DEFAULT_SORT) params.set('sort', next.sort)
-  if (next.page > 1) params.set('page', next.page)
+  if (page > 1) params.set('page', page)
 
   const qs = params.toString()
   return qs ? `/?${qs}` : '/'
@@ -145,6 +153,38 @@ function feedLink(query, overrides = {}) {
 
 // The controls need links that work on their own, before any script runs - and
 // the whole page is a working feed with the browser's JavaScript turned off.
+// Loads an article a reader is allowed to see. isLive and not status, for the
+// same reason the feed is: an article is not reader visible until an editor has
+// approved it, and a live article stays readable whatever its status is now.
+async function findLiveArticle(id) {
+  if (!mongoose.Types.ObjectId.isValid(id)) throw makeError(404, 'Article not found')
+
+  const article = await Article.findOne({ _id: id, isLive: true })
+    .populate('author', 'displayName')
+    .lean()
+
+  // One answer for "no such article" and "not published yet", so the page cannot
+  // be used to find out which articles exist but are still with the editor.
+  if (!article) throw makeError(404, 'Article not found')
+
+  return article
+}
+
+// The body is one string with blank lines between paragraphs. Splitting it here
+// keeps the markup out of the data, and each paragraph is still escaped by the
+// template on the way out - the field is plain text, not HTML.
+function toParagraphs(body) {
+  return String(body || '')
+    .split(/\n\s*\n/)
+    .map(part => part.trim())
+    .filter(Boolean)
+}
+
+function lastUpdateAt(article) {
+  const events = article.updateEvents || []
+  return events.length ? events[events.length - 1].at : null
+}
+
 async function feedPage(req, res) {
   const feed = await findFeed(req.query)
 
@@ -156,7 +196,28 @@ async function feedPage(req, res) {
   })
 }
 
+// The whole article has to be in the HTML, not fetched afterwards: the spec
+// wants the text there with JavaScript turned off, and it is what the article
+// page is for.
+async function articlePage(req, res) {
+  const article = await findLiveArticle(req.params.id)
+  const content = article.publishedContent
+
+  res.render('article', {
+    article,
+    content,
+    paragraphs: toParagraphs(content.body),
+    // null until an editor has approved a second version, so the page can say
+    // "first published" instead of claiming it was never updated
+    updatedAt: lastUpdateAt(article),
+    CATEGORY_LABELS,
+    // the category link back to the feed, filtered
+    feedLink: (overrides) => feedLink({}, overrides)
+  })
+}
+
 module.exports = {
   findFeed, listArticles, feedPage, feedLink,
+  articlePage, findLiveArticle, toParagraphs,
   PAGE_SIZE, SORTS, DEFAULT_SORT, readQuery
 }

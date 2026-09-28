@@ -219,3 +219,69 @@ a { color: var(--accent); }
 
 /* written to by feed.js, and only ever visible while a request is in flight */
 .feed-status { margin: var(--gap) 0 0; font-size: .875rem; }
+
+/* --- article --- */
+
+.article { max-width: 40rem; }
+
+.article-category {
+  display: inline-block;
+  margin-bottom: .35rem;
+  color: var(--accent);
+  font-size: .8rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+.article-category:hover { text-decoration: underline; }
+
+/* overrides the page-wide h1, which is sized for a dashboard heading */
+.article-title {
+  font-size: 2.1rem;
+  line-height: 1.2;
+  margin: 0 0 .5rem;
+}
+
+.article-byline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem .9rem;
+  color: var(--muted);
+  font-size: .9rem;
+  padding-bottom: var(--gap);
+  border-bottom: 1px solid var(--line);
+}
+.article-byline > * + *::before {
+  content: "·";
+  margin-right: .9rem;
+  color: var(--line);
+}
+/* the separator sits before the element, so it has to come back out again on
+   the first child of a run */
+.article-updated { color: var(--accent); }
+
+.article-hero {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius);
+  margin: var(--gap) 0;
+  background: var(--line);
+}
+
+.article-lead {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin: var(--gap) 0 0;
+}
+
+.article-body {
+  margin-top: var(--gap);
+  font-size: 1.02rem;
+  line-height: 1.7;
+}
+.article-body p { margin: 0 0 1.1em; }
+.article-body p:last-child { margin-bottom: 0; }

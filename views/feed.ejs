@@ -15,24 +15,24 @@
       <input type="hidden" name="sort" value="<%= sort %>">
       <button type="submit">Search</button>
       <% if (q) { %>
-        <a class="feed-clear" data-feed-nav data-clear-search href="<%= feedLink({ q: '', page: 1 }) %>">Clear</a>
+        <a class="feed-clear" data-feed-nav data-clear-search href="<%= feedLink({ q: '' }) %>">Clear</a>
       <% } %>
     </form>
 
     <nav class="feed-filters" aria-label="Filter by category">
       <a class="chip<%= category ? '' : ' active' %>" data-feed-nav data-category=""
-         href="<%= feedLink({ category: '', page: 1 }) %>">All</a>
+         href="<%= feedLink({ category: '' }) %>">All</a>
       <% CATEGORIES.forEach(name => { %>
         <a class="chip<%= category === name ? ' active' : '' %>" data-feed-nav data-category="<%= name %>"
-           href="<%= feedLink({ category: name, page: 1 }) %>"><%= CATEGORY_LABELS[name] %></a>
+           href="<%= feedLink({ category: name }) %>"><%= CATEGORY_LABELS[name] %></a>
       <% }) %>
     </nav>
 
     <nav class="feed-filters" aria-label="Sort order">
       <a class="chip<%= sort === 'date' ? ' active' : '' %>" data-feed-nav data-sort="date"
-         href="<%= feedLink({ sort: 'date', page: 1 }) %>">Newest</a>
+         href="<%= feedLink({ sort: 'date' }) %>">Newest</a>
       <a class="chip<%= sort === 'popular' ? ' active' : '' %>" data-feed-nav data-sort="popular"
-         href="<%= feedLink({ sort: 'popular', page: 1 }) %>">Most read</a>
+         href="<%= feedLink({ sort: 'popular' }) %>">Most read</a>
       <span class="feed-count muted" id="feed-count">
         <%= total %> <%= total === 1 ? 'article' : 'articles' %>
       </span>
@@ -67,7 +67,7 @@
 
                 <div class="feed-meta">
                   <a class="feed-category" data-feed-nav data-category="<%= article.category %>"
-                     href="<%= feedLink({ category: article.category, page: 1 }) %>">
+                     href="<%= feedLink({ category: article.category }) %>">
                     <%= article.categoryLabel %>
                   </a>
                   <span><%= article.authorName %></span>

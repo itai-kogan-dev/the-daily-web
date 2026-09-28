@@ -1,15 +1,46 @@
-<%- include('partials/head', { title: 'Article' }) %>
+<%- include('partials/head', { title: content.title }) %>
 <%- include('partials/header') %>
 
 <div class="layout">
   <main class="page">
-    <!-- T1: the whole article has to be rendered here on the server. The spec
-         needs the text present in the HTML with JavaScript turned off. -->
-    <article>
-      <h1>TODO: article</h1>
+    <!-- The whole article is in the HTML. The spec needs the text to be there
+         with JavaScript turned off, so nothing below waits for a request. -->
+    <article class="article">
+      <a class="article-category" href="<%= feedLink({ category: content.category }) %>">
+        <%= CATEGORY_LABELS[content.category] %>
+      </a>
+
+      <h1 class="article-title"><%= content.title %></h1>
+
+      <div class="article-byline">
+        <span>By <%= article.author ? article.author.displayName : 'The Daily Web' %></span>
+        <time datetime="<%= new Date(article.publishedAt).toISOString() %>">
+          <%= new Date(article.publishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) %>
+        </time>
+        <% if (updatedAt) { %>
+          <!-- null until a second version is approved, so the date never moves
+               on its own and this only appears after a real update -->
+          <span class="article-updated">
+            Updated <time datetime="<%= new Date(updatedAt).toISOString() %>"><%= new Date(updatedAt).toLocaleDateString() %></time>
+          </span>
+        <% } %>
+      </div>
+
+      <% if (content.imagePath) { %>
+        <img class="article-hero" src="<%= content.imagePath %>" alt="">
+      <% } %>
+
+      <% if (content.summary) { %>
+        <p class="article-lead"><%= content.summary %></p>
+      <% } %>
+
+      <div class="article-body">
+        <% paragraphs.forEach(paragraph => { %>
+          <p><%= paragraph %></p>
+        <% }) %>
+      </div>
     </article>
 
-    <!-- comments load with the page, new ones get appended without a reload -->
     <section class="comments">
       <h2>Comments</h2>
       <p class="muted">TODO</p>
