@@ -74,6 +74,8 @@
                   <time datetime="<%= new Date(article.publishedAt).toISOString() %>">
                     <%= new Date(article.publishedAt).toLocaleDateString() %>
                   </time>
+                  <%# pinned to en-US so this matches the number public/js/feed.js writes %>
+                  <span><%= Number(article.viewCount || 0).toLocaleString('en-US') %> views</span>
                 </div>
               </div>
             </li>

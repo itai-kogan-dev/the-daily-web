@@ -17,6 +17,8 @@
         <time datetime="<%= new Date(article.publishedAt).toISOString() %>">
           <%= new Date(article.publishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) %>
         </time>
+        <%# the same as the feed card, and the count T1 does not yet move %>
+        <span><%= Number(article.viewCount || 0).toLocaleString('en-US') %> views</span>
         <% if (updatedAt) { %>
           <!-- null until a second version is approved, so the date never moves
                on its own and this only appears after a real update -->

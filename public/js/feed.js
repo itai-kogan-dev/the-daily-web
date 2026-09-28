@@ -109,6 +109,11 @@ if (form && results) {
     time.dateTime = article.publishedAt
     meta.append(time)
 
+    // en-US on purpose, and the same choice the template makes: a de-DE browser
+    // would otherwise write 8.264 where the server wrote 8,264, and the number
+    // would change shape the moment a card is redrawn.
+    meta.append(el('span', null, `${Number(article.viewCount || 0).toLocaleString('en-US')} views`))
+
     body.append(meta)
     item.append(body)
     return item
