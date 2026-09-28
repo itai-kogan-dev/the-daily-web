@@ -78,7 +78,11 @@ const articleSchema = new mongoose.Schema({
 articleSchema.index({ isLive: 1, publishedAt: -1 })                 // feed, newest first
 articleSchema.index({ isLive: 1, viewCount: -1 })                   // feed, most popular
 articleSchema.index({ isLive: 1, 'publishedContent.category': 1 })  // category filter
-articleSchema.index({ 'publishedContent.title': 'text' })           // search by title
+// Whole-word search on the title. The public feed stopped using it: its search
+// has to match part of a word, which $text cannot do. Kept because it costs
+// only disk and a wildcard text index is the way back if the feed's regex ever
+// gets too slow - though that one still only matches the start of a word.
+articleSchema.index({ 'publishedContent.title': 'text' })
 articleSchema.index({ author: 1, status: 1 })                       // reporter's own list
 
 module.exports = mongoose.model('Article', articleSchema)

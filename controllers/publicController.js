@@ -9,6 +9,9 @@ const PAGE_SIZE = 10
 const SORTS = ['date', 'popular']
 const DEFAULT_SORT = 'date'
 
+// Matches the maxlength on the search box in views/feed.ejs.
+const SEARCH_MAX = 80
+
 // The most recent hundred comments of one article. There is no paging on this
 // endpoint - the spec does not ask for one - so the cap is what stops a heavily
 // commented article from handing a guest an unbounded list. The newest are kept
@@ -28,8 +31,27 @@ function readQuery(query = {}) {
     page: Math.max(1, parseInt(query.page, 10) || 1),
     sort: SORTS.includes(query.sort) ? query.sort : DEFAULT_SORT,
     category: CATEGORIES.includes(query.category) ? query.category : null,
-    q: String(query.q || '').trim()
+    // capped to the length of the search box. A hand typed URL is the only way
+    // to get here, and a 10,000 character pattern is a slow query to hand to
+    // the database because someone was feeling curious.
+    q: String(query.q || '').trim().slice(0, SEARCH_MAX)
   }
+}
+
+// A regex treats every one of these as syntax. The search used to be a $text
+// search, where a query was a list of words and nothing had to be escaped - so
+// a bare "(" would either throw or match far more than anyone meant by it.
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+// A regex matches one contiguous run of text, so a whole query as a single
+// pattern would mean searching for "old port" only finds an article with those
+// two words next to each other, and typing two words finds nothing at all.
+// $text did not have that problem - it matched each word separately - so the
+// query is split up and every term has to turn up somewhere on its own.
+function searchTerms(q) {
+  return q.split(/\s+/).filter(Boolean)
 }
 
 // isLive, never status. docs/DECISIONS.md has the reasoning: an article that is
@@ -39,32 +61,38 @@ function feedMatch({ category, q }) {
   const match = { isLive: true }
   if (category) match['publishedContent.category'] = category
 
-  // uses the text index models/Article.js declares, instead of a regex that
-  // would have to read every article
-  if (q) match.$text = { $search: q }
+  // Part of a word has to match, so "por" finds "port", "sport" and "airport".
+  // $text only ever matched whole words, and the only way to get a substring is
+  // a regex - which no index can serve, so this reads every live article.
+  // At that size it is instant. If it ever is not, the fix is a wildcard text
+  // index or a generated n-gram field, not a larger regex. See docs/T1.md.
+  //
+  // Each term is one pattern, reused for both fields and matched twice per
+  // request (once for the page, once for the count). No /g flag: a global regex
+  // carries lastIndex between uses and would quietly skip matches.
+  if (q) {
+    match.$and = searchTerms(q).map(term => {
+      const pattern = new RegExp(escapeRegExp(term), 'i')
+      return { $or: [{ 'publishedContent.title': pattern }, { 'publishedContent.summary': pattern }] }
+    })
+  }
 
   return match
 }
 
-// Relevance leads when there is a search term, and the chosen order breaks the
-// tie, so "most popular" still means something while searching.
-function sortFor(sort, hasQuery) {
-  if (sort === 'popular') {
-    return hasQuery ? { relevance: -1, viewCount: -1, publishedAt: -1 } : { viewCount: -1, publishedAt: -1 }
-  }
-  return hasQuery ? { relevance: -1, publishedAt: -1 } : { publishedAt: -1 }
+// A regex gives no score to sort by, so the chosen order is the whole story:
+// searching narrows the feed, and sort decides where the results land. There
+// used to be a relevance field here, fed by $meta: 'textScore'.
+function sortFor(sort) {
+  return sort === 'popular' ? { viewCount: -1, publishedAt: -1 } : { publishedAt: -1 }
 }
 
 function rowsPipeline(options) {
-  const { page, sort, q } = options
+  const { page, sort } = options
 
   return [
     { $match: feedMatch(options) },
-
-    // Mongo refuses to sort a $text query by an ordinary field, so the score
-    // has to become a real field before the sort stage sees it
-    ...(q ? [{ $addFields: { relevance: { $meta: 'textScore' } } }] : []),
-    { $sort: sortFor(sort, Boolean(q)) },
+    { $sort: sortFor(sort) },
     { $skip: (page - 1) * PAGE_SIZE },
     { $limit: PAGE_SIZE },
 
@@ -86,8 +114,9 @@ function rowsPipeline(options) {
   ]
 }
 
-// One run of the query. The count is a second aggregation rather than a
-// countDocuments() because $text is only guaranteed to work inside a pipeline.
+// One run of the query. The count is a second aggregation rather than
+// countDocuments() so that both halves of the response are built the same way
+// from the same filter.
 async function runFeed(options) {
   const [rows, counted] = await Promise.all([
     Article.aggregate(rowsPipeline(options)),
@@ -298,5 +327,5 @@ module.exports = {
   findFeed, listArticles, feedPage, feedLink,
   articlePage, findLiveArticle, toParagraphs,
   listComments, findComments, toComment, assertLiveArticle, addComment,
-  PAGE_SIZE, SORTS, DEFAULT_SORT, COMMENTS_LIMIT, readQuery
+  escapeRegExp, searchTerms, PAGE_SIZE, SORTS, DEFAULT_SORT, SEARCH_MAX, COMMENTS_LIMIT, readQuery
 }
