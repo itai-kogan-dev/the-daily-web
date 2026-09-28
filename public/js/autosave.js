@@ -175,8 +175,12 @@ if (form && !form.dataset.readonly) {
     const data = await res.json()
     getField('imagePath').value = data.url
     if (imageName) imageName.textContent = file.name
-    // the hidden field fires no input events, so tell autosave directly
+
+    // The hidden field fires no input event of its own, so autosave is told
+    // directly - and saved now rather than in a second and a half, so the
+    // article points at the picture almost as soon as it is stored.
     form.dispatchEvent(new Event('input', { bubbles: true }))
+    saveDraft()
   }
 
   if (pickBtn && fileInput) {
