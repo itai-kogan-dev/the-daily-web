@@ -1,22 +1,30 @@
 const express = require('express')
 const { requireRole } = require('../middleware/auth')
 const { ROLES } = require('../models/User')
+const reporter = require('../controllers/reporterController')
+const imageStore = require('../services/imageStore')
 
 const router = express.Router()
 
 // guards every route in this file
 router.use(requireRole(ROLES.REPORTER))
 
-const todo = name => (req, res) => res.status(501).send(`TODO: ${name}`)
-
 // --- pages ---
-router.get('/', (req, res) => res.render('reporter/dashboard'))
-router.get('/article/new', (req, res) => res.render('reporter/edit'))
-router.get('/article/:id', (req, res) => res.render('reporter/edit'))
+router.get('/', reporter.showDashboard)
+// /article/new has to come first, otherwise :id would match the word "new"
+router.get('/article/new', reporter.showNewEditor)
+router.get('/article/:id', reporter.showEditor)
 
 // --- json ---
-router.post('/api/article', todo('create article'))
-router.patch('/api/article/:id', todo('autosave draft'))
-router.post('/api/article/:id/submit', todo('send to editor'))
+// The picture arrives as the raw body rather than a form upload, so express
+// parses it on its own and we need no multipart library.
+router.post(
+  '/api/image',
+  express.raw({ type: imageStore.ALLOWED_TYPES, limit: imageStore.MAX_BYTES }),
+  reporter.uploadImage
+)
+router.post('/api/article', reporter.createArticle)
+router.patch('/api/article/:id', reporter.saveDraft)
+router.post('/api/article/:id/submit', reporter.submitArticle)
 
 module.exports = router

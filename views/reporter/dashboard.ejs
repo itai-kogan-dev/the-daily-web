@@ -1,9 +1,57 @@
-<%- include('../partials/head', { title: 'My articles' }) %>
+<%- include('../partials/head', { title: 'My articles', extraCss: '/css/reporter.css' }) %>
 <%- include('../partials/header') %>
 
 <main class="page">
-  <!-- T2: the reporter's own articles and the status of each -->
-  <h1>TODO: my articles</h1>
+  <div class="page-top">
+    <h1>My articles</h1>
+    <a class="button" href="/reporter/article/new">New article</a>
+  </div>
+
+  <nav class="tabs">
+    <a href="/reporter" class="tab <%= filter ? '' : 'active' %>">
+      All <span class="tab-count"><%= counts.all %></span>
+    </a>
+    <% statuses.forEach(status => { %>
+      <a href="/reporter?status=<%= status %>" class="tab <%= filter === status ? 'active' : '' %>">
+        <%= STATUS_LABELS[status] %> <span class="tab-count"><%= counts[status] %></span>
+      </a>
+    <% }) %>
+  </nav>
+
+  <% if (needsWorkCount > 0 && filter !== STATUS.NEEDS_REVISION) { %>
+    <p class="notice warn">
+      <%= needsWorkCount %> <%= needsWorkCount === 1 ? 'article needs' : 'articles need' %>
+      changes before <%= needsWorkCount === 1 ? 'it can' : 'they can' %> go back to the editor.
+    </p>
+  <% } %>
+
+  <% if (articles.length === 0) { %>
+    <p class="muted">
+      <%= filter ? 'No articles with this status.' : 'Nothing here yet. Start with a new article.' %>
+    </p>
+  <% } else { %>
+    <ul class="article-list">
+      <% articles.forEach(article => { %>
+        <li class="article-row">
+          <div class="article-main">
+            <a class="article-title" href="/reporter/article/<%= article._id %>">
+              <%= article.draftContent.title %>
+            </a>
+            <div class="article-meta">
+              <span class="badge status-<%= article.status %>"><%= STATUS_LABELS[article.status] %></span>
+              <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
+              <span><%= CATEGORY_LABELS[article.draftContent.category] %></span>
+              <span>edited <%= new Date(article.updatedAt).toLocaleDateString() %></span>
+            </div>
+
+            <% if (article.status === STATUS.NEEDS_REVISION && article.editorNote) { %>
+              <p class="editor-note"><strong>Editor:</strong> <%= article.editorNote %></p>
+            <% } %>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
 </main>
 
 <%- include('../partials/footer') %>

@@ -31,6 +31,7 @@ app.use(session({
 
 app.use(attachViewData)
 
+app.use('/images', require('./routes/images'))
 app.use('/', require('./routes/public'))
 app.use('/', require('./routes/auth'))
 app.use('/reporter', require('./routes/reporter'))

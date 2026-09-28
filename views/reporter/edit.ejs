@@ -1,11 +1,90 @@
-<%- include('../partials/head', { title: 'Edit article' }) %>
+<%- include('../partials/head', { title: article ? 'Edit article' : 'New article', extraCss: '/css/reporter.css' }) %>
 <%- include('../partials/header') %>
 
 <main class="page">
-  <!-- T2: the editing form. No save button - it autosaves while typing,
-       and picks up where the reporter left off. Shows editorNote if the
-       article came back for revision. -->
-  <h1>TODO: edit article</h1>
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/reporter">My articles</a>
+    <span aria-hidden="true">&rsaquo;</span>
+    <span class="crumb-current"><%= article ? content.title : 'New article' %></span>
+  </nav>
+
+  <h1><%= article ? 'Edit article' : 'New article' %></h1>
+
+  <% if (article) { %>
+    <div class="article-meta">
+      <span id="status-badge" class="badge status-<%= article.status %>"><%= STATUS_LABELS[article.status] %></span>
+      <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
+    </div>
+  <% } %>
+
+  <% if (article && article.status === STATUS.NEEDS_REVISION && article.editorNote) { %>
+    <p class="editor-note"><strong>Editor asked for changes:</strong> <%= article.editorNote %></p>
+  <% } %>
+
+  <% if (article && article.isLive) { %>
+    <p class="notice">
+      Readers are seeing the approved version. Nothing you write here reaches
+      them until an editor approves it.
+      <a href="/article/<%= article._id %>" target="_blank">See what readers see</a>
+    </p>
+  <% } %>
+
+  <% if (!canEdit) { %>
+    <p class="notice warn">
+      This article is with the editor, so it cannot be changed right now.
+    </p>
+  <% } %>
+
+  <form id="article-form" class="stack"
+        data-id="<%= article ? article._id : '' %>"
+        <%= canEdit ? '' : 'data-readonly="1"' %>>
+    <label>Title
+      <input name="title" value="<%= content.title %>" <%= canEdit ? '' : 'disabled' %>>
+    </label>
+
+    <label>Category
+      <select name="category" <%= canEdit ? '' : 'disabled' %>>
+        <% CATEGORIES.forEach(category => { %>
+          <option value="<%= category %>" <%= content.category === category ? 'selected' : '' %>><%= CATEGORY_LABELS[category] %></option>
+        <% }) %>
+      </select>
+    </label>
+
+    <label>Summary
+      <textarea name="summary" rows="2" <%= canEdit ? '' : 'disabled' %>><%= content.summary %></textarea>
+    </label>
+
+    <label>Body
+      <textarea name="body" rows="16" <%= canEdit ? '' : 'disabled' %>><%= content.body %></textarea>
+    </label>
+
+    <div class="field">
+      <span class="field-label">Image</span>
+      <div id="image-drop" class="image-drop">
+        <button type="button" id="image-pick-btn" class="button-secondary" <%= canEdit ? '' : 'disabled' %>>Choose image</button>
+        <span id="image-name" class="muted"><%= imageName || 'No image yet' %></span>
+        <span class="muted hint">or drop one here</span>
+      </div>
+      <input type="file" id="image-file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif" hidden>
+      <!-- holds /images/<id> once the picture is in the database -->
+      <input type="hidden" name="imagePath" value="<%= content.imagePath %>">
+      <p id="image-error" class="error" hidden></p>
+    </div>
+
+  </form>
+
+  <div class="sticky-bar">
+    <div class="sticky-left" <%= canEdit ? '' : 'hidden' %>>
+      <button id="submit-btn" type="button">Send to editor</button>
+      <p id="submit-error" class="error" hidden></p>
+      <span id="submit-hint" class="muted hint">You cannot edit it until the editor replies</span>
+    </div>
+
+    <div class="sticky-right">
+      <p id="save-status" class="save-status"></p>
+      <a class="button-secondary" href="/reporter">&larr; My articles</a>
+    </div>
+  </div>
 </main>
 
 <script src="/js/autosave.js"></script>

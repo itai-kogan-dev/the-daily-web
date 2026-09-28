@@ -6,6 +6,9 @@ const User = require('../models/User')
 const Article = require('../models/Article')
 const Comment = require('../models/Comment')
 const ViewBucket = require('../models/ViewBucket')
+const imageStore = require('../services/imageStore')
+const fs = require('fs')
+const path = require('path')
 const { STATUS, CATEGORIES } = require('../models/Article')
 const { ROLES } = require('../models/User')
 
@@ -31,6 +34,29 @@ const SUBJECTS = ['the new transport plan', 'downtown housing', 'the summer budg
                   'local schools', 'the water supply', 'the northern line', 'the old port', 'winter energy use',
                   'the city marathon', 'the data centre', 'the youth programme']
 
+// Filled in once the pictures are in the database, then shared by every
+// article - ten files, not five hundred copies.
+let imagePaths = []
+
+// Pictures are uploaded once and the articles point at them, the same way a
+// reporter's upload works. Swap the files in scripts/seed-images to change
+// what the demo looks like.
+async function uploadSeedImages() {
+  const dir = path.join(__dirname, 'seed-images')
+  const files = fs.readdirSync(dir).filter(name => /\.(png|jpe?g|gif|webp|avif)$/i.test(name))
+  if (!files.length) throw new Error('no pictures in scripts/seed-images')
+
+  const types = {
+    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+    gif: 'image/gif', webp: 'image/webp', avif: 'image/avif'
+  }
+
+  return Promise.all(files.map(name => imageStore.saveImage(
+    fs.readFileSync(path.join(dir, name)),
+    { filename: name, contentType: types[name.split('.').pop().toLowerCase()] }
+  )))
+}
+
 function makeContent(category) {
   const title = `${pick(HEADLINES[category])} ${pick(SUBJECTS)}`
   return {
@@ -41,7 +67,7 @@ function makeContent(category) {
       `and that further details will be published in the coming days. Critics argue the timing is questionable.`
     ).join('\n\n'),
     category,
-    imageUrl: `https://picsum.photos/seed/${Math.random().toString(36).slice(2, 9)}/800/450`
+    imagePath: pick(imagePaths)
   }
 }
 
@@ -73,8 +99,12 @@ async function seed() {
   console.log('clearing old data')
   await Promise.all([
     User.deleteMany({}), Article.deleteMany({}),
-    Comment.deleteMany({}), ViewBucket.deleteMany({})
+    Comment.deleteMany({}), ViewBucket.deleteMany({}),
+    imageStore.clearImages()
   ])
+
+  imagePaths = await uploadSeedImages()
+  console.log(`uploaded ${imagePaths.length} pictures`)
 
   // --- users ---
   // The first editor has to come from here, otherwise nobody could log in to
