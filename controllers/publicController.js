@@ -1,5 +1,6 @@
 const mongoose = require('mongoose')
 const Article = require('../models/Article')
+const viewCounter = require('../services/viewCounter')
 const { CATEGORIES, CATEGORY_LABELS } = Article
 
 // Ten is what fits the feed column without an article being pushed off screen.
@@ -202,6 +203,10 @@ async function feedPage(req, res) {
 async function articlePage(req, res) {
   const article = await findLiveArticle(req.params.id)
   const content = article.publishedContent
+
+  // Only once we know it is live, so a wrong id or an unapproved article costs
+  // nothing. The spec counts a view on every read of the article page.
+  await viewCounter.countView(article._id)
 
   res.render('article', {
     article,
