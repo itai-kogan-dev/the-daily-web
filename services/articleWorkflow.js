@@ -29,10 +29,10 @@ function assertPublishable(article) {
   if (!content.title.trim() || content.title === 'Untitled') missing.push('title')
   if (!content.summary.trim()) missing.push('summary')
   if (!content.body.trim()) missing.push('body')
-  if (!content.imageUrl.trim()) missing.push('image')
+  if (!content.imagePath.trim()) missing.push('image')
   if (missing.length) throw httpError(400, 'Still missing: ' + missing.join(', '))
 
-  if (!isValidImageSource(content.imageUrl)) {
+  if (!isValidImageSource(content.imagePath)) {
     throw httpError(400, 'The image is not a valid picture')
   }
 }

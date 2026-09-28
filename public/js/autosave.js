@@ -23,20 +23,13 @@ if (form && !form.dataset.readonly) {
   // (the tooltip) and it would shadow the input named "title"
   const getField = name => form.elements[name]
 
-  // The image can be a few hundred KB, so it only rides along on the save
-  // that changed it. The server keeps the stored one when the field is absent.
-  let imageChanged = false
-
-  function readForm() {
-    const content = {
-      title: getField('title').value,
-      summary: getField('summary').value,
-      body: getField('body').value,
-      category: getField('category').value
-    }
-    if (imageChanged) content.imageUrl = getField('imageUrl').value
-    return content
-  }
+  const readForm = () => ({
+    title: getField('title').value,
+    summary: getField('summary').value,
+    body: getField('body').value,
+    category: getField('category').value,
+    imagePath: getField('imagePath').value
+  })
 
   function showStatus(text, state = '') {
     if (!statusEl) return
@@ -52,7 +45,7 @@ if (form && !form.dataset.readonly) {
   }
 
   const isBlank = content => !content.title.trim() && !content.summary.trim() &&
-                             !content.body.trim() && !(content.imageUrl || '').trim()
+                             !content.body.trim() && !content.imagePath.trim()
 
   async function saveDraft() {
     if (!hasUnsavedChanges) return
@@ -69,7 +62,6 @@ if (form && !form.dataset.readonly) {
     // clear the flag before the request, so anything typed while it is in
     // flight is not swallowed
     hasUnsavedChanges = false
-    const sendingImage = imageChanged
     showStatus('Saving...')
 
     const isNew = !articleId
@@ -85,8 +77,6 @@ if (form && !form.dataset.readonly) {
       setTimeout(saveDraft, 3000)
       return
     }
-
-    if (sendingImage) imageChanged = false
 
     const data = await res.json()
 
@@ -183,8 +173,7 @@ if (form && !form.dataset.readonly) {
     }
 
     const data = await res.json()
-    getField('imageUrl').value = data.url
-    imageChanged = true
+    getField('imagePath').value = data.url
     if (imageName) imageName.textContent = file.name
     // the hidden field fires no input events, so tell autosave directly
     form.dispatchEvent(new Event('input', { bubbles: true }))

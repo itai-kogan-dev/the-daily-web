@@ -38,7 +38,7 @@ const contentSchema = new mongoose.Schema({
   summary:  { type: String, default: '', trim: true },
   body:     { type: String, default: '' },
   category: { type: String, enum: CATEGORIES, required: true },
-  imageUrl: { type: String, default: '' }
+  imagePath: { type: String, default: '' }
 }, { _id: false })
 
 const articleSchema = new mongoose.Schema({

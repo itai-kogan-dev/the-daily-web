@@ -67,7 +67,7 @@ function makeContent(category) {
       `and that further details will be published in the coming days. Critics argue the timing is questionable.`
     ).join('\n\n'),
     category,
-    imageUrl: pick(imagePaths)
+    imagePath: pick(imagePaths)
   }
 }
 

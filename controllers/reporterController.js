@@ -74,7 +74,7 @@ async function showDashboard(req, res) {
 function showNewEditor(req, res) {
   res.render('reporter/edit', {
     article: null,
-    content: { title: '', summary: '', body: '', category: CATEGORIES[0], imageUrl: '' },
+    content: { title: '', summary: '', body: '', category: CATEGORIES[0], imagePath: '' },
     imageName: null,
     canEdit: true,
     CATEGORIES, CATEGORY_LABELS, STATUS, STATUS_LABELS
@@ -89,7 +89,7 @@ async function showEditor(req, res) {
   res.render('reporter/edit', {
     article,
     content: article.draftContent,
-    imageName: await imageStore.findImageName(article.draftContent.imageUrl),
+    imageName: await imageStore.findImageName(article.draftContent.imagePath),
     canEdit: EDITABLE.includes(article.status),
     CATEGORIES, CATEGORY_LABELS, STATUS, STATUS_LABELS
   })
@@ -104,7 +104,7 @@ function readContent(body, current = {}) {
     summary:  (body.summary  ?? current.summary  ?? '').trim(),
     body:      body.body     ?? current.body     ?? '',
     category: CATEGORIES.includes(body.category) ? body.category : (current.category || CATEGORIES[0]),
-    imageUrl: (body.imageUrl ?? current.imageUrl ?? '').trim()
+    imagePath: (body.imagePath ?? current.imagePath ?? '').trim()
   }
 }
 
@@ -129,7 +129,7 @@ async function uploadImage(req, res) {
 // used to fill the database. Updating stays permissive so no work is lost.
 async function createArticle(req, res) {
   const content = readContent(req.body)
-  const isEmpty = content.title === 'Untitled' && !content.summary && !content.body.trim() && !content.imageUrl
+  const isEmpty = content.title === 'Untitled' && !content.summary && !content.body.trim() && !content.imagePath
   if (isEmpty) throw makeError(400, 'Write something before the article is created')
 
   const article = await Article.create({
