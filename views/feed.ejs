@@ -41,8 +41,9 @@
     <p class="feed-status muted" id="feed-status" role="status" aria-live="polite" hidden></p>
 
     <!-- One container for the results, so the browser can replace the lot of it
-         without having to work out which parts were on the page. -->
-    <div id="feed-results">
+         without having to work out which parts were on the page. The numbers let
+         the script continue from the server-rendered page without refetching it. -->
+    <div id="feed-results" data-page="<%= page %>" data-pages="<%= pages %>" data-total="<%= total %>">
       <% if (!items.length) { %>
         <p class="feed-empty muted">
           <% if (q || category) { %>

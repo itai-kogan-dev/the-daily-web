@@ -249,6 +249,20 @@ a { color: var(--accent); }
   color: var(--muted);
 }
 
+/* infinite scroll, added by feed.js. The sentinel is only a place for the
+   observer to watch; the link below is the keyboard path and the fallback when
+   there is no IntersectionObserver. */
+.feed-sentinel { height: 1px; }
+.feed-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  margin-top: var(--gap);
+}
+.feed-more-note { margin: 0; font-size: .875rem; }
+
 .feed-empty { padding: 2rem 0; }
 
 /* written to by feed.js, and only ever visible while a request is in flight */
