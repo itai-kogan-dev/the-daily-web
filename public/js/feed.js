@@ -194,7 +194,9 @@ if (form && results) {
       chip.classList.toggle('active', chip.dataset.sort === feed.sort)
     }
     for (const chip of document.querySelectorAll('.feed-filters [data-category]')) {
-      chip.classList.toggle('active', chip.dataset.category === feed.category)
+      // The API answers with null when no category is selected, while the All
+      // chip carries an empty string. Without the fallback All never matches.
+      chip.classList.toggle('active', chip.dataset.category === (feed.category || ''))
     }
   }
 
