@@ -51,6 +51,7 @@ if (form && results) {
 
   function buildCard(article) {
     const item = el('li', 'feed-card')
+    item.dataset.articleId = article.id
 
     if (article.imagePath) {
       const link = el('a', 'feed-thumb')
@@ -113,13 +114,19 @@ if (form && results) {
   let moreWrap = null
   let moreLink = null
   let moreNote = null
+  // Client-only: not in the URL, because a bookmarked unread filter would do
+  // nothing without JavaScript. No-JS readers never see the toggle.
+  let unreadOnly = false
+  let pageSize = 20
+  let unreadToggle = null
 
   function initialFeedState() {
     const state = currentState()
     const page = Math.max(1, parseInt((results.dataset && results.dataset.page) || state.page, 10) || 1)
     const pages = Math.max(page, parseInt((results.dataset && results.dataset.pages) || page, 10) || page)
     const total = Math.max(0, parseInt((results.dataset && results.dataset.total) || '0', 10) || 0)
-    return { state, page, pages, total }
+    const size = Math.max(1, parseInt((results.dataset && results.dataset.pageSize) || '20', 10) || 20)
+    return { state, page, pages, total, size }
   }
 
   function ensureMoreUI() {
@@ -186,7 +193,16 @@ if (form && results) {
       stopObserving()
       moreWrap.hidden = false
       moreLink.hidden = true
-      moreNote.textContent = announceEnd ? `That's all ${articleCountText(loadedTotal)}.` : ''
+      if (!announceEnd) {
+        moreNote.textContent = ''
+      } else if (unreadOnly) {
+        const visible = visibleCards().length
+        moreNote.textContent = visible
+          ? `That's all ${articleCountText(loadedTotal)} - ${visible} unread.`
+          : `You've read all ${articleCountText(loadedTotal)}.`
+      } else {
+        moreNote.textContent = `That's all ${articleCountText(loadedTotal)}.`
+      }
     }
   }
 
@@ -226,6 +242,68 @@ if (form && results) {
     }
   }
 
+  // Unread means "not opened in this browser". The server never sees the list,
+  // so the toggle only hides cards that are already on the page - it cannot
+  // change the total, and it stays out of the URL.
+  function isRead(id) {
+    try {
+      return Boolean(window.DailyWebRead && window.DailyWebRead.has(id))
+    } catch {
+      return false
+    }
+  }
+
+  function visibleCards() {
+    const list = document.getElementById('feed-list')
+    if (!list) return []
+    return Array.from(list.children).filter(card => !card.hidden)
+  }
+
+  function applyUnread() {
+    const list = document.getElementById('feed-list')
+    if (!list) return 0
+    let visible = 0
+    for (const card of list.children) {
+      const read = isRead(card.dataset && card.dataset.articleId)
+      card.hidden = unreadOnly && read
+      if (!card.hidden) visible++
+    }
+    return visible
+  }
+
+  function maybeFillUnread() {
+    if (!unreadOnly) return
+    // A filtered page can render short, so keep loading until a full page of
+    // unread cards is on screen or the feed itself runs out.
+    if (visibleCards().length < pageSize) loadMore()
+  }
+
+  function setUnreadOnly(value) {
+    unreadOnly = Boolean(value)
+    if (unreadToggle) {
+      unreadToggle.classList.toggle('active', unreadOnly)
+      unreadToggle.setAttribute('aria-pressed', String(unreadOnly))
+    }
+    applyUnread()
+    setMore()
+    maybeFillUnread()
+  }
+
+  function ensureUnreadToggle() {
+    if (unreadToggle) return unreadToggle
+    // Without the shared read list there is nothing truthful to filter on, so
+    // no-JS readers and blocked scripts never see a dead control.
+    if (!window.DailyWebRead) return null
+    const popular = document.querySelector('[data-sort="popular"]')
+    if (!popular || !popular.parentNode) return null
+    unreadToggle = el('button', 'chip', 'Unread only')
+    unreadToggle.type = 'button'
+    unreadToggle.setAttribute('aria-pressed', 'false')
+    unreadToggle.addEventListener('click', () => setUnreadOnly(!unreadOnly))
+    popular.parentNode.insertBefore(unreadToggle, popular.nextSibling)
+    return unreadToggle
+  }
+
   function render(feed, state, { append = false } = {}) {
     // Appending is only for the next page of the same feed. Anything else -
     // a new search, a chip, back/forward - starts from a clean list.
@@ -257,7 +335,10 @@ if (form && results) {
     loadedPage = feed.page
     loadedPages = feed.pages
     loadedTotal = feed.total
+    if (Number(feed.pageSize) > 0) pageSize = Number(feed.pageSize)
+    applyUnread()
     setMore()
+    maybeFillUnread()
   }
 
   function setStatus(text) {
@@ -395,6 +476,9 @@ if (form && results) {
   loadedPage = initial.page
   loadedPages = initial.pages
   loadedTotal = initial.total
+  pageSize = initial.size
+  ensureUnreadToggle()
+  applyUnread()
   // Quiet at the end on first paint: the server already showed this page, so
   // there is nothing new to announce until the next client load.
   if (initial.total) setMore({ announceEnd: false })

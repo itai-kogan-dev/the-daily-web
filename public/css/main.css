@@ -150,6 +150,12 @@ a { color: var(--accent); }
 .chip:hover { color: var(--text); border-color: var(--muted); }
 .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
+/* the unread filter is a button wearing chip styling, created by feed.js only
+   when the read list exists - so it is never a dead control without JS */
+button.chip { font: inherit; background: transparent; cursor: pointer; }
+button.chip:hover { color: var(--text); border-color: var(--muted); }
+button.chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
 .feed-count { margin-left: auto; font-size: .875rem; }
 
 .feed-list { list-style: none; padding: 0; margin: var(--gap) 0 0; }
@@ -160,6 +166,9 @@ a { color: var(--accent); }
   padding: var(--gap) 0;
   border-bottom: 1px solid var(--line);
 }
+/* the flex display above would otherwise override the hidden attribute when
+   the unread filter hides a card */
+.feed-card[hidden] { display: none; }
 .feed-card:first-child { padding-top: 0; }
 
 .feed-thumb { flex: 0 0 160px; }

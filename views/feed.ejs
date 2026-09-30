@@ -43,7 +43,7 @@
     <!-- One container for the results, so the browser can replace the lot of it
          without having to work out which parts were on the page. The numbers let
          the script continue from the server-rendered page without refetching it. -->
-    <div id="feed-results" data-page="<%= page %>" data-pages="<%= pages %>" data-total="<%= total %>">
+    <div id="feed-results" data-page="<%= page %>" data-pages="<%= pages %>" data-total="<%= total %>" data-page-size="<%= pageSize %>">
       <% if (!items.length) { %>
         <p class="feed-empty muted">
           <% if (q || category) { %>
@@ -55,7 +55,7 @@
       <% } else { %>
         <ul class="feed-list" id="feed-list">
           <% items.forEach(article => { %>
-            <li class="feed-card">
+            <li class="feed-card" data-article-id="<%= article.id %>">
               <% if (article.imagePath) { %>
                 <a class="feed-thumb" href="/article/<%= article.id %>" tabindex="-1" aria-hidden="true">
                   <img src="<%= article.imagePath %>" alt="" loading="lazy" width="160" height="107">
@@ -116,5 +116,6 @@
   <%- include('partials/sidebar') %>
 </div>
 
+<script src="/js/read.js"></script>
 <script src="/js/feed.js"></script>
 <%- include('partials/footer') %>
