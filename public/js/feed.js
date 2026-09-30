@@ -229,7 +229,12 @@ if (form && results) {
   // painting the wrong articles.
   let latest = 0
 
-  async function load(state, { push = true } = {}) {
+  async function load(state, { push = true, syncInput = true } = {}) {
+    // The input is the one place the address bar cannot speak for itself. It is
+    // synced on every route through here except typing and submitting, where the
+    // reader's unfinished text - including a trailing space - has to be left alone.
+    if (syncInput && searchInput && searchInput.value !== state.q) searchInput.value = state.q
+
     const query = toQuery(state)
     if (push) {
       const url = feedHref(state)
@@ -263,7 +268,7 @@ if (form && results) {
     searchInput.addEventListener('input', () => {
       clearTimeout(typing)
       typing = setTimeout(
-        () => load({ ...currentState(), q: searchInput.value.trim(), page: 1 }),
+        () => load({ ...currentState(), q: searchInput.value.trim(), page: 1 }, { syncInput: false }),
         TYPING_MS
       )
     })
@@ -272,7 +277,7 @@ if (form && results) {
   form.addEventListener('submit', event => {
     event.preventDefault()
     clearTimeout(typing)
-    load({ ...currentState(), q: searchInput.value.trim(), page: 1 })
+    load({ ...currentState(), q: searchInput.value.trim(), page: 1 }, { syncInput: false })
   })
 
   // One handler for every link the feed owns. The href is deliberately ignored
@@ -302,10 +307,9 @@ if (form && results) {
   })
 
   // Back and forward have to work too, and they arrive with the URL already
-  // changed - so no push this time, just pick the new state up.
+  // changed - so no push this time, just pick the new state up. The input sync
+  // happens inside load().
   window.addEventListener('popstate', () => {
-    const state = currentState()
-    if (searchInput) searchInput.value = state.q
-    load(state, { push: false })
+    load(currentState(), { push: false })
   })
 }
