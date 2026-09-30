@@ -4,8 +4,9 @@ const Comment = require('../models/Comment')
 const viewCounter = require('../services/viewCounter')
 const { CATEGORIES, CATEGORY_LABELS } = Article
 
-// Ten is what fits the feed column without an article being pushed off screen.
-const PAGE_SIZE = 10
+// Twenty at a time. The spec loads 20 more articles as the reader reaches the
+// end of the feed, so both the server page and every API page are 20.
+const PAGE_SIZE = 20
 const SORTS = ['date', 'popular']
 const DEFAULT_SORT = 'date'
 
