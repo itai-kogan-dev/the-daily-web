@@ -15,6 +15,14 @@ if (form && listEl) {
   const bodyInput = form.elements.body
   const articleId = form.dataset.article
 
+  // Opening the article marks it read for this browser only. It never leaves
+  // the device; the feed's unread filter reads the same list.
+  try {
+    if (window.DailyWebRead) window.DailyWebRead.record(articleId)
+  } catch {
+    // recording is best effort; the article itself must always render
+  }
+
   // A second press while the first is still in flight would post the same
   // comment twice.
   let sending = false
