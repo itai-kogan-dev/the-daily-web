@@ -245,7 +245,9 @@ function toParagraphs(body) {
 
 function lastUpdateAt(article) {
   const events = article.updateEvents || []
-  return events.length ? events[events.length - 1].at : null
+  // publish() records an event on the first publication too, so one event
+  // means "published once", not "published and then updated".
+  return events.length > 1 ? events[events.length - 1].at : null
 }
 
 async function feedPage(req, res) {
