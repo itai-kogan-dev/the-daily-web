@@ -6,9 +6,15 @@
     <!-- The whole article is in the HTML. The spec needs the text to be there
          with JavaScript turned off, so nothing below waits for a request. -->
     <article class="article">
-      <a class="article-category" href="<%= feedLink({ category: content.category }) %>">
-        <%= CATEGORY_LABELS[content.category] %>
-      </a>
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="/">The Daily Web</a>
+        <span aria-hidden="true">&rsaquo;</span>
+        <a href="<%= feedLink({ category: content.category }) %>">
+          <%= CATEGORY_LABELS[content.category] %>
+        </a>
+        <span aria-hidden="true">&rsaquo;</span>
+        <span class="crumb-current"><%= content.title %></span>
+      </nav>
 
       <h1 class="article-title"><%= content.title %></h1>
 

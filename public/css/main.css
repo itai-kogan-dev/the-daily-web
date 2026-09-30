@@ -272,17 +272,26 @@ a { color: var(--accent); }
 
 .article { max-width: 40rem; }
 
-.article-category {
-  display: inline-block;
-  margin-bottom: .35rem;
-  color: var(--accent);
-  font-size: .8rem;
-  font-weight: 700;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  text-decoration: none;
+/* The way back to the feed. The article page's links start from a clean feed,
+   so this restores the article's category rather than the exact scrolled page. */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .875rem;
+  color: var(--muted);
+  margin-bottom: .25rem;
 }
-.article-category:hover { text-decoration: underline; }
+.breadcrumb a { color: var(--muted); }
+.breadcrumb a:hover { color: var(--accent); }
+
+/* a long headline would push the breadcrumb onto a second line */
+.crumb-current {
+  max-width: 28rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* overrides the page-wide h1, which is sized for a dashboard heading */
 .article-title {
