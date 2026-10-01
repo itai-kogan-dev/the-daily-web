@@ -20,6 +20,7 @@
     </form>
 
     <nav class="feed-filters" aria-label="Filter by category">
+      <span class="feed-filters-title" aria-hidden="true">Filter by:</span>
       <a class="chip<%= category ? '' : ' active' %>" data-feed-nav data-category=""
          href="<%= feedLink({ category: '' }) %>">All</a>
       <% CATEGORIES.forEach(name => { %>
@@ -29,6 +30,7 @@
     </nav>
 
     <nav class="feed-filters" aria-label="Sort order">
+      <span class="feed-filters-title" aria-hidden="true">Sort by:</span>
       <a class="chip<%= sort === 'date' ? ' active' : '' %>" data-feed-nav data-sort="date"
          href="<%= feedLink({ sort: 'date' }) %>">Newest</a>
       <a class="chip<%= sort === 'popular' ? ' active' : '' %>" data-feed-nav data-sort="popular"
