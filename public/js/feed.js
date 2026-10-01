@@ -170,6 +170,19 @@ if (form && results) {
     return `${total} ${total === 1 ? 'article' : 'articles'}`
   }
 
+  // The count follows the filter: unread on means the unread cards on screen,
+  // unread off means the server total. It can only count what is loaded - the
+  // server never hears about the filter.
+  function updateCount() {
+    if (!countEl) return
+    if (unreadOnly) {
+      const visible = visibleCards().length
+      countEl.textContent = visible === 1 ? '1 unread article' : `${visible} unread articles`
+    } else {
+      countEl.textContent = articleCountText(loadedTotal)
+    }
+  }
+
   function setMore({ announceEnd = true } = {}) {
     ensureMoreUI()
     if (!baseState) return
@@ -282,6 +295,7 @@ if (form && results) {
     unreadOnly = Boolean(value)
     if (unreadToggle) unreadToggle.checked = unreadOnly
     applyUnread()
+    updateCount()
     setMore()
     maybeFillUnread()
   }
@@ -291,8 +305,10 @@ if (form && results) {
     // Without the shared read list there is nothing truthful to filter on, so
     // no-JS readers and blocked scripts never see a dead control.
     if (!window.DailyWebRead) return null
-    const popular = document.querySelector('[data-sort="popular"]')
-    if (!popular || !popular.parentNode) return null
+    // It lives with the filters, not the sorters: it narrows which articles
+    // show, it never orders them.
+    const chips = document.querySelectorAll('.feed-filters [data-category]')
+    if (!chips.length || !chips[0].parentNode) return null
     // A checkbox, not a button: the on/off state lives in the control itself,
     // so it needs no aria-pressed and announces as a switch would.
     const wrap = el('label', 'feed-toggle')
@@ -303,7 +319,7 @@ if (form && results) {
     track.append(el('span', 'feed-toggle-thumb'))
     wrap.append(box, track, el('span', 'feed-toggle-label', 'Unread only'))
     box.addEventListener('change', () => setUnreadOnly(box.checked))
-    popular.parentNode.insertBefore(wrap, popular.nextSibling)
+    chips[0].parentNode.append(wrap)
     unreadToggle = box
     return unreadToggle
   }
@@ -328,9 +344,6 @@ if (form && results) {
       }
     }
 
-    if (countEl) {
-      countEl.textContent = articleCountText(feed.total)
-    }
     markActive(feed)
 
     if (!append) {
@@ -341,6 +354,7 @@ if (form && results) {
     loadedTotal = feed.total
     if (Number(feed.pageSize) > 0) pageSize = Number(feed.pageSize)
     applyUnread()
+    updateCount()
     setMore()
     maybeFillUnread()
   }
@@ -483,6 +497,7 @@ if (form && results) {
   pageSize = initial.size
   ensureUnreadToggle()
   applyUnread()
+  updateCount()
   // Quiet at the end on first paint: the server already showed this page, so
   // there is nothing new to announce until the next client load.
   if (initial.total) setMore({ announceEnd: false })
