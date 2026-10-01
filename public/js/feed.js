@@ -280,10 +280,7 @@ if (form && results) {
 
   function setUnreadOnly(value) {
     unreadOnly = Boolean(value)
-    if (unreadToggle) {
-      unreadToggle.classList.toggle('active', unreadOnly)
-      unreadToggle.setAttribute('aria-pressed', String(unreadOnly))
-    }
+    if (unreadToggle) unreadToggle.checked = unreadOnly
     applyUnread()
     setMore()
     maybeFillUnread()
@@ -296,11 +293,18 @@ if (form && results) {
     if (!window.DailyWebRead) return null
     const popular = document.querySelector('[data-sort="popular"]')
     if (!popular || !popular.parentNode) return null
-    unreadToggle = el('button', 'chip', 'Unread only')
-    unreadToggle.type = 'button'
-    unreadToggle.setAttribute('aria-pressed', 'false')
-    unreadToggle.addEventListener('click', () => setUnreadOnly(!unreadOnly))
-    popular.parentNode.insertBefore(unreadToggle, popular.nextSibling)
+    // A checkbox, not a button: the on/off state lives in the control itself,
+    // so it needs no aria-pressed and announces as a switch would.
+    const wrap = el('label', 'feed-toggle')
+    const box = el('input')
+    box.type = 'checkbox'
+    const track = el('span', 'feed-toggle-track')
+    track.setAttribute('aria-hidden', 'true')
+    track.append(el('span', 'feed-toggle-thumb'))
+    wrap.append(box, track, el('span', 'feed-toggle-label', 'Unread only'))
+    box.addEventListener('change', () => setUnreadOnly(box.checked))
+    popular.parentNode.insertBefore(wrap, popular.nextSibling)
+    unreadToggle = box
     return unreadToggle
   }
 
