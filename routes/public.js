@@ -15,6 +15,8 @@ router.get('/article/:id', publicController.articlePage)
 
 // --- json for the browser ---
 router.get('/api/articles', publicController.listArticles)
+// ids only, so the unread filter can count the whole feed in one request
+router.get('/api/articles/ids', publicController.articleIds)
 router.get('/api/articles/:id/comments', publicController.listComments)
 router.post('/api/articles/:id/comments', commentRateLimit, publicController.addComment)
 router.get('/api/weather', todo('weather widget'))

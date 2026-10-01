@@ -171,6 +171,16 @@ async function listArticles(req, res) {
   res.json(await findFeed(req.query))
 }
 
+// Every id the current filters match, nothing else. The unread filter lives
+// in the browser and needs the full set to count honestly - paging through 21
+// pages of cards just to count them would be 21 requests for one number. One
+// small response of ids instead; 415 of them is about 10KB.
+async function articleIds(req, res) {
+  const options = readQuery(req.query)
+  const ids = await Article.distinct('_id', feedMatch(options))
+  res.json({ ids: ids.map(String), total: ids.length })
+}
+
 // Builds a link to the feed with some of the parameters replaced. Partial on
 // purpose: changing the sort must not throw away the search. Any change starts
 // again at page one, and only the pager asks for a specific page. Empty values
@@ -354,7 +364,7 @@ async function addComment(req, res) {
 }
 
 module.exports = {
-  findFeed, listArticles, feedPage, feedLink, pageWindow,
+  findFeed, listArticles, articleIds, feedPage, feedLink, pageWindow,
   articlePage, findLiveArticle, toParagraphs,
   listComments, findComments, toComment, assertLiveArticle, addComment,
   escapeRegExp, searchTerms, PAGE_SIZE, SORTS, DEFAULT_SORT, SEARCH_MAX, COMMENTS_LIMIT, readQuery
