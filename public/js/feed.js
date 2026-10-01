@@ -119,6 +119,12 @@ if (form && results) {
   let unreadOnly = false
   let pageSize = 20
   let unreadToggle = null
+  // The full id set for the current filters, so the unread count is the whole
+  // feed and not just the loaded cards. Cached per filter; a failed fetch
+  // leaves countIds null and the count falls back to the loaded cards.
+  let countIds = null
+  let countSig = null
+  let countToken = 0
 
   function initialFeedState() {
     const state = currentState()
@@ -170,17 +176,62 @@ if (form && results) {
     return `${total} ${total === 1 ? 'article' : 'articles'}`
   }
 
-  // The count follows the filter: unread on means the unread cards on screen,
-  // unread off means the server total. It can only count what is loaded - the
-  // server never hears about the filter.
+  // The count follows the filter: unread on means the unread articles in the
+  // whole feed, unread off means the server total.
   function updateCount() {
     if (!countEl) return
     if (unreadOnly) {
-      const visible = visibleCards().length
-      countEl.textContent = visible === 1 ? '1 unread article' : `${visible} unread articles`
+      const n = unreadTotal()
+      countEl.textContent = n === 1 ? '1 unread article' : `${n} unread articles`
     } else {
       countEl.textContent = articleCountText(loadedTotal)
     }
+  }
+
+  function unreadTotal() {
+    // No id set yet, or its fetch failed: count the loaded cards rather than
+    // showing nothing.
+    if (!countIds) return visibleCards().length
+    let read = null
+    try {
+      read = new Set(window.DailyWebRead ? window.DailyWebRead.list() : [])
+    } catch {
+      read = new Set()
+    }
+    let n = 0
+    for (const id of countIds) {
+      if (!read.has(id)) n++
+    }
+    return n
+  }
+
+  // The full unread count for the current filters. Cached per filter, so
+  // toggling twice or coming back to the page recomputes against the fresh
+  // read list without another request; a new filter refetches.
+  async function refreshUnreadCount() {
+    if (!unreadOnly || !baseState) {
+      updateCount()
+      return
+    }
+    // Sort never changes the set, so it is not part of the signature.
+    const sig = JSON.stringify({ q: baseState.q, category: baseState.category })
+    if (sig === countSig && countIds) {
+      updateCount()
+      return
+    }
+    const mine = ++countToken
+    let ids = null
+    try {
+      const res = await fetch(`/api/articles/ids?${toQuery({ ...baseState, page: 1 })}`)
+      if (!res.ok) throw new Error(res.status)
+      ids = (await res.json()).ids
+    } catch {
+      ids = null
+    }
+    if (mine !== countToken) return
+    countSig = sig
+    countIds = Array.isArray(ids) ? ids : null
+    updateCount()
   }
 
   function setMore({ announceEnd = true } = {}) {
@@ -295,7 +346,7 @@ if (form && results) {
     unreadOnly = Boolean(value)
     if (unreadToggle) unreadToggle.checked = unreadOnly
     applyUnread()
-    updateCount()
+    refreshUnreadCount()
     setMore()
     maybeFillUnread()
   }
@@ -354,7 +405,7 @@ if (form && results) {
     loadedTotal = feed.total
     if (Number(feed.pageSize) > 0) pageSize = Number(feed.pageSize)
     applyUnread()
-    updateCount()
+    refreshUnreadCount()
     setMore()
     maybeFillUnread()
   }
@@ -484,6 +535,28 @@ if (form && results) {
     load(currentState(), { push: false })
   })
 
+  // Coming back from an article - back button, tab switch, another tab - can
+  // leave a just-read card on screen, because recording happens on the article
+  // page while this page sits untouched. Re-apply the filter whenever the page
+  // becomes visible again. Cheap and idempotent, so all three ways back share
+  // the one handler.
+  async function refreshOnReturn() {
+    if (!unreadOnly) return
+    applyUnread()
+    await refreshUnreadCount()
+    setMore()
+    maybeFillUnread()
+  }
+
+  window.addEventListener('pageshow', refreshOnReturn)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshOnReturn()
+  })
+  window.addEventListener('storage', event => {
+    const key = window.DailyWebRead && window.DailyWebRead.KEY
+    if (event.key === key) refreshOnReturn()
+  })
+
   // Start from the server-rendered page instead of fetching it again. The pager
   // is removed here rather than hidden, because leaving a second navigation in
   // the page would give keyboard and screen-reader users two ways to move.
@@ -497,7 +570,7 @@ if (form && results) {
   pageSize = initial.size
   ensureUnreadToggle()
   applyUnread()
-  updateCount()
+  refreshUnreadCount()
   // Quiet at the end on first paint: the server already showed this page, so
   // there is nothing new to announce until the next client load.
   if (initial.total) setMore({ announceEnd: false })
