@@ -18,13 +18,6 @@
     <% }) %>
   </nav>
 
-  <% if (needsWorkCount > 0 && filter !== STATUS.NEEDS_REVISION) { %>
-    <p class="notice warn">
-      <%= needsWorkCount %> <%= needsWorkCount === 1 ? 'article needs' : 'articles need' %>
-      changes before <%= needsWorkCount === 1 ? 'it can' : 'they can' %> go back to the editor.
-    </p>
-  <% } %>
-
   <% if (articles.length === 0) { %>
     <p class="muted">
       <%= filter ? 'No articles with this status.' : 'Nothing here yet. Start with a new article.' %>
@@ -32,21 +25,29 @@
   <% } else { %>
     <ul class="article-list">
       <% articles.forEach(article => { %>
+        <%# the same shape as the public feed: picture left, everything else right %>
         <li class="article-row">
-          <div class="article-main">
+          <% if (article.draftContent.imagePath) { %>
+            <a class="article-thumb" href="/reporter/article/<%= article._id %>" tabindex="-1" aria-hidden="true">
+              <img src="<%= article.draftContent.imagePath %>" alt="" loading="lazy" width="160" height="107">
+            </a>
+          <% } %>
+
+          <div class="article-body">
             <a class="article-title" href="/reporter/article/<%= article._id %>">
               <%= article.draftContent.title %>
             </a>
+
+            <% if (article.status === STATUS.NEEDS_REVISION && article.editorNote) { %>
+              <p class="editor-note"><strong>Editor:</strong> <%= article.editorNote %></p>
+            <% } %>
+
             <div class="article-meta">
               <span class="badge status-<%= article.status %>"><%= STATUS_LABELS[article.status] %></span>
               <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
               <span><%= CATEGORY_LABELS[article.draftContent.category] %></span>
               <span>edited <%= new Date(article.updatedAt).toLocaleDateString() %></span>
             </div>
-
-            <% if (article.status === STATUS.NEEDS_REVISION && article.editorNote) { %>
-              <p class="editor-note"><strong>Editor:</strong> <%= article.editorNote %></p>
-            <% } %>
           </div>
         </li>
       <% }) %>
