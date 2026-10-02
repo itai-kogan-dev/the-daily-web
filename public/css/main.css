@@ -1,4 +1,4 @@
-/* Layout skeleton and shared tokens only. T1 owns the real styling. */
+/* Shared tokens and the page shell. Everything from "--- feed" down is T1's. */
 
 :root {
   --bg: #ffffff;
@@ -115,3 +115,317 @@ a { color: var(--accent); }
   .layout { flex-direction: column; }
   .sidebar { flex: 1 1 auto; width: 100%; }
 }
+
+/* --- feed ---
+   Prefixed rather than reusing reporter.css, which the reporter pages load
+   instead. Nothing here has to be reasoned about against those rules. */
+
+.feed-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  margin: var(--gap) 0;
+}
+.feed-search input[type="search"] { flex: 1 1 12rem; }
+.feed-clear { font-size: .875rem; }
+
+.feed-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .4rem;
+  margin-bottom: .5rem;
+}
+
+.chip {
+  padding: .3rem .7rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: .875rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.chip:hover { color: var(--text); border-color: var(--muted); }
+.chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.feed-filters-title { font-size: .875rem; font-weight: 600; color: var(--muted); }
+
+/* Unread only is a switch, not a chip: a checkbox the script inserts next to
+   Most read, but only when the read list exists - so it is never a dead
+   control without JS. The box itself stays focusable and the track shows the
+   state, which is what makes it a switch to assistive tech too. */
+.feed-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  cursor: pointer;
+  font-size: .875rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.feed-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.feed-toggle-track {
+  display: inline-flex;
+  align-items: center;
+  width: 2.1rem;
+  height: 1.2rem;
+  padding: .15rem;
+  border-radius: 999px;
+  background: var(--line);
+}
+.feed-toggle-thumb {
+  width: .9rem;
+  height: .9rem;
+  border-radius: 999px;
+  background: #fff;
+}
+.feed-toggle input:checked + .feed-toggle-track { background: var(--accent); }
+.feed-toggle input:checked + .feed-toggle-track .feed-toggle-thumb { margin-left: auto; }
+.feed-toggle input:focus-visible + .feed-toggle-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.feed-count { margin-left: auto; font-size: .875rem; }
+
+.feed-list { list-style: none; padding: 0; margin: var(--gap) 0 0; }
+
+.feed-card {
+  display: flex;
+  gap: var(--gap);
+  padding: var(--gap) 0;
+  border-bottom: 1px solid var(--line);
+}
+/* the flex display above would otherwise override the hidden attribute when
+   the unread filter hides a card */
+.feed-card[hidden] { display: none; }
+.feed-card:first-child { padding-top: 0; }
+
+.feed-thumb { flex: 0 0 160px; }
+.feed-thumb img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: var(--radius);
+  background: var(--line);
+}
+
+.feed-card-body { flex: 1 1 auto; min-width: 0; }
+
+.feed-card-title {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text);
+  text-decoration: none;
+}
+.feed-card-title:hover { color: var(--accent); }
+
+.feed-summary { margin: .35rem 0 0; color: var(--muted); }
+
+.feed-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  margin-top: .5rem;
+  font-size: .85rem;
+  color: var(--muted);
+}
+.feed-category { color: var(--accent); text-decoration: none; font-weight: 600; }
+.feed-category:hover { text-decoration: underline; }
+
+.feed-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  margin-top: var(--gap);
+}
+.feed-step {
+  padding: .4rem .8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.feed-step:hover { border-color: var(--muted); }
+
+/* the numbers between Previous and Next */
+.feed-pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: .25rem;
+}
+
+.feed-page {
+  min-width: 2.1rem;
+  padding: .35rem .45rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  text-align: center;
+  text-decoration: none;
+}
+.feed-page:hover { border-color: var(--muted); background: #fafafa; }
+
+/* the page being read, so it is a label and not something to click */
+.feed-page.current {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* an ellipsis stands in for pages that are not shown, so it is never a link */
+.feed-page-gap {
+  padding: .35rem .2rem;
+  color: var(--muted);
+}
+
+/* infinite scroll, added by feed.js. The sentinel is only a place for the
+   observer to watch; the link below is the keyboard path and the fallback when
+   there is no IntersectionObserver. */
+.feed-sentinel { height: 1px; }
+.feed-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  margin-top: var(--gap);
+}
+.feed-more-note { margin: 0; font-size: .875rem; }
+
+.feed-empty { padding: 2rem 0; }
+
+/* written to by feed.js, and only ever visible while a request is in flight */
+.feed-status { margin: var(--gap) 0 0; font-size: .875rem; }
+
+/* --- article --- */
+
+.article { max-width: 40rem; }
+
+/* The way back to the feed. The article page's links start from a clean feed,
+   so this restores the article's category rather than the exact scrolled page. */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .875rem;
+  color: var(--muted);
+  margin-bottom: .25rem;
+}
+.breadcrumb a { color: var(--muted); }
+.breadcrumb a:hover { color: var(--accent); }
+
+/* a long headline would push the breadcrumb onto a second line */
+.crumb-current {
+  max-width: 28rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* overrides the page-wide h1, which is sized for a dashboard heading */
+.article-title {
+  font-size: 2.1rem;
+  line-height: 1.2;
+  margin: 0 0 .5rem;
+}
+
+.article-byline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem .9rem;
+  color: var(--muted);
+  font-size: .9rem;
+  padding-bottom: var(--gap);
+  border-bottom: 1px solid var(--line);
+}
+.article-byline > * + *::before {
+  content: "·";
+  margin-right: .9rem;
+  color: var(--line);
+}
+/* the separator sits before the element, so it has to come back out again on
+   the first child of a run */
+.article-updated { color: var(--accent); }
+
+.article-hero {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius);
+  margin: var(--gap) 0;
+  background: var(--line);
+}
+
+.article-lead {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin: var(--gap) 0 0;
+}
+
+.article-body {
+  margin-top: var(--gap);
+  font-size: 1.02rem;
+  line-height: 1.7;
+}
+.article-body p { margin: 0 0 1.1em; }
+.article-body p:last-child { margin-bottom: 0; }
+
+/* --- comments --- */
+
+.comments {
+  max-width: 40rem;
+  margin-top: calc(var(--gap) * 2);
+  padding-top: var(--gap);
+  border-top: 1px solid var(--line);
+}
+.comments h2 { font-size: 1.2rem; margin: 0 0 .25rem; }
+.comments h2 .muted { font-weight: 400; font-size: 1rem; }
+
+.comment-note { margin: 0 0 .5rem; font-size: .85rem; }
+
+.comment-list { list-style: none; padding: 0; margin: 0; }
+
+.comment { padding: .75rem 0; border-bottom: 1px solid var(--line); }
+.comment:last-child { border-bottom: none; }
+
+.comment-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .6rem;
+  font-size: .8rem;
+  color: var(--muted);
+}
+.comment-author { font-weight: 700; color: var(--text); }
+
+.comment-body { margin: .25rem 0 0; white-space: pre-wrap; }
+
+.comment-form { margin-top: var(--gap); }
+.comment-form textarea { resize: vertical; font-family: inherit; }
+
+.comment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem .75rem;
+}
+.comment-hint { font-size: .8rem; }
