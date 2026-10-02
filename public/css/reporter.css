@@ -117,6 +117,21 @@
 
 /* a real break between the messages above and the form itself */
 #article-form { margin-top: 1.25rem; }
+
+/* Labels should read as labels rather than as more content. The label wraps
+   its input, and inputs are set to font: inherit, so the weight has to be put
+   back or the typing goes bold too. */
+#article-form label,
+.field-label {
+  font-size: .9rem;
+  font-weight: 600;
+}
+#article-form input,
+#article-form select,
+#article-form textarea {
+  font-size: 1rem;
+  font-weight: 400;
+}
 #article-form textarea { resize: vertical; font-family: inherit; }
 
 .save-status {
