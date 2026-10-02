@@ -1,9 +1,56 @@
-<%- include('../partials/head', { title: 'Editor' }) %>
+<%- include('../partials/head', { title: 'Editor queue', extraCss: '/css/reporter.css' }) %>
+<link rel="stylesheet" href="/css/editor.css">
 <%- include('../partials/header') %>
 
 <main class="page">
-  <!-- T3: every article in the system, filterable by status -->
-  <h1>TODO: editor queue</h1>
+  <div class="page-top">
+    <h1>Editor queue</h1>
+    <a class="muted" href="/editor/analytics">Impact analytics</a>
+  </div>
+
+  <% if (pendingCount > 0 && filter !== STATUS.PENDING_EDITOR) { %>
+    <p class="notice warn">
+      <%= pendingCount %> <%= pendingCount === 1 ? 'article is' : 'articles are' %>
+      waiting for a decision.
+      <a href="/editor?status=<%= STATUS.PENDING_EDITOR %>">Review <%= pendingCount === 1 ? 'it' : 'them' %></a>
+    </p>
+  <% } %>
+
+  <nav class="tabs">
+    <a href="/editor" class="tab <%= filter ? '' : 'active' %>">
+      All <span class="tab-count"><%= counts.all %></span>
+    </a>
+    <% statuses.forEach(status => { %>
+      <a href="/editor?status=<%= status %>" class="tab <%= filter === status ? 'active' : '' %>">
+        <%= STATUS_LABELS[status] %> <span class="tab-count"><%= counts[status] %></span>
+      </a>
+    <% }) %>
+  </nav>
+
+  <% if (articles.length === 0) { %>
+    <p class="muted empty-state">
+      <%= filter ? 'No articles with this status.' : 'Nothing here yet.' %>
+    </p>
+  <% } else { %>
+    <ul class="article-list">
+      <% articles.forEach(article => { %>
+        <li class="article-row <%= article.status === STATUS.PENDING_EDITOR ? 'is-pending' : '' %>">
+          <div class="article-main">
+            <a class="article-title" href="/editor/article/<%= article._id %>">
+              <%= article.draftContent.title %>
+            </a>
+            <div class="article-meta">
+              <span class="badge status-<%= article.status %>"><%= STATUS_LABELS[article.status] %></span>
+              <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
+              <span><%= article.author && article.author.displayName ? article.author.displayName : 'Staff' %></span>
+              <span><%= CATEGORY_LABELS[article.draftContent.category] %></span>
+              <span>updated <%= new Date(article.updatedAt).toLocaleDateString() %></span>
+            </div>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
 </main>
 
 <%- include('../partials/footer') %>
