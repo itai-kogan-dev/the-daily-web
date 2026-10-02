@@ -55,7 +55,7 @@ const articleSchema = new mongoose.Schema({
   publishedContent: { type: contentSchema, default: null },   // null until first approval
   draftContent:     { type: contentSchema, required: true },
 
-  editorNote:  { type: String, default: '' },   // why the editor sent it back
+  editorNote:  { type: String, default: '', maxlength: 1000 },   // why the editor sent it back
   publishedAt: { type: Date, default: null },   // first publish only, never changes
 
   // one entry per approval. these are the markers on the analytics graph
