@@ -1,6 +1,10 @@
 /* Reporter pages only. Kept out of main.css so T1 and T2 are not editing the
    same file at the same time. */
 
+/* The browser's own [hidden] rule loses to any class that sets display, so a
+   flex container can stay on screen while claiming to be hidden. */
+[hidden] { display: none !important; }
+
 .page-top {
   display: flex;
   align-items: center;
@@ -78,13 +82,29 @@
 .status-needs_revision { background: #fdeaea; color: #8f2020; border-color: #f2c4c4; }
 .badge.live            { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-/* Where the feed card puts its summary. A filled box here outlined how much
-   of the row was empty, so only the label carries the colour now. */
+/* On the edit page this is the message the whole visit is about, so it gets
+   a box. */
 .editor-note {
+  margin: .75rem 0 0;
+  padding: .6rem .75rem;
+  background: #fdeaea;
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  font-size: .9rem;
+}
+
+/* In a list row it sits where the feed card puts its summary. A filled box
+   there only outlined how much of the row was empty. */
+.article-row .editor-note {
   margin: .35rem 0 0;
+  padding: 0;
+  background: none;
+  border-left: 0;
+  border-radius: 0;
+  font-size: 1rem;
   color: var(--text);
 }
-.editor-note strong { color: var(--accent); }
+.article-row .editor-note strong { color: var(--accent); }
 
 .notice {
   padding: .6rem .75rem;

@@ -77,11 +77,15 @@
   </form>
 
   <div class="sticky-bar">
-    <div class="sticky-left" <%= canEdit ? '' : 'hidden' %>>
-      <button id="submit-btn" type="button">Send to editor</button>
-      <p id="submit-error" class="error" hidden></p>
-      <span id="submit-hint" class="muted hint">You cannot edit it until the editor replies</span>
-    </div>
+    <%# not rendered at all when the article is with the editor - a control
+        nobody may use should not be in the page %>
+    <% if (canEdit) { %>
+      <div class="sticky-left">
+        <button id="submit-btn" type="button">Send to editor</button>
+        <p id="submit-error" class="error" hidden></p>
+        <span id="submit-hint" class="muted hint">You cannot edit it until the editor replies</span>
+      </div>
+    <% } %>
 
     <div class="sticky-right">
       <p id="save-status" class="save-status"></p>
