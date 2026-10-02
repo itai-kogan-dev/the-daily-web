@@ -44,6 +44,9 @@
   color: var(--muted);
 }
 
+/* inside the header line the badges sit with the breadcrumb, not under it */
+.editor-head .article-meta { margin-top: 0; }
+
 .badge {
   padding: .15rem .5rem;
   border-radius: 999px;
@@ -59,7 +62,7 @@
 .badge.live            { background: var(--accent); color: #fff; border-color: var(--accent); }
 
 .editor-note {
-  margin: .6rem 0 0;
+  margin: .75rem 0 0;
   padding: .6rem .75rem;
   background: #fdeaea;
   border-left: 3px solid var(--accent);
@@ -76,7 +79,8 @@
 }
 .notice.warn { background: #fff4d6; border-left-color: #c79a1f; }
 
-#article-form { margin-top: var(--gap); }
+/* a real break between the messages above and the form itself */
+#article-form { margin-top: 1.25rem; }
 #article-form textarea { resize: vertical; font-family: inherit; }
 
 .save-status {
@@ -135,13 +139,23 @@
   .hint { display: none }
 }
 
+/* Identity on one line: where you are, which article, what state. Wraps to
+   two lines on a narrow screen rather than squeezing the title. */
+.editor-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem var(--gap);
+  margin-bottom: 1.25rem;
+}
+
 .breadcrumb {
   display: flex;
   align-items: center;
   gap: .4rem;
   font-size: .875rem;
   color: var(--muted);
-  margin-bottom: .25rem;
 }
 .breadcrumb a { color: var(--muted); }
 

@@ -2,20 +2,21 @@
 <%- include('../partials/header') %>
 
 <main class="page">
-  <nav class="breadcrumb" aria-label="Breadcrumb">
-    <a href="/reporter">My articles</a>
-    <span aria-hidden="true">&rsaquo;</span>
-    <span class="crumb-current"><%= article ? content.title : 'New article' %></span>
-  </nav>
+  <%# which article, and what state it is in - one line, one group %>
+  <div class="editor-head">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/reporter">My articles</a>
+      <span aria-hidden="true">&rsaquo;</span>
+      <span class="crumb-current"><%= article ? content.title : 'New article' %></span>
+    </nav>
 
-  <h1><%= article ? 'Edit article' : 'New article' %></h1>
-
-  <% if (article) { %>
-    <div class="article-meta">
-      <span id="status-badge" class="badge status-<%= article.status %>"><%= STATUS_LABELS[article.status] %></span>
-      <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
-    </div>
-  <% } %>
+    <% if (article) { %>
+      <div class="article-meta">
+        <span id="status-badge" class="badge status-<%= article.status %>"><%= STATUS_LABELS[article.status] %></span>
+        <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
+      </div>
+    <% } %>
+  </div>
 
   <% if (article && article.status === STATUS.NEEDS_REVISION && article.editorNote) { %>
     <p class="editor-note"><strong>Editor asked for changes:</strong> <%= article.editorNote %></p>
