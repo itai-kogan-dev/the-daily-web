@@ -7,7 +7,9 @@
     <nav class="breadcrumb" aria-label="Breadcrumb">
       <a href="/reporter">My articles</a>
       <span aria-hidden="true">&rsaquo;</span>
-      <span class="crumb-current"><%= article ? content.title : 'New article' %></span>
+      <%# the page heading, sized like the rest of the breadcrumb. A page with
+          no h1 leaves a screen reader nothing to navigate by. %>
+      <h1 class="crumb-current"><%= article ? content.title : 'New article' %></h1>
     </nav>
 
     <% if (article) { %>

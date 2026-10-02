@@ -160,7 +160,13 @@
 .breadcrumb a { color: var(--muted); }
 
 /* a long headline would push the breadcrumb onto a second line */
+/* an h1, so it needs the page heading size and weight reset away */
 .crumb-current {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: normal;
+  color: var(--muted);
   max-width: 28rem;
   overflow: hidden;
   text-overflow: ellipsis;
