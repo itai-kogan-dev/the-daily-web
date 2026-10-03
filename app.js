@@ -8,6 +8,7 @@ const path = require('path')
 const { connectDb } = require('./config/db')
 const { attachViewData } = require('./middleware/auth')
 const { handleNotFound, errorHandler } = require('./middleware/errorHandler')
+const { startViewRollup } = require('./services/viewRollup')
 
 const app = express()
 
@@ -44,6 +45,7 @@ app.use(errorHandler)
 
 async function startServer() {
   await connectDb()
+  startViewRollup()
   const port = process.env.PORT || 3000
   app.listen(port, () => console.log(`[web] http://localhost:${port}`))
 }
