@@ -1,12 +1,65 @@
-<%- include('../partials/head', { title: 'Analytics' }) %>
+<%- include('../partials/head', { title: 'Analytics', extraCss: '/css/analytics.css' }) %>
 <%- include('../partials/header') %>
 
-<main class="page">
-  <!-- T4: views over time for one article, with markers at the points where
-       an editor published an update. -->
-  <h1>TODO: impact analytics</h1>
-  <canvas id="views-chart"></canvas>
+<main class="page analytics">
+  <h1>Impact analytics</h1>
+  <p class="muted">Views over time for one article. Each dashed line is an update an editor published.</p>
+
+  <div class="an-layout">
+    <aside class="an-picker">
+      <label class="an-search">
+        <span>Find an article</span>
+        <input type="search" id="an-search" placeholder="Search titles" maxlength="100" autocomplete="off">
+      </label>
+      <p class="muted an-hint" id="an-list-hint">Most read first</p>
+      <ol class="an-list" id="an-list"></ol>
+    </aside>
+
+    <section class="an-panel">
+      <p class="muted" id="an-status">Loading…</p>
+
+      <div id="an-content" hidden>
+        <div class="an-heading">
+          <h2 id="an-title"></h2>
+          <a id="an-open" href="#">Open article</a>
+        </div>
+
+        <div class="an-toolbar">
+          <dl class="an-tiles">
+            <div><dt>Views in range</dt><dd id="an-total"></dd></div>
+            <div><dt>Updates</dt><dd id="an-updates"></dd></div>
+            <div><dt id="an-peak-label">Busiest</dt><dd id="an-peak"></dd></div>
+          </dl>
+          <div class="an-ranges" role="group" aria-label="Time range">
+            <button type="button" data-range="24h">24h</button>
+            <button type="button" data-range="7d">7 days</button>
+            <button type="button" data-range="30d">30 days</button>
+            <button type="button" data-range="all">All</button>
+          </div>
+        </div>
+
+        <figure class="an-chart">
+          <figcaption id="an-caption"></figcaption>
+          <div class="an-canvas">
+            <canvas id="views-chart" role="img" aria-describedby="an-caption"></canvas>
+          </div>
+        </figure>
+
+        <h3>Did the update bring readers back?</h3>
+        <p class="muted an-note">Views after each update against the same length of time before it - up to a day, less when another update is closer.</p>
+        <div class="an-table-wrap">
+          <table class="an-impact">
+            <thead>
+              <tr><th>Update</th><th>Published</th><th>By</th><th class="num">Before</th><th class="num">After</th><th class="num">Change</th></tr>
+            </thead>
+            <tbody id="an-impact"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
 </main>
 
-<script src="/js/analytics.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <%- include('../partials/footer') %>
