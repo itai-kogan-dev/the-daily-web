@@ -27,11 +27,18 @@ function resolveMessage(err, status) {
 // Express only treats a function as an error handler if it takes 4 arguments,
 // so next has to stay even though we never call it.
 function errorHandler(err, req, res, next) {
+  // the response is already half sent (a stream broke mid-way, say), so there
+  // is no status left to set. Express's own handler closes the connection.
+  if (res.headersSent) return next(err)
+
   const status = resolveStatus(err)
   const message = resolveMessage(err, status)
 
-  // the real message stays in the log, where we need it
-  console.error('[error]', status, req.method, req.originalUrl, '-', err.message)
+  // the real message stays in the log, where we need it. The request id
+  // matches the [http] line for the same request. A 4xx is the caller's
+  // mistake and one line is enough; a 500 is ours, so it gets the stack
+  console.error('[error]', req.id || '-', status, req.method, req.originalUrl, '-', err.message)
+  if (status >= 500) console.error(err.stack)
 
   if (req.originalUrl.includes('/api/')) return res.status(status).json({ error: message })
   res.status(status).render('error', { status, message })
