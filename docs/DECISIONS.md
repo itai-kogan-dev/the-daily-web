@@ -82,6 +82,23 @@ count is what creates one, so only people who comment cost us a row.
 
 See `middleware/rateLimit.js`.
 
+## Weather comes from Open-Meteo, cached on the server
+
+Open-Meteo instead of OpenWeather because it needs no API key: no secret to
+pass between four laptops, nothing to leak, and the widget works on a fresh
+clone. The place is set in `.env` (`WEATHER_CITY`, `WEATHER_LAT`, `WEATHER_LON`).
+
+Every page with a sidebar asks for the weather, so the server caches the answer
+for 15 minutes - the limit the spec allows - and the weather service hears from
+us about 4 times an hour whatever the traffic. When the cache is cold and many
+readers arrive at once, they all wait for the same single request instead of
+sending one each. If the service is down we keep showing the last answer,
+labelled as such, rather than an error. A 5 second timeout means a hung weather
+service cannot hang the sidebar.
+
+The widget is filled by the browser, not rendered into the page, so a slow
+weather service never delays the article itself.
+
 ## Interface language is English
 
 The spec never asks for Hebrew - its only mention of "languages" is about
