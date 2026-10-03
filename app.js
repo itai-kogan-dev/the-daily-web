@@ -6,9 +6,9 @@ const { MongoStore } = require('connect-mongo')   // v6 renamed this from a defa
 const path = require('path')
 
 const { connectDb } = require('./config/db')
+const { requestLogger } = require('./middleware/requestLogger')
 const { attachViewData } = require('./middleware/auth')
 const { handleNotFound, errorHandler } = require('./middleware/errorHandler')
-const { requestLogger } = require('./middleware/requestLogger')
 
 const app = express()
 
