@@ -78,7 +78,6 @@ const articleSchema = new mongoose.Schema({
 articleSchema.index({ isLive: 1, publishedAt: -1 })                 // feed, newest first
 articleSchema.index({ isLive: 1, viewCount: -1 })                   // feed, most popular
 articleSchema.index({ isLive: 1, 'publishedContent.category': 1 })  // category filter
-articleSchema.index({ 'publishedContent.title': 'text' })           // search by title
 articleSchema.index({ author: 1, status: 1 })                       // reporter's own list
 
 module.exports = mongoose.model('Article', articleSchema)
