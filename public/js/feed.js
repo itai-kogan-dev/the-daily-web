@@ -351,6 +351,15 @@ if (form && results) {
     maybeFillUnread()
   }
 
+  // The browser restores the checkbox when the reader comes back from an
+  // article, so the toggle can already be on before any of this runs. The
+  // script is the source of truth going forward, but it has to pick up the
+  // restored control first or the two disagree and the filter looks on while
+  // off.
+  function syncUnreadFromToggle() {
+    unreadOnly = Boolean(unreadToggle && unreadToggle.checked)
+  }
+
   function ensureUnreadToggle() {
     if (unreadToggle) return unreadToggle
     // Without the shared read list there is nothing truthful to filter on, so
@@ -360,11 +369,23 @@ if (form && results) {
     // show, it never orders them.
     const chips = document.querySelectorAll('.feed-filters [data-category]')
     if (!chips.length || !chips[0].parentNode) return null
+    // History navigation can restore the toggle node itself while this script
+    // starts over, so reuse it instead of adding a second toggle beside it.
+    const existing = document.querySelector('.feed-toggle input[type="checkbox"]')
+    if (existing) {
+      unreadToggle = existing
+      if (!unreadToggle.dataset.feedUnread) {
+        unreadToggle.dataset.feedUnread = '1'
+        unreadToggle.addEventListener('change', () => setUnreadOnly(unreadToggle.checked))
+      }
+      return unreadToggle
+    }
     // A checkbox, not a button: the on/off state lives in the control itself,
     // so it needs no aria-pressed and announces as a switch would.
     const wrap = el('label', 'feed-toggle')
     const box = el('input')
     box.type = 'checkbox'
+    box.dataset.feedUnread = '1'
     const track = el('span', 'feed-toggle-track')
     track.setAttribute('aria-hidden', 'true')
     track.append(el('span', 'feed-toggle-thumb'))
@@ -404,6 +425,9 @@ if (form && results) {
     loadedPages = feed.pages
     loadedTotal = feed.total
     if (Number(feed.pageSize) > 0) pageSize = Number(feed.pageSize)
+    // The Load more path appends to the same list, so it needs the same
+    // reconciliation as the initial paint and the return-from-article path.
+    syncUnreadFromToggle()
     applyUnread()
     refreshUnreadCount()
     setMore()
@@ -541,6 +565,7 @@ if (form && results) {
   // becomes visible again. Cheap and idempotent, so all three ways back share
   // the one handler.
   async function refreshOnReturn() {
+    syncUnreadFromToggle()
     if (!unreadOnly) return
     applyUnread()
     await refreshUnreadCount()
@@ -569,6 +594,7 @@ if (form && results) {
   loadedTotal = initial.total
   pageSize = initial.size
   ensureUnreadToggle()
+  syncUnreadFromToggle()
   applyUnread()
   refreshUnreadCount()
   // Quiet at the end on first paint: the server already showed this page, so
