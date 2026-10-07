@@ -548,7 +548,6 @@ if (form && results) {
     const next = { ...currentState(), page: 1 }
 
     if (data.reset !== undefined) Object.assign(next, { q: '', category: '', sort: 'date' })
-    if (data.clearSearch !== undefined) next.q = ''
     if (data.sort) next.sort = data.sort
     if (data.category !== undefined) next.category = data.category
     if (data.page) next.page = Number(data.page)

@@ -13,9 +13,6 @@
              aria-label="Search headlines" maxlength="80">
       <input type="hidden" name="category" value="<%= category || '' %>">
       <input type="hidden" name="sort" value="<%= sort %>">
-      <% if (q) { %>
-        <a class="feed-clear" data-feed-nav data-clear-search href="<%= feedLink({ q: '' }) %>">Clear</a>
-      <% } %>
     </form>
 
     <nav class="feed-filters" aria-label="Filter by category">

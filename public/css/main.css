@@ -128,7 +128,6 @@ a { color: var(--accent); }
   margin: var(--gap) 0;
 }
 .feed-search input[type="search"] { flex: 1 1 100%; width: 100%; }
-.feed-clear { font-size: .875rem; }
 
 .feed-filters {
   display: flex;
