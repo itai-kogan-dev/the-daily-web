@@ -139,7 +139,6 @@ if (form && results) {
     if (!sentinel) {
       sentinel = el('div', 'feed-sentinel')
       sentinel.setAttribute('aria-hidden', 'true')
-      results.append(sentinel)
     }
     if (!moreWrap) {
       moreWrap = el('div', 'feed-more')
@@ -149,8 +148,13 @@ if (form && results) {
       moreNote = el('p', 'feed-more-note muted')
       moreNote.setAttribute('role', 'status')
       moreWrap.append(moreLink, moreNote)
-      results.append(moreWrap)
     }
+    // A fresh render replaces the #feed-results children, which detaches these
+    // nodes while the variables still hold them. Re-attach whenever they are
+    // not in the page, or the Load more link vanishes and the observer watches
+    // a node that can never intersect again.
+    if (!sentinel.isConnected) results.append(sentinel)
+    if (!moreWrap.isConnected) results.append(moreWrap)
   }
 
   function stopObserving() {
