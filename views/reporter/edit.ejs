@@ -2,20 +2,23 @@
 <%- include('../partials/header') %>
 
 <main class="page">
-  <nav class="breadcrumb" aria-label="Breadcrumb">
-    <a href="/reporter">My articles</a>
-    <span aria-hidden="true">&rsaquo;</span>
-    <span class="crumb-current"><%= article ? content.title : 'New article' %></span>
-  </nav>
+  <%# which article, and what state it is in - one line, one group %>
+  <div class="editor-head">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/reporter">My articles</a>
+      <span aria-hidden="true">&rsaquo;</span>
+      <%# the page heading, sized like the rest of the breadcrumb. A page with
+          no h1 leaves a screen reader nothing to navigate by. %>
+      <h1 class="crumb-current"><%= article ? content.title : 'New article' %></h1>
+    </nav>
 
-  <h1><%= article ? 'Edit article' : 'New article' %></h1>
-
-  <% if (article) { %>
-    <div class="article-meta">
-      <span id="status-badge" class="badge status-<%= article.status %>"><%= STATUS_LABELS[article.status] %></span>
-      <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
-    </div>
-  <% } %>
+    <% if (article) { %>
+      <div class="article-meta">
+        <span id="status-badge" class="badge status-<%= article.status %>"><%= STATUS_LABELS[article.status] %></span>
+        <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
+      </div>
+    <% } %>
+  </div>
 
   <% if (article && article.status === STATUS.NEEDS_REVISION && article.editorNote) { %>
     <p class="editor-note"><strong>Editor asked for changes:</strong> <%= article.editorNote %></p>
@@ -74,15 +77,18 @@
   </form>
 
   <div class="sticky-bar">
-    <div class="sticky-left" <%= canEdit ? '' : 'hidden' %>>
-      <button id="submit-btn" type="button">Send to editor</button>
-      <p id="submit-error" class="error" hidden></p>
-      <span id="submit-hint" class="muted hint">You cannot edit it until the editor replies</span>
-    </div>
+    <%# not rendered at all when the article is with the editor - a control
+        nobody may use should not be in the page %>
+    <% if (canEdit) { %>
+      <div class="sticky-left">
+        <button id="submit-btn" type="button">Send to editor</button>
+        <p id="submit-error" class="error" hidden></p>
+        <span id="submit-hint" class="muted hint">You cannot edit it until the editor replies</span>
+      </div>
+    <% } %>
 
     <div class="sticky-right">
       <p id="save-status" class="save-status"></p>
-      <a class="button-secondary" href="/reporter">&larr; My articles</a>
     </div>
   </div>
 </main>
