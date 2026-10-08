@@ -197,6 +197,11 @@ button.danger {
     grid-template-columns: 1fr;
   }
 
+  .review .breadcrumb .crumb-current {
+    min-width: 0;
+    max-width: 100%;
+  }
+
   .ed-actions button {
     flex: 1 1 100%;
   }
