@@ -202,7 +202,12 @@ async function editComment(req, res) {
   comment.body = text
   await comment.save()
 
-  res.json(comment)
+  res.json({
+    _id: comment._id,
+    id: String(comment._id),
+    body: comment.body,
+    updatedAt: comment.updatedAt
+  })
 }
 
 async function deleteComment(req, res) {
