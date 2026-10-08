@@ -1,9 +1,79 @@
-<%- include('../partials/head', { title: 'Users' }) %>
+<%- include('../partials/head', { title: 'Staff accounts', extraCss: '/css/reporter.css' }) %>
+<link rel="stylesheet" href="/css/editor.css">
 <%- include('../partials/header') %>
 
 <main class="page">
-  <!-- T2: list every reporter and editor, with links to edit or delete -->
-  <h1>TODO: users</h1>
+  <div class="page-top">
+    <h1>Staff accounts</h1>
+    <a class="button" href="/editor/users/new">New user</a>
+  </div>
+
+  <p class="muted">Reporters write articles, editors review them and manage these accounts.</p>
+
+  <% if (users.length === 0) { %>
+    <p class="muted">No accounts yet.</p>
+  <% } else { %>
+    <ul class="article-list">
+      <% users.forEach(account => { %>
+        <li class="article-row" data-user="<%= account._id %>">
+          <div class="article-body">
+            <a class="article-title" href="/editor/users/<%= account._id %>">
+              <%= account.displayName %>
+            </a>
+            <div class="article-meta">
+              <span class="badge role-<%= account.role %>"><%= ROLE_LABELS[account.role] %></span>
+              <span>@<%= account.username %></span>
+              <span>joined <%= new Date(account.createdAt).toLocaleDateString() %></span>
+            </div>
+            <p class="error" data-error hidden></p>
+          </div>
+          <div class="user-actions">
+            <a class="button-secondary" href="/editor/users/<%= account._id %>">Edit</a>
+            <button type="button" class="button-secondary danger-text" data-delete>Delete</button>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
 </main>
 
+<script>
+(function () {
+  async function readError(res) {
+    try {
+      const data = await res.json()
+      return data.error || 'Something went wrong'
+    } catch (err) {
+      return 'Something went wrong'
+    }
+  }
+
+  document.querySelectorAll('[data-user]').forEach(row => {
+    const deleteBtn = row.querySelector('[data-delete]')
+    const errorEl = row.querySelector('[data-error]')
+    if (!deleteBtn) return
+
+    deleteBtn.addEventListener('click', async () => {
+      const name = (row.querySelector('.article-title') || {}).textContent || 'this account'
+      if (!window.confirm(`Delete ${name.trim()}? This cannot be undone.`)) return
+
+      errorEl.hidden = true
+      deleteBtn.disabled = true
+
+      const res = await fetch(`/editor/api/users/${row.getAttribute('data-user')}`, {
+        method: 'DELETE'
+      }).catch(() => null)
+
+      if (!res || !res.ok) {
+        deleteBtn.disabled = false
+        errorEl.textContent = !res ? 'Server unreachable, try again' : await readError(res)
+        errorEl.hidden = false
+        return
+      }
+
+      row.remove()
+    })
+  })
+})()
+</script>
 <%- include('../partials/footer') %>

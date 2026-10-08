@@ -198,6 +198,23 @@ button.go {
   gap: .5rem;
 }
 
+/* staff accounts. the rows reuse the reporter list shape, these are the
+   only bits that shape is missing: actions pinned to the right of each
+   row, and the delete kept off the form itself */
+.user-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.danger-zone {
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
 /* the two panes sit side by side on desktop, stacked on a phone */
 @media (max-width: 800px) {
   .compare {

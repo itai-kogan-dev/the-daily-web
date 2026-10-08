@@ -1,10 +1,121 @@
-<%- include('../partials/head', { title: 'User' }) %>
+<%- include('../partials/head', { title: account ? 'Edit user' : 'New user', extraCss: '/css/reporter.css' }) %>
+<link rel="stylesheet" href="/css/editor.css">
 <%- include('../partials/header') %>
 
 <main class="page narrow">
-  <!-- T2: create or edit a user. Password goes through User.hashPassword,
-       never stored as typed. -->
-  <h1>TODO: user form</h1>
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/editor/users">Staff accounts</a>
+    <span aria-hidden="true">&rsaquo;</span>
+    <h1 class="crumb-current"><%= account ? account.displayName : 'New user' %></h1>
+  </nav>
+
+  <form id="user-form" class="stack" data-id="<%= account ? account._id : '' %>">
+    <label>Username
+      <input name="username" value="<%= account ? account.username : '' %>" autocomplete="username" required autofocus>
+    </label>
+
+    <label>Display name
+      <input name="displayName" value="<%= account ? account.displayName : '' %>" required>
+    </label>
+
+    <label>Role
+      <select name="role">
+        <% STORED_ROLES.forEach(role => { %>
+          <option value="<%= role %>" <%= account && account.role === role ? 'selected' : '' %>><%= ROLE_LABELS[role] %></option>
+        <% }) %>
+      </select>
+    </label>
+
+    <label>Password
+      <input name="password" type="password" autocomplete="new-password" <%= account ? '' : 'required' %>>
+    </label>
+    <% if (account) { %>
+      <p class="muted hint">Leave the password blank to keep the current one.</p>
+    <% } %>
+
+    <button type="submit"><%= account ? 'Save changes' : 'Create account' %></button>
+    <p id="user-error" class="error" hidden></p>
+  </form>
+
+  <% if (account) { %>
+    <div class="danger-zone">
+      <button id="delete-btn" type="button" class="danger">Delete this account</button>
+    </div>
+  <% } %>
 </main>
 
+<script>
+(function () {
+  const form = document.getElementById('user-form')
+  if (!form) return
+
+  const accountId = form.dataset.id
+  const errorEl = document.getElementById('user-error')
+
+  function showError(text) {
+    if (!errorEl) return
+    errorEl.textContent = text || ''
+    errorEl.hidden = !text
+  }
+
+  async function readError(res) {
+    try {
+      const data = await res.json()
+      return data.error || 'Something went wrong'
+    } catch (err) {
+      return 'Something went wrong'
+    }
+  }
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault()
+    showError('')
+
+    const payload = {
+      username: form.elements.username.value,
+      displayName: form.elements.displayName.value,
+      role: form.elements.role.value
+    }
+    const password = form.elements.password.value
+    if (!accountId || password) payload.password = password
+
+    const res = await fetch(accountId ? `/editor/api/users/${accountId}` : '/editor/api/users', {
+      method: accountId ? 'PATCH' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(() => null)
+
+    if (!res) {
+      showError('Could not reach the server')
+      return
+    }
+
+    if (!res.ok) {
+      showError(await readError(res))
+      return
+    }
+
+    location.href = '/editor/users'
+  })
+
+  const deleteBtn = document.getElementById('delete-btn')
+  if (deleteBtn && accountId) deleteBtn.addEventListener('click', async () => {
+    if (!window.confirm('Delete this account? This cannot be undone.')) return
+    showError('')
+    deleteBtn.disabled = true
+
+    const res = await fetch(`/editor/api/users/${accountId}`, {
+      method: 'DELETE'
+    }).catch(() => null)
+
+    if (!res || !res.ok) {
+      deleteBtn.disabled = false
+      showError(!res ? 'Server unreachable, try again' : await readError(res))
+      return
+    }
+
+    location.href = '/editor/users'
+  })
+})()
+</script>
 <%- include('../partials/footer') %>
