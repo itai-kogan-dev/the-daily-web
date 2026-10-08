@@ -69,7 +69,7 @@ async function showReview(req, res) {
   const article = await findArticle(req.params.id)
 
   const comments = await Comment.find({ article: article._id })
-    .sort({ createdAt: -1 })
+    .sort({ createdAt: 1 })
     .lean()
 
   res.render('editor/review', {
