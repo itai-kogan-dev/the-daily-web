@@ -60,6 +60,12 @@ article that would stay hot for the life of the article, and Mongo locks per
 document. The seed already does it the right way - it aggregates the buckets at
 the end instead of counting as it inserts.
 
+The rollup belongs to T4, next to the analytics page: a job aggregates the
+buckets into `Article.viewCount` every 5 minutes, so `?sort=popular` lags the
+live counts by at most one window. Until that job exists, `viewCount` is the
+seed value and popularity does not move - that is a missing job, not a missing
+increment.
+
 ## Guest is a role, but never stored
 
 The spec has three user types. Guest has no username and no password, so there

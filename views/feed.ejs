@@ -3,12 +3,117 @@
 
 <div class="layout">
   <main class="page">
-    <!-- T1: search box, category filter, sort, then the article list.
-         Everything here updates through /api/articles without a page reload. -->
-    <h1>TODO: feed</h1>
+    <h1>Latest news</h1>
+
+    <!-- Every control below is a real link or a real form, so the feed works
+         with JavaScript turned off. feed.js reads the data- attributes and
+         takes over the same parameters without reloading the page. -->
+    <form class="feed-search" method="get" action="/" role="search">
+      <input type="search" name="q" value="<%= q %>" placeholder="Search headlines"
+             aria-label="Search headlines" maxlength="80">
+      <input type="hidden" name="category" value="<%= category || '' %>">
+      <input type="hidden" name="sort" value="<%= sort %>">
+    </form>
+
+    <nav class="feed-filters" aria-label="Filter by category">
+      <span class="feed-filters-title" aria-hidden="true">Filter by:</span>
+      <a class="chip<%= category ? '' : ' active' %>" data-feed-nav data-category=""
+         href="<%= feedLink({ category: '' }) %>">All</a>
+      <% CATEGORIES.forEach(name => { %>
+        <a class="chip<%= category === name ? ' active' : '' %>" data-feed-nav data-category="<%= name %>"
+           href="<%= feedLink({ category: name }) %>"><%= CATEGORY_LABELS[name] %></a>
+      <% }) %>
+    </nav>
+
+    <nav class="feed-filters" aria-label="Sort order">
+      <span class="feed-filters-title" aria-hidden="true">Sort by:</span>
+      <a class="chip<%= sort === 'date' ? ' active' : '' %>" data-feed-nav data-sort="date"
+         href="<%= feedLink({ sort: 'date' }) %>">Newest</a>
+      <a class="chip<%= sort === 'popular' ? ' active' : '' %>" data-feed-nav data-sort="popular"
+         href="<%= feedLink({ sort: 'popular' }) %>">Most read</a>
+      <span class="feed-count muted" id="feed-count">
+        <%= total %> <%= total === 1 ? 'article' : 'articles' %>
+      </span>
+    </nav>
+
+    <p class="feed-status muted" id="feed-status" role="status" aria-live="polite" hidden></p>
+
+    <!-- One container for the results, so the browser can replace the lot of it
+         without having to work out which parts were on the page. The numbers let
+         the script continue from the server-rendered page without refetching it. -->
+    <div id="feed-results" data-page="<%= page %>" data-pages="<%= pages %>" data-total="<%= total %>" data-page-size="<%= pageSize %>">
+      <% if (!items.length) { %>
+        <p class="feed-empty muted">
+          <% if (q || category) { %>
+            Nothing matches that. <a data-feed-nav data-reset href="/">Show everything</a>.
+          <% } else { %>
+            Nothing has been published yet.
+          <% } %>
+        </p>
+      <% } else { %>
+        <ul class="feed-list" id="feed-list">
+          <% items.forEach(article => { %>
+            <li class="feed-card" data-article-id="<%= article.id %>">
+              <% if (article.imagePath) { %>
+                <a class="feed-thumb" href="/article/<%= article.id %>" tabindex="-1" aria-hidden="true">
+                  <img src="<%= article.imagePath %>" alt="" loading="lazy" width="160" height="107">
+                </a>
+              <% } %>
+
+              <div class="feed-card-body">
+                <a class="feed-card-title" href="/article/<%= article.id %>"><%= article.title %></a>
+                <% if (article.summary) { %><p class="feed-summary"><%= article.summary %></p><% } %>
+
+                <div class="feed-meta">
+                  <a class="feed-category" data-feed-nav data-category="<%= article.category %>"
+                     href="<%= feedLink({ category: article.category }) %>">
+                    <%= article.categoryLabel %>
+                  </a>
+                  <span><%= article.authorName %></span>
+                  <time datetime="<%= new Date(article.publishedAt).toISOString() %>">
+                    <%= new Date(article.publishedAt).toLocaleDateString() %>
+                  </time>
+                  <%# pinned to en-US so this matches the number public/js/feed.js writes %>
+                  <span><%= Number(article.viewCount || 0).toLocaleString('en-US') %> views</span>
+                </div>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+
+        <% if (pages > 1) { %>
+          <nav class="feed-pager" aria-label="Pages">
+            <% if (page > 1) { %>
+              <a class="feed-step" data-feed-nav data-page="<%= page - 1 %>"
+                 href="<%= feedLink({ page: page - 1 }) %>" rel="prev">Previous</a>
+            <% } else { %><span></span><% } %>
+
+            <div class="feed-pages">
+              <% pageWindow(page, pages).forEach(entry => { %>
+                <% if (entry.gap) { %>
+                  <span class="feed-page-gap" aria-hidden="true">&hellip;</span>
+                <% } else if (entry.page === page) { %>
+                  <%# not a link: the reader is already on this page %>
+                  <span class="feed-page current" aria-current="page"><%= entry.page %></span>
+                <% } else { %>
+                  <a class="feed-page" data-feed-nav data-page="<%= entry.page %>"
+                     href="<%= feedLink({ page: entry.page }) %>"><%= entry.page %></a>
+                <% } %>
+              <% }) %>
+            </div>
+
+            <% if (page < pages) { %>
+              <a class="feed-step" data-feed-nav data-page="<%= page + 1 %>"
+                 href="<%= feedLink({ page: page + 1 }) %>" rel="next">Next</a>
+            <% } else { %><span></span><% } %>
+          </nav>
+        <% } %>
+      <% } %>
+    </div>
   </main>
   <%- include('partials/sidebar') %>
 </div>
 
+<script src="/js/read.js"></script>
 <script src="/js/feed.js"></script>
 <%- include('partials/footer') %>

@@ -55,7 +55,7 @@ const articleSchema = new mongoose.Schema({
   publishedContent: { type: contentSchema, default: null },   // null until first approval
   draftContent:     { type: contentSchema, required: true },
 
-  editorNote:  { type: String, default: '' },   // why the editor sent it back
+  editorNote:  { type: String, default: '', maxlength: 1000 },   // why the editor sent it back
   publishedAt: { type: Date, default: null },   // first publish only, never changes
 
   // one entry per approval. these are the markers on the analytics graph
@@ -78,7 +78,6 @@ const articleSchema = new mongoose.Schema({
 articleSchema.index({ isLive: 1, publishedAt: -1 })                 // feed, newest first
 articleSchema.index({ isLive: 1, viewCount: -1 })                   // feed, most popular
 articleSchema.index({ isLive: 1, 'publishedContent.category': 1 })  // category filter
-articleSchema.index({ 'publishedContent.title': 'text' })           // search by title
 articleSchema.index({ author: 1, status: 1 })                       // reporter's own list
 
 module.exports = mongoose.model('Article', articleSchema)

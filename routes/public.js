@@ -1,5 +1,6 @@
 const express = require('express')
 const { commentRateLimit } = require('../middleware/rateLimit')
+const publicController = require('../controllers/publicController')
 
 const router = express.Router()
 
@@ -7,15 +8,17 @@ const router = express.Router()
 const todo = name => (req, res) => res.status(501).send(`TODO: ${name}`)
 
 // --- pages (server rendered) ---
-router.get('/', (req, res) => res.render('feed'))
-// must render the full article server side - the spec requires the text to be
-// in the HTML with JavaScript turned off, for search engines
-router.get('/article/:id', (req, res) => res.render('article'))
+router.get('/', publicController.feedPage)
+// must render the full article server side - the spec requires the text to be in
+// the HTML with JavaScript turned off, for search engines
+router.get('/article/:id', publicController.articlePage)
 
 // --- json for the browser ---
-router.get('/api/articles', todo('list articles: search, filter, sort, paging'))
-router.get('/api/articles/:id/comments', todo('list comments'))
-router.post('/api/articles/:id/comments', commentRateLimit, todo('add comment'))
+router.get('/api/articles', publicController.listArticles)
+// ids only, so the unread filter can count the whole feed in one request
+router.get('/api/articles/ids', publicController.articleIds)
+router.get('/api/articles/:id/comments', publicController.listComments)
+router.post('/api/articles/:id/comments', commentRateLimit, publicController.addComment)
 router.get('/api/weather', todo('weather widget'))
 
 module.exports = router
