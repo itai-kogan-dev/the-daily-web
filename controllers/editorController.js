@@ -88,6 +88,7 @@ async function showReview(req, res) {
     hasDraft: Boolean(draft),
     canEdit,
     canDelete: workflow.canEditorDelete(article),
+    changed: workflow.changedFields(article.publishedContent, content),
     imageName: await imageStore.findImageName(content.imagePath),
     comments,
     STATUS, STATUS_LABELS, CATEGORIES, CATEGORY_LABELS

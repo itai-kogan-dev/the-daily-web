@@ -5,7 +5,7 @@
 :root {
   /* surfaces and text */
   --paper: #ffffff;
-  --tint: #f2f1ee;          /* flat boxes: weather, notices, compare panes */
+  --tint: #f2f1ee;          /* flat boxes: weather, notices, article panes */
   --hover: #f4f2ef;
   --line: #e6e3de;
   --line-strong: #cfcbc3;
@@ -28,7 +28,6 @@
   /* status colours */
   --warn-bg: #fbf0d4;
   --warn-ink: #6f4e00;
-  --warn-edge: #d4a52a;
   --ok-bg: #e2f1e5;
   --ok-ink: #1d6b33;
 
@@ -149,7 +148,6 @@ button { font: inherit; cursor: pointer; }
   margin-bottom: 1rem;
 }
 .page-top h1 { margin: 0; }
-.page-top .meta { margin-top: 0; }
 
 .site-footer {
   max-width: var(--page-width);
@@ -286,7 +284,6 @@ input:disabled, select:disabled, textarea:disabled { background: var(--tint); co
 
 .list-item { display: flex; gap: var(--gap); padding: 1.1rem 0; border-top: 1px solid var(--line); }
 .list-item:first-child { border-top: 0; padding-top: .35rem; }
-.list-item.is-pending { box-shadow: inset 3px 0 0 var(--warn-edge); padding-left: 1rem; }
 
 .list-thumb { flex: 0 0 160px; }
 .list-thumb img {
@@ -305,6 +302,8 @@ input:disabled, select:disabled, textarea:disabled { background: var(--tint); co
 .list-title:hover { text-decoration: underline; color: var(--ink); }
 
 .list-summary { margin: .3rem 0 0; color: var(--muted); }
+.list-note { margin: .3rem 0 0; }
+.list-note strong { color: var(--danger); }
 
 .list-actions { display: flex; align-items: flex-start; gap: .5rem; margin-left: auto; }
 

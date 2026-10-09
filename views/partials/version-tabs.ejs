@@ -1,0 +1,9 @@
+<%# Switches the article column between the version in progress and the live
+    one. The panels it controls are #version-draft and #version-live. %>
+<div class="pills" role="tablist" aria-label="Versions">
+  <button type="button" class="pill active" role="tab" aria-selected="true" aria-controls="version-draft" data-tab="version-draft"><%= draftLabel %></button>
+  <button type="button" class="pill" role="tab" aria-selected="false" aria-controls="version-live" data-tab="version-live">Live now</button>
+</div>
+<p class="hint version-changes">
+  <%= changed.length ? 'Changed from the live version: ' + changed.join(', ') + '.' : 'No changes from the live version yet.' %>
+</p>

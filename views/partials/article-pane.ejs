@@ -1,0 +1,12 @@
+<%# One version of an article, read only: what is live, or a draft that is
+    with someone else. label says which. %>
+<section class="box pane" aria-label="<%= label %>">
+  <p class="eyebrow"><%= label %></p>
+  <h2><%= content.title %></h2>
+  <p class="hint"><%= CATEGORY_LABELS[content.category] %></p>
+  <% if (content.imagePath) { %>
+    <img class="article-hero" src="<%= content.imagePath %>" alt="">
+  <% } %>
+  <% if (content.summary) { %><p class="article-lead"><%= content.summary %></p><% } %>
+  <div class="article-body"><p><%= content.body %></p></div>
+</section>

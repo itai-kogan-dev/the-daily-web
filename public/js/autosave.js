@@ -1,12 +1,12 @@
-// Autosave for the article editor. There is no save button: the spec says work
-// has to survive a refresh, a closed browser, or moving to another machine, so
-// drafts go to the server rather than to localStorage.
+// Autosave for the reporter's article editor. There is no save button: the
+// spec says work has to survive a refresh, a closed browser, or moving to
+// another machine, so drafts go to the server rather than to localStorage.
 
 const form = document.getElementById('article-form')
 const statusEl = document.getElementById('save-status')
 
-// read-only view (article is with the editor), nothing to wire up
-if (form && !form.dataset.readonly) {
+// no form means the article is with the editor and the page is read only
+if (form) {
   const IDLE_MS = 1500     // save this long after typing stops
   const CEILING_MS = 10000 // ...but never go longer than this while typing
 
@@ -37,7 +37,7 @@ if (form && !form.dataset.readonly) {
     statusEl.className = 'save-status ' + state
   }
 
-  // the error takes the hint's place so the bar does not grow
+  // the error takes the hint's place
   function showSubmitError(text) {
     submitError.textContent = text
     submitError.hidden = false
@@ -47,7 +47,16 @@ if (form && !form.dataset.readonly) {
   const isBlank = content => !content.title.trim() && !content.summary.trim() &&
                              !content.body.trim() && !content.imagePath.trim()
 
-  async function saveDraft() {
+  // Saves run one after another. Two at once could both see no articleId yet
+  // and create the article twice. keepalive lets the request outlive the page
+  // when the tab is closing.
+  let saving = Promise.resolve()
+  function saveDraft({ keepalive = false } = {}) {
+    saving = saving.then(() => save(keepalive)).catch(() => showStatus('Could not save', 'error'))
+    return saving
+  }
+
+  async function save(keepalive) {
     if (!hasUnsavedChanges) return
     // typed something then deleted it again - nothing worth creating yet
     if (!articleId && isBlank(readForm())) {
@@ -68,7 +77,8 @@ if (form && !form.dataset.readonly) {
     const res = await fetch(isNew ? '/reporter/api/article' : `/reporter/api/article/${articleId}`, {
       method: isNew ? 'POST' : 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(readForm())
+      body: JSON.stringify(readForm()),
+      keepalive
     }).catch(() => null)
 
     if (!res || !res.ok) {
@@ -85,9 +95,8 @@ if (form && !form.dataset.readonly) {
       form.dataset.id = data.id
       // so a refresh lands on the real article instead of the empty form
       history.replaceState(null, '', `/reporter/article/${data.id}`)
-      // a freshly created article is an unpublished in_progress draft, which
-      // the reporter can always delete - reveal the button without a reload
-      // so a false start can be removed straight away
+      // a new article is an unpublished draft, which the reporter can always
+      // delete - show the button now so a false start can be removed
       ensureDeleteButton()
     }
 
@@ -101,7 +110,7 @@ if (form && !form.dataset.readonly) {
     showStatus('Saved ' + new Date(data.savedAt).toLocaleTimeString())
   }
 
-  form.addEventListener('input', () => {
+  function markChanged() {
     hasUnsavedChanges = true
     showStatus('Unsaved changes', 'pending')
 
@@ -110,114 +119,26 @@ if (form && !form.dataset.readonly) {
 
     // someone typing without pause would otherwise never trigger the idle save
     if (!ceilingTimer) ceilingTimer = setTimeout(saveDraft, CEILING_MS)
-  })
+  }
 
-  // Closing the tab or switching away. keepalive lets the request outlive the
-  // page - a normal fetch gets cancelled when the page goes. The check matters:
-  // without it, opening a new article and closing it untouched would create one.
+  form.addEventListener('input', markChanged)
+
+  // closing the tab or switching away
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'hidden' || !hasUnsavedChanges) return
-
-    const isNew = !articleId
-    fetch(isNew ? '/reporter/api/article' : `/reporter/api/article/${articleId}`, {
-      method: isNew ? 'POST' : 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(readForm()),
-      keepalive: true
-    })
+    if (document.visibilityState === 'hidden') saveDraft({ keepalive: true })
   })
 
-  // --- image ---
-  const MAX_IMAGE_BYTES = 2 * 1024 * 1024
-
-  const imageError = document.getElementById('image-error')
-  const imageName = document.getElementById('image-name')
-  const fileInput = document.getElementById('image-file')
-  const pickBtn = document.getElementById('image-pick-btn')
-
-  function showImageError(text) {
-    if (!imageError) return
-    imageError.textContent = text
-    imageError.hidden = !text
-  }
-
-  // The picture goes to the server on its own and comes back as a path. Only
-  // that short path is kept in the form, so the article document stays small
-  // and the browser can cache the picture like any other image.
-  // Without this the server still refuses the file, but the message it can
-  // give is "no picture received", which does not say what went wrong.
-  const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/avif']
-
-  async function sendImage(file) {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      showImageError('That file type is not supported - use PNG, JPEG, GIF, WebP or AVIF')
-      return
+  // a new picture is saved straight away rather than after the idle wait
+  setUpImageField({
+    uploadUrl: '/reporter/api/image',
+    onChange: () => {
+      markChanged()
+      saveDraft()
     }
-
-    if (file.size > MAX_IMAGE_BYTES) {
-      showImageError(`That picture is ${Math.round(file.size / 1024)} KB, the limit is ${MAX_IMAGE_BYTES / 1024 / 1024} MB`)
-      return
-    }
-
-    showImageError('')
-    if (imageName) imageName.textContent = 'Uploading...'
-
-    const res = await fetch('/reporter/api/image', {
-      method: 'POST',
-      headers: { 'Content-Type': file.type, 'X-Image-Name': file.name },
-      body: file
-    }).catch(() => null)
-
-    if (!res || !res.ok) {
-      if (imageName) imageName.textContent = 'No image yet'
-      return showImageError('Could not upload that picture')
-    }
-
-    const data = await res.json()
-    getField('imagePath').value = data.url
-    if (imageName) imageName.textContent = file.name
-
-    // The hidden field fires no input event of its own, so autosave is told
-    // directly - and saved now rather than in a second and a half, so the
-    // article points at the picture almost as soon as it is stored.
-    form.dispatchEvent(new Event('input', { bubbles: true }))
-    saveDraft()
-  }
-
-  if (pickBtn && fileInput) {
-    pickBtn.addEventListener('click', () => fileInput.click())
-
-    fileInput.addEventListener('change', () => {
-      const file = fileInput.files[0]
-      fileInput.value = ''   // so picking the same file twice still fires
-      if (file) sendImage(file)
-    })
-  }
-
-  // --- drag and drop ---
-  const dropZone = document.getElementById('image-drop')
-
-  if (dropZone) {
-    // the browser opens a dropped file in the tab unless both of these are stopped
-    for (const name of ['dragenter', 'dragover']) {
-      dropZone.addEventListener(name, event => {
-        event.preventDefault()
-        dropZone.classList.add('dragging')
-      })
-    }
-    for (const name of ['dragleave', 'drop']) {
-      dropZone.addEventListener(name, () => dropZone.classList.remove('dragging'))
-    }
-
-    dropZone.addEventListener('drop', event => {
-      event.preventDefault()
-      const file = event.dataTransfer.files[0]
-      if (file) sendImage(file)
-    })
-  }
+  })
 
   // --- delete ---
-  // Only rendered for a draft that was never published. Autosave is stopped
+  // Only shown for a draft that was never published. Autosave is stopped
   // first, so a save cannot land on an article that no longer exists.
   async function handleDelete(deleteBtn) {
     if (!window.confirm('Delete this draft? This cannot be undone.')) return
@@ -248,7 +169,7 @@ if (form && !form.dataset.readonly) {
   // first autosave creates it, the button appears without needing a reload.
   function ensureDeleteButton() {
     if (document.getElementById('delete-btn')) return
-    const container = document.querySelector('.sticky-bar .sticky-right')
+    const container = document.getElementById('side-actions')
     if (!container) return
     const btn = document.createElement('button')
     btn.id = 'delete-btn'

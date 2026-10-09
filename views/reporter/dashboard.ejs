@@ -35,15 +35,16 @@
           <div class="list-body">
             <a class="list-title" href="/reporter/article/<%= article._id %>"><%= article.draftContent.title %></a>
 
+            <% if (article.draftContent.summary) { %><p class="list-summary"><%= article.draftContent.summary %></p><% } %>
             <% if (article.status === STATUS.NEEDS_REVISION && article.editorNote) { %>
-              <p class="list-summary"><strong class="error">Editor:</strong> <%= article.editorNote %></p>
+              <p class="list-note"><strong>Editor:</strong> <%= article.editorNote %></p>
             <% } %>
 
             <div class="meta">
               <span class="badge status-<%= article.status %>"><%= STATUS_LABELS[article.status] %></span>
               <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
               <span><%= CATEGORY_LABELS[article.draftContent.category] %></span>
-              <span>edited <%= new Date(article.updatedAt).toLocaleDateString('en-GB') %></span>
+              <span>updated <%= new Date(article.updatedAt).toLocaleDateString('en-GB') %></span>
             </div>
           </div>
         </li>

@@ -116,7 +116,19 @@ function canReporterDelete(article) {
   return !article.isLive && [STATUS.IN_PROGRESS, STATUS.NEEDS_REVISION].includes(article.status)
 }
 
+// The parts of an article a reporter edits, named the way a person would.
+const CONTENT_FIELDS = { title: 'title', category: 'category', summary: 'summary', body: 'body', imagePath: 'image' }
+
+// which parts of a draft differ from the live version, for the review pages
+function changedFields(live, draft) {
+  if (!live || !draft) return []
+  return Object.entries(CONTENT_FIELDS)
+    .filter(([key]) => (live[key] || '') !== (draft[key] || ''))
+    .map(([, label]) => label)
+}
+
 module.exports = {
+  changedFields,
   canEditorEdit,
   canEditorDelete,
   canReporterDelete,
