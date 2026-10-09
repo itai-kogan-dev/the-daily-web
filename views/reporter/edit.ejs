@@ -1,19 +1,15 @@
-<%- include('../partials/head', { title: article ? 'Edit article' : 'New article', extraCss: '/css/reporter.css' }) %>
+<%- include('../partials/head', { title: article ? 'Edit article' : 'New article', extraCss: '/css/staff.css' }) %>
 <%- include('../partials/header') %>
 
 <main class="page">
-  <%# which article, and what state it is in - one line, one group %>
-  <div class="editor-head">
-    <nav class="breadcrumb" aria-label="Breadcrumb">
-      <a href="/reporter">Reporter Space</a>
-      <span aria-hidden="true">&rsaquo;</span>
-      <%# the page heading, sized like the rest of the breadcrumb. A page with
-          no h1 leaves a screen reader nothing to navigate by. %>
-      <h1 class="crumb-current"><%= article ? content.title : 'New article' %></h1>
-    </nav>
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/reporter">Reporter Space</a>
+  </nav>
 
+  <div class="page-top">
+    <h1><%= article ? content.title : 'New article' %></h1>
     <% if (article) { %>
-      <div class="article-meta">
+      <div class="meta">
         <span id="status-badge" class="badge status-<%= article.status %>"><%= STATUS_LABELS[article.status] %></span>
         <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
       </div>
@@ -62,11 +58,11 @@
     </label>
 
     <div class="field">
-      <span class="field-label">Image</span>
+      <span>Image</span>
       <div id="image-drop" class="image-drop">
-        <button type="button" id="image-pick-btn" class="button-secondary" <%= canEdit ? '' : 'disabled' %>>Choose image</button>
+        <button type="button" id="image-pick-btn" class="btn btn-sm" <%= canEdit ? '' : 'disabled' %>>Choose image</button>
         <span id="image-name" class="muted"><%= imageName || 'No image yet' %></span>
-        <span class="muted hint">or drop one here</span>
+        <span class="hint">or drop one here</span>
       </div>
       <input type="file" id="image-file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif" hidden>
       <!-- holds /images/<id> once the picture is in the database -->
@@ -76,24 +72,26 @@
 
   </form>
 
+  <%# not rendered at all when the article is with the editor - a control
+      nobody may use should not be in the page %>
+  <% if (canEdit || canDelete) { %>
   <div class="sticky-bar">
-    <%# not rendered at all when the article is with the editor - a control
-        nobody may use should not be in the page %>
     <% if (canEdit) { %>
       <div class="sticky-left">
-        <button id="submit-btn" type="button">Send to editor</button>
+        <button id="submit-btn" type="button" class="btn btn-primary">Send to editor</button>
         <p id="submit-error" class="error" hidden></p>
-        <span id="submit-hint" class="muted hint">You cannot edit it until the editor replies</span>
+        <span id="submit-hint" class="hint">You cannot edit it until the editor replies</span>
       </div>
     <% } %>
 
     <div class="sticky-right">
       <p id="save-status" class="save-status"></p>
       <% if (canDelete) { %>
-        <button id="delete-btn" type="button" class="button-secondary danger-text">Delete draft</button>
+        <button id="delete-btn" type="button" class="btn btn-danger">Delete draft</button>
       <% } %>
     </div>
   </div>
+  <% } %>
 </main>
 
 <script src="/js/autosave.js"></script>

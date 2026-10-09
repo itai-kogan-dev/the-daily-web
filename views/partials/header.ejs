@@ -1,15 +1,20 @@
+<%# locals, because an error caught before the auth middleware ran has neither %>
+<% const viewer = locals.user || { role: 'guest' } %>
+<% const path = locals.currentPath || '' %>
+<% const here = href => path === href ? 'aria-current="page"' : '' %>
 <header class="site-header">
   <nav>
-    <a class="brand" href="/">The Daily Web</a>
+    <a class="brand" href="/"><span>The</span> Daily Web</a>
     <div class="nav-right">
-      <% if (user.role === 'guest') { %>
-        <% if (currentPath !== '/login') { %><a href="/login">Log in</a><% } %>
+      <% if (viewer.role === 'guest') { %>
+        <% if (path !== '/login') { %><a href="/login">Log in</a><% } %>
       <% } else { %>
-        <% if (user.role === 'reporter') { %><a href="/reporter">Reporter Space</a><% } %>
-        <% if (user.role === 'editor') { %><a href="/editor">Editor Space</a><% } %>
-        <% if (user.role === 'editor') { %><a href="/editor/users">Manage Users</a><% } %>
-        <span class="who"><%= user.displayName %></span>
-        <span class="nav-divider" aria-hidden="true">&middot;</span>
+        <% if (viewer.role === 'reporter') { %><a href="/reporter" <%- here('/reporter') %>>Reporter Space</a><% } %>
+        <% if (viewer.role === 'editor') { %>
+          <a href="/editor" <%- here('/editor') %>>Editor Space</a>
+          <a href="/editor/users" <%- here('/editor/users') %>>Manage users</a>
+        <% } %>
+        <span class="who"><%= viewer.displayName %></span>
         <form method="post" action="/logout"><button type="submit">Log out</button></form>
       <% } %>
     </div>

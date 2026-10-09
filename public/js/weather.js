@@ -81,7 +81,7 @@
     if (retryLabel) {
       const button = document.createElement('button')
       button.type = 'button'
-      button.className = 'weather-retry'
+      button.className = 'btn btn-sm'
       button.textContent = retryLabel
       button.addEventListener('click', locate)
       parts.push(button)

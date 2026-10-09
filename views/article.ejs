@@ -1,4 +1,4 @@
-<%- include('partials/head', { title: content.title, extraCss: '/css/weather.css' }) %>
+<%- include('partials/head', { title: content.title }) %>
 <%- include('partials/header') %>
 
 <div class="layout">
@@ -12,14 +12,12 @@
         <a href="<%= feedLink({ category: content.category }) %>">
           <%= CATEGORY_LABELS[content.category] %>
         </a>
-        <span aria-hidden="true">&rsaquo;</span>
-        <span class="crumb-current"><%= content.title %></span>
       </nav>
 
-      <h1 class="article-title"><%= content.title %></h1>
+      <h1><%= content.title %></h1>
 
       <div class="article-byline">
-        <span>By <%= article.author ? article.author.displayName : 'The Daily Web' %></span>
+        <span>By <strong><%= article.author ? article.author.displayName : 'The Daily Web' %></strong></span>
         <time datetime="<%= new Date(article.publishedAt).toISOString() %>">
           <%= new Date(article.publishedAt).toLocaleDateString('en-GB') %>
         </time>
@@ -28,7 +26,7 @@
         <% if (updatedAt) { %>
           <!-- null until a second version is approved, so the date never moves
                on its own and this only appears after a real update -->
-          <span class="article-updated">
+          <span>
             Updated <time datetime="<%= new Date(updatedAt).toISOString() %>"><%= new Date(updatedAt).toLocaleDateString('en-GB') %></time>
           </span>
         <% } %>
@@ -58,11 +56,11 @@
       </h2>
 
       <% if (comments.total > comments.items.length) { %>
-        <p class="comment-note muted" id="comment-note">
+        <p class="hint" id="comment-note">
           Showing the most recent <%= comments.items.length %> of <%= comments.total %>.
         </p>
       <% } else { %>
-        <p class="comment-note muted" id="comment-note" hidden></p>
+        <p class="hint" id="comment-note" hidden></p>
       <% } %>
 
       <p class="muted" id="comment-empty" <%= comments.items.length ? 'hidden' : '' %>>
@@ -99,9 +97,9 @@
         </label>
 
         <div class="comment-actions">
-          <button type="submit" id="comment-submit">Post comment</button>
-          <span class="muted" id="comment-busy" role="status" aria-live="polite"></span>
-          <span class="muted comment-hint">Up to three a minute.</span>
+          <button type="submit" class="btn btn-primary" id="comment-submit">Post comment</button>
+          <span class="hint" id="comment-busy" role="status" aria-live="polite"></span>
+          <span class="hint">Up to three a minute.</span>
         </div>
 
         <p class="error" id="comment-error" hidden></p>

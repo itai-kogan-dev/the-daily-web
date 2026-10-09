@@ -1,37 +1,34 @@
-<%- include('../partials/head', { title: 'Staff accounts', extraCss: '/css/reporter.css' }) %>
-<link rel="stylesheet" href="/css/editor.css">
+<%- include('../partials/head', { title: 'Staff accounts', extraCss: '/css/staff.css' }) %>
 <%- include('../partials/header') %>
 
 <main class="page">
   <div class="page-top">
     <h1>Staff accounts</h1>
-    <a class="button" href="/editor/users/new">New user</a>
+    <a class="btn btn-primary" href="/editor/users/new">New user</a>
   </div>
 
-  <p class="muted">Reporters write articles, editors review them and manage these accounts.</p>
+  <p class="muted">Reporters write articles. Editors review them and manage these accounts.</p>
 
   <% if (users.length === 0) { %>
-    <p class="muted">No accounts yet.</p>
+    <p class="feed-empty muted">No accounts yet.</p>
   <% } else { %>
-    <ul class="article-list">
+    <ul class="list">
       <% users.forEach(account => { %>
-        <li class="article-row" data-user="<%= account._id %>">
-          <div class="article-body">
-            <a class="article-title" href="/editor/users/<%= account._id %>">
-              <%= account.displayName %>
-            </a>
+        <li class="list-item" data-user="<%= account._id %>">
+          <div class="list-body">
+            <a class="list-title" href="/editor/users/<%= account._id %>"><%= account.displayName %></a>
             <% if (String(account._id) === currentUserId) { %><span class="muted">(you)</span><% } %>
-            <div class="article-meta">
+            <div class="meta">
               <span class="badge role-<%= account.role %>"><%= ROLE_LABELS[account.role] %></span>
               <span>@<%= account.username %></span>
-              <span>joined <%= new Date(account.createdAt).toLocaleDateString() %></span>
+              <span>joined <%= new Date(account.createdAt).toLocaleDateString('en-GB') %></span>
             </div>
             <p class="error" data-error hidden></p>
           </div>
-          <div class="user-actions">
-            <a class="button-secondary" href="/editor/users/<%= account._id %>">Edit</a>
+          <div class="list-actions">
+            <a class="btn btn-sm" href="/editor/users/<%= account._id %>">Edit</a>
             <% if (String(account._id) !== currentUserId) { %>
-              <button type="button" class="button-secondary danger-text" data-delete>Delete</button>
+              <button type="button" class="btn btn-sm btn-danger" data-delete>Delete</button>
             <% } %>
           </div>
         </li>
@@ -57,7 +54,7 @@
     if (!deleteBtn) return
 
     deleteBtn.addEventListener('click', async () => {
-      const name = (row.querySelector('.article-title') || {}).textContent || 'this account'
+      const name = (row.querySelector('.list-title') || {}).textContent || 'this account'
       if (!window.confirm(`Delete ${name.trim()}? This cannot be undone.`)) return
 
       errorEl.hidden = true

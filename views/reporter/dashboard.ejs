@@ -1,48 +1,45 @@
-<%- include('../partials/head', { title: 'Reporter Space', extraCss: '/css/reporter.css' }) %>
+<%- include('../partials/head', { title: 'Reporter Space', extraCss: '/css/staff.css' }) %>
 <%- include('../partials/header') %>
 
 <main class="page">
   <div class="page-top">
     <h1>Reporter Space</h1>
-    <a class="button" href="/reporter/article/new">New article</a>
+    <a class="btn btn-primary" href="/reporter/article/new">New article</a>
   </div>
 
-  <nav class="tabs">
-    <a href="/reporter" class="tab <%= filter ? '' : 'active' %>">
-      All <span class="tab-count"><%= counts.all %></span>
+  <nav class="pills" aria-label="Filter by status">
+    <a href="/reporter" class="pill<%= filter ? '' : ' active' %>">
+      All <span class="pill-count"><%= counts.all %></span>
     </a>
     <% statuses.forEach(status => { %>
-      <a href="/reporter?status=<%= status %>" class="tab <%= filter === status ? 'active' : '' %>">
-        <%= STATUS_LABELS[status] %> <span class="tab-count"><%= counts[status] %></span>
+      <a href="/reporter?status=<%= status %>" class="pill<%= filter === status ? ' active' : '' %>">
+        <%= STATUS_LABELS[status] %> <span class="pill-count"><%= counts[status] %></span>
       </a>
     <% }) %>
   </nav>
 
   <% if (articles.length === 0) { %>
-    <p class="muted">
+    <p class="feed-empty muted">
       <%= filter ? 'No articles with this status.' : 'Nothing here yet. Start with a new article.' %>
     </p>
   <% } else { %>
-    <ul class="article-list">
+    <ul class="list">
       <% articles.forEach(article => { %>
-        <%# the same shape as the public feed: picture left, everything else right %>
-        <li class="article-row">
+        <li class="list-item">
           <% if (article.draftContent.imagePath) { %>
-            <a class="article-thumb" href="/reporter/article/<%= article._id %>" tabindex="-1" aria-hidden="true">
+            <a class="list-thumb" href="/reporter/article/<%= article._id %>" tabindex="-1" aria-hidden="true">
               <img src="<%= article.draftContent.imagePath %>" alt="" loading="lazy" width="160" height="107">
             </a>
           <% } %>
 
-          <div class="article-body">
-            <a class="article-title" href="/reporter/article/<%= article._id %>">
-              <%= article.draftContent.title %>
-            </a>
+          <div class="list-body">
+            <a class="list-title" href="/reporter/article/<%= article._id %>"><%= article.draftContent.title %></a>
 
             <% if (article.status === STATUS.NEEDS_REVISION && article.editorNote) { %>
-              <p class="editor-note"><strong>Editor:</strong> <%= article.editorNote %></p>
+              <p class="list-summary"><strong class="error">Editor:</strong> <%= article.editorNote %></p>
             <% } %>
 
-            <div class="article-meta">
+            <div class="meta">
               <span class="badge status-<%= article.status %>"><%= STATUS_LABELS[article.status] %></span>
               <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
               <span><%= CATEGORY_LABELS[article.draftContent.category] %></span>

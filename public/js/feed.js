@@ -50,11 +50,11 @@ if (form && results) {
   }
 
   function buildCard(article) {
-    const item = el('li', 'feed-card')
+    const item = el('li', 'list-item')
     item.dataset.articleId = article.id
 
     if (article.imagePath) {
-      const link = el('a', 'feed-thumb')
+      const link = el('a', 'list-thumb')
       link.href = `/article/${article.id}`
       link.tabIndex = -1
       link.setAttribute('aria-hidden', 'true')
@@ -69,17 +69,17 @@ if (form && results) {
       item.append(link)
     }
 
-    const body = el('div', 'feed-card-body')
+    const body = el('div', 'list-body')
 
-    const title = el('a', 'feed-card-title', article.title)
+    const title = el('a', 'list-title', article.title)
     title.href = `/article/${article.id}`
     body.append(title)
 
-    if (article.summary) body.append(el('p', 'feed-summary', article.summary))
+    if (article.summary) body.append(el('p', 'list-summary', article.summary))
 
-    const meta = el('div', 'feed-meta')
+    const meta = el('div', 'meta')
 
-    const category = el('a', 'feed-category', article.categoryLabel)
+    const category = el('a', 'meta-category', article.categoryLabel)
     category.href = feedHref({ ...currentState(), category: article.category, page: 1 })
     category.dataset.feedNav = ''
     category.dataset.category = article.category
@@ -142,10 +142,10 @@ if (form && results) {
     }
     if (!moreWrap) {
       moreWrap = el('div', 'feed-more')
-      moreLink = el('a', 'feed-step', 'Load more articles')
+      moreLink = el('a', 'btn', 'Load more articles')
       moreLink.dataset.feedNav = ''
       moreLink.dataset.more = ''
-      moreNote = el('p', 'feed-more-note muted')
+      moreNote = el('p', 'feed-more-note')
       moreNote.setAttribute('role', 'status')
       moreWrap.append(moreLink, moreNote)
     }
@@ -303,7 +303,7 @@ if (form && results) {
     for (const chip of document.querySelectorAll('[data-sort]')) {
       chip.classList.toggle('active', chip.dataset.sort === feed.sort)
     }
-    for (const chip of document.querySelectorAll('.feed-filters [data-category]')) {
+    for (const chip of document.querySelectorAll('.pills [data-category]')) {
       // The API answers with null when no category is selected, while the All
       // chip carries an empty string. Without the fallback All never matches.
       chip.classList.toggle('active', chip.dataset.category === (feed.category || ''))
@@ -371,7 +371,7 @@ if (form && results) {
     if (!window.DailyWebRead) return null
     // It lives with the filters, not the sorters: it narrows which articles
     // show, it never orders them.
-    const chips = document.querySelectorAll('.feed-filters [data-category]')
+    const chips = document.querySelectorAll('.pills [data-category]')
     if (!chips.length || !chips[0].parentNode) return null
     // History navigation can restore the toggle node itself while this script
     // starts over, so reuse it instead of adding a second toggle beside it.
@@ -411,7 +411,7 @@ if (form && results) {
       results.replaceChildren()
 
       if (feed.items.length) {
-        const fresh = el('ul', 'feed-list')
+        const fresh = el('ul', 'list feed-list')
         fresh.id = 'feed-list'
         for (const article of feed.items) fresh.append(buildCard(article))
         results.append(fresh)

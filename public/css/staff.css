@@ -1,0 +1,68 @@
+/* Staff pages: Reporter Space, the article editor, the editor queue and
+   review, and staff accounts. Layout only - every colour, button, badge and
+   filter comes from main.css. */
+
+/* --- article editor, reporter and editor alike --- */
+
+.image-drop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem;
+  padding: .85rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  font-weight: 400;
+}
+.image-drop.dragging { border-color: var(--primary); background: var(--selected-bg); }
+
+.image-preview { max-width: 240px; aspect-ratio: 3 / 2; margin-top: .25rem; }
+
+.save-status { min-height: 1.4rem; margin: 0; font-size: .875rem; color: var(--muted); }
+.save-status.pending { color: var(--warn-ink); }
+.save-status.error { color: var(--danger); font-weight: 600; }
+
+/* stays on screen while writing, or the save status and Send would scroll away */
+.sticky-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem var(--gap);
+  margin-top: 1.25rem;
+  padding: .85rem 0;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+}
+.sticky-left,
+.sticky-right { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+.sticky-right { margin-left: auto; }
+
+@media (max-width: 600px) {
+  .sticky-bar .hint { display: none; }
+}
+
+/* --- editor review --- */
+
+.review .article-byline { margin-bottom: 1.25rem; }
+
+.review-grid { display: grid; gap: 1.25rem; align-items: start; margin-top: 1.25rem; max-width: 42rem; }
+@media (min-width: 900px) {
+  .review-grid.with-live { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); max-width: none; }
+}
+
+.compare-title { margin: .25rem 0 .2rem; font-size: 1.2rem; }
+.compare .article-hero { margin-top: .75rem; }
+.compare .article-lead { font-size: 1.05rem; }
+.compare .article-body { font-size: .9375rem; }
+
+.update-history { margin-top: 1rem; }
+.update-history ul { margin: 0; padding-left: 1.1rem; font-size: .9rem; color: var(--muted); }
+
+.return-box { margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid var(--line); max-width: 42rem; }
+
+/* --- staff accounts --- */
+
+.danger-zone { margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }

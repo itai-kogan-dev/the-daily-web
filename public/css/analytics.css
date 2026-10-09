@@ -1,96 +1,69 @@
-/* Impact analytics page. Only loaded on /editor/analytics. */
-
-.analytics h2 { font-size: 1.2rem; margin: 0; }
-.analytics h3 { font-size: 1rem; margin: 1.5rem 0 .25rem; }
+/* Impact analytics page. Layout only - colours and controls come from main.css. */
 
 .an-layout {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
-  gap: calc(var(--gap) * 1.5);
+  gap: 2rem;
   align-items: start;
-  margin-top: var(--gap);
 }
 
 /* --- picker --- */
 
-.an-search { display: flex; flex-direction: column; gap: .25rem; font-weight: 600; }
-.an-search input { font-weight: normal; }
-.an-hint { font-size: .85rem; margin: .75rem 0 .25rem; }
+.an-hint { margin: .75rem 0 .35rem; font-size: .8125rem; }
 
-.an-scroll {
-  max-height: 70vh;
-  overflow-y: auto;
-  border-top: 1px solid var(--line);
-}
+.an-scroll { max-height: 70vh; overflow-y: auto; border-top: 1px solid var(--line); }
 .an-list { list-style: none; margin: 0; padding: 0; }
 #an-sentinel { height: 1px; }
-.an-more {
-  display: block;
-  width: 100%;
-  margin: .5rem 0;
-  background: var(--bg);
-  color: var(--text);
-  border-color: var(--line);
-  font-size: .85rem;
-}
+.an-more { width: 100%; margin: .5rem 0; }
+
 .an-list button {
   display: flex;
   flex-direction: column;
   gap: .15rem;
   width: 100%;
+  padding: .65rem .6rem;
   text-align: left;
+  font-size: .9375rem;
+  color: var(--ink);
   background: none;
-  color: var(--text);
   border: 0;
   border-bottom: 1px solid var(--line);
-  border-radius: 0;
-  padding: .6rem .5rem;
-  font-size: .9rem;
 }
-.an-list button:hover { background: #f6f6f6; }
-.an-list button[aria-current] { background: #f1f5fb; box-shadow: inset 3px 0 0 #2a78d6; }
-.an-list .muted { font-size: .8rem; }
+.an-list button:hover { background: var(--hover); }
+.an-list button[aria-current] { background: var(--selected-bg); box-shadow: inset 3px 0 0 var(--primary); }
+.an-list .muted { font-size: .8125rem; }
 
 /* --- panel --- */
 
-.an-heading { display: flex; align-items: baseline; justify-content: space-between; gap: var(--gap); }
+.an-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .5rem var(--gap); }
+.an-heading h2 { margin: 0; }
 
 .an-toolbar {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: var(--gap);
-  margin: var(--gap) 0;
+  margin: 1rem 0;
 }
+.an-toolbar .pills { margin: 0; }
 
-.an-tiles { display: flex; flex-wrap: wrap; gap: calc(var(--gap) * 2); margin: 0; }
-.an-tiles dt { color: var(--muted); font-size: .8rem; }
-.an-tiles dd { margin: .1rem 0 0; font-size: 1.35rem; font-weight: 600; font-variant-numeric: tabular-nums; }
-
-.an-ranges { display: flex; }
-.an-ranges button {
-  background: var(--bg);
-  color: var(--text);
-  border-color: var(--line);
-  border-radius: 0;
-  margin-left: -1px;
-  font-size: .85rem;
-}
-.an-ranges button:first-child { border-radius: var(--radius) 0 0 var(--radius); margin-left: 0; }
-.an-ranges button:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
-.an-ranges button[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.an-tiles { display: flex; flex-wrap: wrap; gap: .75rem; margin: 0; }
+.an-tiles .box { padding: .65rem 1rem; }
+.an-tiles dt { font-size: .8125rem; color: var(--muted); }
+.an-tiles dd { margin: .1rem 0 0; font-size: 1.3rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 
 .an-chart { margin: 0; }
-.an-chart figcaption { color: var(--muted); font-size: .85rem; margin-bottom: .5rem; }
+.an-chart figcaption { margin-bottom: .5rem; font-size: .875rem; color: var(--muted); }
 .an-canvas { position: relative; height: 340px; }
 
-.an-note { font-size: .85rem; margin: 0 0 .5rem; }
+.an-note { margin: 0 0 .5rem; font-size: .875rem; }
 
 .an-table-wrap { overflow-x: auto; }
-.an-impact { width: 100%; border-collapse: collapse; font-size: .9rem; }
-.an-impact th, .an-impact td { padding: .5rem; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
-.an-impact th { color: var(--muted); font-weight: 600; font-size: .8rem; }
+.an-impact { width: 100%; border-collapse: collapse; font-size: .9375rem; }
+.an-impact th,
+.an-impact td { padding: .55rem .5rem; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--line); }
+.an-impact th { font-size: .8125rem; font-weight: 600; color: var(--muted); }
 .an-impact .num { text-align: right; font-variant-numeric: tabular-nums; }
 
 @media (max-width: 760px) {

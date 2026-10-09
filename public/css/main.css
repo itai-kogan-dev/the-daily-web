@@ -1,430 +1,416 @@
-/* Shared tokens, the page shell, and the public feed and article pages. */
+/* The design system and the public pages. Every page loads this file.
+   Colours and sizes are only ever set here, as tokens - other stylesheets
+   use var(--...) and never a raw colour. */
 
 :root {
-  --bg: #ffffff;
-  --text: #1a1a1a;
-  --muted: #6b6b6b;
-  --line: #e2e2e2;
-  --accent: #b02020;
-  --radius: 6px;
+  /* surfaces and text */
+  --paper: #ffffff;
+  --tint: #f2f1ee;          /* flat boxes: weather, notices, compare panes */
+  --hover: #f4f2ef;
+  --line: #e6e3de;
+  --line-strong: #cfcbc3;
+  --ink: #1f2a44;
+  --muted: #6a6761;
+
+  /* the one main action per screen */
+  --primary: #1f2a44;
+  --primary-hover: #33405f;
+  --selected-bg: #e7ebf3;
+  --selected-line: #c9d1e2;
+  --ring: rgba(31, 42, 68, .14);
+
+  /* red is rare on purpose: the logo, Live, categories, and destroying things */
+  --brand: #b3261e;
+  --danger: #b3261e;
+  --danger-bg: #fbeceb;
+  --danger-line: #e9b8b3;
+
+  /* status colours */
+  --warn-bg: #fbf0d4;
+  --warn-ink: #6f4e00;
+  --warn-edge: #d4a52a;
+  --ok-bg: #e2f1e5;
+  --ok-ink: #1d6b33;
+
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Public Sans", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --radius: 8px;
+  --radius-box: 12px;
   --gap: 1rem;
   --page-width: 1100px;
 }
 
+/* --- base --- */
+
 * { box-sizing: border-box; }
+
+/* the browser's own [hidden] loses to any class that sets display */
+[hidden] { display: none !important; }
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
-  color: var(--text);
-  background: var(--bg);
-  line-height: 1.5;
+  font: 400 1rem/1.55 var(--sans);
+  color: var(--ink);
+  background: var(--paper);
 }
 
-/* --- header --- */
-.site-header { border-bottom: 1px solid var(--line); }
+h1, h2, h3 {
+  font-family: var(--serif);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -.01em;
+  text-wrap: balance;
+}
+h1 { font-size: 2rem; margin: 0 0 1rem; }
+h2 { font-size: 1.3rem; margin: 0 0 .5rem; }
+h3 { font-size: 1.1rem; margin: 1.5rem 0 .4rem; }
+
+a { color: inherit; text-underline-offset: 3px; }
+a:hover { color: var(--primary-hover); }
+
+button { font: inherit; cursor: pointer; }
+
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.muted { color: var(--muted); }
+.error { color: var(--danger); font-weight: 600; margin: 0; }
+.hint { font-size: .875rem; color: var(--muted); }
+
+/* small uppercase label above a box or a pane */
+.eyebrow {
+  margin: 0 0 .5rem;
+  font: 600 .75rem/1.4 var(--sans);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* --- page shell --- */
 
 .site-header nav {
   max-width: var(--page-width);
   margin: 0 auto;
-  padding: var(--gap);
+  padding: 1.1rem var(--gap) .8rem;
+  border-bottom: 2px solid var(--ink);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--gap);
+  gap: .5rem 1.5rem;
 }
 
 .brand {
-  font-weight: 700;
-  font-size: 1.4rem;
-  letter-spacing: -.01em;
+  font: 600 1.6rem/1 var(--serif);
+  letter-spacing: -.015em;
+  color: var(--ink);
   text-decoration: none;
-  color: var(--accent);
 }
+.brand span { color: var(--brand); }
 
-h1 { font-size: 1.6rem; margin: 0 0 .75rem; letter-spacing: -.01em; }
-
-.nav-right { display: flex; align-items: center; gap: var(--gap); }
+.nav-right { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1.25rem; font-size: .9375rem; }
 .nav-right form { margin: 0; }
-.nav-right a { color: var(--text); text-decoration: none; }
-.nav-right a:hover { text-decoration: underline; }
+.nav-right a,
+.nav-right button { color: var(--muted); text-decoration: none; background: none; border: 0; padding: 0; }
+.nav-right a:hover,
+.nav-right button:hover,
+.nav-right a[aria-current] { color: var(--ink); }
+.nav-right a[aria-current] { font-weight: 600; }
+.who { color: var(--ink); font-weight: 600; }
 
-.nav-right button {
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  color: var(--muted);
-  cursor: pointer;
+.page {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 1.75rem var(--gap) 0;
 }
-.nav-right button:hover { color: var(--accent); text-decoration: underline; }
+.page.narrow { max-width: calc(26rem + 2 * var(--gap)); }
 
-.who { color: var(--muted); }
-.nav-divider { color: var(--line); }
-
-/* --- page + sidebar --- */
+/* a page with the sidebar beside it */
 .layout {
   max-width: var(--page-width);
   margin: 0 auto;
-  padding: var(--gap);
+  padding: 1.75rem var(--gap) 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 2.5rem;
+  align-items: start;
+}
+.layout > .page { padding: 0; margin: 0; max-width: none; }
+
+@media (max-width: 800px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+}
+
+.page-top {
   display: flex;
-  gap: calc(var(--gap) * 2);
-  align-items: flex-start;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem var(--gap);
+  margin-bottom: 1rem;
 }
-
-.page { flex: 1 1 auto; max-width: var(--page-width); margin: 0 auto; padding: var(--gap); }
-.page.narrow { max-width: 380px; }
-
-.sidebar { flex: 0 0 260px; }
-
-.widget {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: var(--gap);
-}
-
-/* --- forms --- */
-.stack { display: flex; flex-direction: column; gap: var(--gap); }
-.stack label { display: flex; flex-direction: column; gap: .25rem; }
-
-input, button, select, textarea {
-  font: inherit;
-  padding: .5rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-}
-
-button { cursor: pointer; background: var(--accent); color: #fff; border-color: var(--accent); }
-
-/* --- links --- */
-a { color: var(--accent); }
-
-/* --- misc --- */
-.muted { color: var(--muted); }
-.error { color: var(--accent); font-weight: 600; }
+.page-top h1 { margin: 0; }
+.page-top .meta { margin-top: 0; }
 
 .site-footer {
+  max-width: var(--page-width);
+  margin: 3rem auto 0;
+  padding: 1.25rem var(--gap) 2rem;
   border-top: 1px solid var(--line);
-  margin-top: calc(var(--gap) * 3);
-  padding: var(--gap);
+  font: 600 .9375rem var(--serif);
+  color: var(--muted);
   text-align: center;
 }
 
-/* stack the sidebar under the page on narrow screens */
-@media (max-width: 800px) {
-  .layout { flex-direction: column; }
-  .sidebar { flex: 1 1 auto; width: 100%; }
-}
+/* --- buttons: these four and nothing else --- */
 
-/* --- feed ---
-   Prefixed rather than reusing reporter.css, which the reporter pages load
-   instead. Nothing here has to be reasoned about against those rules. */
-
-.feed-search {
-  display: flex;
-  flex-wrap: wrap;
+.btn {
+  display: inline-flex;
   align-items: center;
-  gap: .5rem;
-  margin: var(--gap) 0;
-}
-.feed-search input[type="search"] { flex: 1 1 100%; width: 100%; }
-
-.feed-filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  justify-content: center;
   gap: .4rem;
-  margin-bottom: .5rem;
+  padding: .6rem 1.05rem;
+  font: 500 .9375rem/1.2 var(--sans);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color .15s, border-color .15s, color .15s;
 }
+.btn:hover:not(:disabled) { color: var(--ink); border-color: var(--ink); }
 
-.chip {
-  padding: .3rem .7rem;
+.btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+.btn-ghost { background: transparent; border-color: transparent; color: var(--muted); }
+.btn-ghost:hover:not(:disabled) { background: var(--hover); border-color: transparent; }
+
+.btn-danger { color: var(--danger); border-color: var(--danger-line); }
+.btn-danger:hover:not(:disabled) { color: var(--danger); background: var(--danger-bg); border-color: var(--danger); }
+
+.btn-sm { padding: .4rem .75rem; font-size: .875rem; }
+
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* a row of buttons */
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-top: 1rem; }
+
+/* --- filters: one pill control for every list --- */
+
+.pills { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin: 0 0 .75rem; }
+.pills-title { font-size: .8125rem; color: var(--muted); margin-right: .2rem; }
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .35rem .85rem;
+  font: 400 .875rem/1.3 var(--sans);
+  color: var(--muted);
+  background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 999px;
-  color: var(--muted);
-  font-size: .875rem;
   text-decoration: none;
   white-space: nowrap;
 }
-.chip:hover { color: var(--text); border-color: var(--muted); }
-.chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pill:hover { color: var(--ink); border-color: var(--line-strong); }
+.pill.active,
+.pill[aria-pressed="true"] {
+  color: var(--ink);
+  font-weight: 600;
+  background: var(--selected-bg);
+  border-color: var(--selected-line);
+}
+.pill-count { font-size: .75rem; font-weight: 400; opacity: .75; font-variant-numeric: tabular-nums; }
 
-.feed-filters-title { font-size: .875rem; font-weight: 600; color: var(--muted); }
+/* --- badges --- */
 
-/* Unread only is a switch, not a chip: a checkbox the script inserts next to
-   Most read, but only when the read list exists - so it is never a dead
-   control without JS. The box itself stays focusable and the track shows the
-   state, which is what makes it a switch to assistive tech too. */
-.feed-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: .45rem;
-  cursor: pointer;
-  font-size: .875rem;
+.badge {
+  display: inline-block;
+  padding: .12rem .55rem;
+  font: 600 .75rem/1.45 var(--sans);
   color: var(--muted);
+  background: var(--tint);
+  border-radius: 999px;
   white-space: nowrap;
 }
-.feed-toggle input {
-  position: absolute;
-  opacity: 0;
-  width: 1px;
-  height: 1px;
-}
-.feed-toggle-track {
-  display: inline-flex;
-  align-items: center;
-  width: 2.1rem;
-  height: 1.2rem;
-  padding: .15rem;
-  border-radius: 999px;
-  background: var(--line);
-}
-.feed-toggle-thumb {
-  width: .9rem;
-  height: .9rem;
-  border-radius: 999px;
-  background: #fff;
-}
-.feed-toggle input:checked + .feed-toggle-track { background: var(--accent); }
-.feed-toggle input:checked + .feed-toggle-track .feed-toggle-thumb { margin-left: auto; }
-.feed-toggle input:focus-visible + .feed-toggle-track {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
+.status-pending_editor { background: var(--warn-bg); color: var(--warn-ink); }
+.status-needs_revision { background: var(--danger-bg); color: var(--danger); }
+.status-published      { background: var(--ok-bg); color: var(--ok-ink); }
+.role-editor           { background: var(--selected-bg); color: var(--ink); }
+.badge.live            { background: var(--brand); color: #fff; }
 
-.feed-count { margin-left: auto; font-size: .875rem; }
+/* --- forms --- */
 
-.feed-list { list-style: none; padding: 0; margin: var(--gap) 0 0; }
+.stack { display: flex; flex-direction: column; gap: var(--gap); }
+.stack > p { margin: 0; }
 
-.feed-card {
-  display: flex;
-  gap: var(--gap);
-  padding: var(--gap) 0;
-  border-bottom: 1px solid var(--line);
+.stack label,
+.field { display: flex; flex-direction: column; gap: .35rem; font-size: .875rem; font-weight: 600; }
+
+input, select, textarea {
+  width: 100%;
+  padding: .6rem .75rem;
+  font: 400 1rem/1.4 var(--sans);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
 }
-/* the flex display above would otherwise override the hidden attribute when
-   the unread filter hides a card */
-.feed-card[hidden] { display: none; }
-.feed-card:first-child { padding-top: 0; }
+textarea { resize: vertical; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px var(--ring); }
+input:disabled, select:disabled, textarea:disabled { background: var(--tint); color: var(--muted); }
 
-.feed-thumb { flex: 0 0 160px; }
-.feed-thumb img {
+/* --- boxes and messages --- */
+
+.box { background: var(--tint); border-radius: var(--radius-box); padding: 1rem 1.25rem; }
+
+.notice { margin: 0 0 1rem; padding: .75rem 1rem; background: var(--tint); border-radius: var(--radius); font-size: .9375rem; }
+.notice.warn { background: var(--warn-bg); color: var(--warn-ink); }
+
+/* what the editor asked for - the reason the reporter is on the page */
+.editor-note { margin: 0 0 1rem; padding: .7rem 1rem; background: var(--danger-bg); border-left: 3px solid var(--danger); font-size: .9375rem; }
+.editor-note strong { color: var(--danger); }
+
+/* --- breadcrumb: the parents only, the page title is the h1 below it --- */
+
+.breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin-bottom: .5rem; font-size: .875rem; color: var(--muted); }
+.breadcrumb a { text-decoration: none; }
+.breadcrumb a:hover { color: var(--ink); text-decoration: underline; }
+
+/* --- article lists: the feed, both queues and the staff accounts --- */
+
+.list { list-style: none; margin: 0; padding: 0; }
+
+.list-item { display: flex; gap: var(--gap); padding: 1.1rem 0; border-top: 1px solid var(--line); }
+.list-item:first-child { border-top: 0; padding-top: .35rem; }
+.list-item.is-pending { box-shadow: inset 3px 0 0 var(--warn-edge); padding-left: 1rem; }
+
+.list-thumb { flex: 0 0 160px; }
+.list-thumb img {
   display: block;
   width: 100%;
+  height: auto;
   aspect-ratio: 3 / 2;
   object-fit: cover;
   border-radius: var(--radius);
-  background: var(--line);
+  background: var(--tint);
 }
 
-.feed-card-body { flex: 1 1 auto; min-width: 0; }
+.list-body { flex: 1 1 0; min-width: 0; }
 
-.feed-card-title {
-  display: block;
-  font-size: 1.15rem;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--text);
-  text-decoration: none;
-}
-.feed-card-title:hover { color: var(--accent); }
+.list-title { font: 600 1.2rem/1.3 var(--serif); letter-spacing: -.01em; text-decoration: none; }
+.list-title:hover { text-decoration: underline; color: var(--ink); }
 
-.feed-summary { margin: .35rem 0 0; color: var(--muted); }
+.list-summary { margin: .3rem 0 0; color: var(--muted); }
 
-.feed-meta {
+.list-actions { display: flex; align-items: flex-start; gap: .5rem; margin-left: auto; }
+
+.meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: .5rem;
+  gap: .35rem .8rem;
   margin-top: .5rem;
-  font-size: .85rem;
+  font-size: .8125rem;
   color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
-.feed-category { color: var(--accent); text-decoration: none; font-weight: 600; }
-.feed-category:hover { text-decoration: underline; }
+.meta-category { color: var(--brand); font-weight: 600; text-decoration: none; }
+.meta-category:hover { color: var(--brand); text-decoration: underline; }
 
-.feed-pager {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--gap);
-  margin-top: var(--gap);
-}
-.feed-step {
-  padding: .4rem .8rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  color: var(--text);
-  text-decoration: none;
-  white-space: nowrap;
-}
-.feed-step:hover { border-color: var(--muted); }
-
-/* the numbers between Previous and Next */
-.feed-pages {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: .25rem;
+@media (max-width: 600px) {
+  .list-item { flex-wrap: wrap; }
+  .list-thumb { flex-basis: 96px; }
+  .list-actions { flex-basis: 100%; margin-left: 0; }
 }
 
-.feed-page {
-  min-width: 2.1rem;
-  padding: .35rem .45rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  color: var(--text);
-  text-align: center;
-  text-decoration: none;
-}
-.feed-page:hover { border-color: var(--muted); background: #fafafa; }
+/* --- weather widget, in the sidebar --- */
 
-/* the page being read, so it is a label and not something to click */
-.feed-page.current {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-  font-weight: 600;
-}
+.weather-place { margin: 0 0 .25rem; font-size: .875rem; font-weight: 600; }
+.weather-now { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem; margin: 0 0 .75rem; }
+.weather-icon { font-size: 1.5rem; line-height: 1; }
+.weather-temp { font: 600 2.25rem/1 var(--serif); font-variant-numeric: tabular-nums; }
+.weather-details { margin: 0; font-size: .875rem; }
+.weather-details div { display: flex; justify-content: space-between; padding: .3rem 0; border-top: 1px solid var(--line); }
+.weather-details dt { color: var(--muted); }
+.weather-details dd { margin: 0; font-variant-numeric: tabular-nums; }
+.weather-updated { margin: .6rem 0 0; font-size: .75rem; }
+.weather-body .btn { margin-top: .5rem; }
 
-/* an ellipsis stands in for pages that are not shown, so it is never a link */
-.feed-page-gap {
-  padding: .35rem .2rem;
-  color: var(--muted);
-}
+/* --- feed --- */
 
-/* infinite scroll, added by feed.js. The sentinel is only a place for the
-   observer to watch; the link below is the keyboard path and the fallback when
-   there is no IntersectionObserver. */
-.feed-sentinel { height: 1px; }
-.feed-more {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: .75rem;
-  margin-top: var(--gap);
-}
-.feed-more-note { margin: 0; font-size: .875rem; }
-
+.feed-search { margin: 0 0 1rem; }
+.feed-count { margin-left: auto; font-size: .8125rem; color: var(--muted); }
+.feed-status { margin: .5rem 0 0; font-size: .875rem; }
 .feed-empty { padding: 2rem 0; }
+.feed-list { margin-top: 1rem; }
 
-/* written to by feed.js, and only ever visible while a request is in flight */
-.feed-status { margin: var(--gap) 0 0; font-size: .875rem; }
+/* Unread only is a switch: a real checkbox, visually replaced by the track */
+.feed-toggle { display: inline-flex; align-items: center; gap: .5rem; margin-left: .5rem; font-size: .875rem; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.feed-toggle input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.feed-toggle-track { display: inline-flex; width: 2.1rem; height: 1.2rem; padding: .15rem; border-radius: 999px; background: var(--line-strong); transition: background-color .15s; }
+.feed-toggle-thumb { width: .9rem; height: .9rem; border-radius: 50%; background: #fff; transition: transform .15s; }
+.feed-toggle input:checked + .feed-toggle-track { background: var(--primary); }
+.feed-toggle input:checked + .feed-toggle-track .feed-toggle-thumb { transform: translateX(.9rem); }
+.feed-toggle input:focus-visible + .feed-toggle-track { outline: 2px solid var(--primary); outline-offset: 2px; }
 
-/* --- article --- */
+/* the pager is for readers without JavaScript; feed.js swaps it for Load more */
+.feed-pager { display: flex; align-items: center; justify-content: space-between; gap: var(--gap); margin-top: 1rem; }
+.feed-pages { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .25rem; }
+.feed-sentinel { height: 1px; }
+.feed-more { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .75rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.feed-more-note { margin: 0; font-size: .875rem; color: var(--muted); }
 
-.article { max-width: 40rem; }
+/* --- article page --- */
 
-/* The way back to the feed. The article page's links start from a clean feed,
-   so this restores the article's category rather than the exact scrolled page. */
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: .4rem;
-  font-size: .875rem;
-  color: var(--muted);
-  margin-bottom: .25rem;
-}
-.breadcrumb a { color: var(--muted); }
-.breadcrumb a:hover { color: var(--accent); }
-
-/* a long headline would push the breadcrumb onto a second line */
-.crumb-current {
-  max-width: 28rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* overrides the page-wide h1, which is sized for a dashboard heading */
-.article-title {
-  font-size: 2.1rem;
-  line-height: 1.2;
-  margin: 0 0 .5rem;
-}
+.article { max-width: 42rem; }
+.article h1 { font-size: 2.4rem; line-height: 1.15; margin-bottom: .75rem; }
 
 .article-byline {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: .5rem .9rem;
-  color: var(--muted);
-  font-size: .9rem;
-  padding-bottom: var(--gap);
+  gap: .35rem .9rem;
+  padding-bottom: 1rem;
   border-bottom: 1px solid var(--line);
+  font-size: .9375rem;
+  color: var(--muted);
 }
-.article-byline > * + *::before {
-  content: "·";
-  margin-right: .9rem;
-  color: var(--line);
-}
-/* the separator sits before the element, so it has to come back out again on
-   the first child of a run */
-.article-updated { color: var(--accent); }
+.article-byline strong { color: var(--ink); }
 
 .article-hero {
   display: block;
   width: 100%;
+  height: auto;
   aspect-ratio: 16 / 9;
   object-fit: cover;
+  margin: 1.25rem 0 0;
   border-radius: var(--radius);
-  margin: var(--gap) 0;
-  background: var(--line);
+  background: var(--tint);
 }
 
-.article-lead {
-  font-size: 1.1rem;
-  line-height: 1.6;
-  margin: var(--gap) 0 0;
-}
+.article-lead { margin: 1.25rem 0 0; font: 400 1.25rem/1.55 var(--serif); }
 
-.article-body {
-  margin-top: var(--gap);
-  font-size: 1.02rem;
-  line-height: 1.7;
-}
-.article-body p { margin: 0 0 1.1em; }
+.article-body { margin-top: 1.25rem; font-size: 1.0625rem; line-height: 1.75; }
+.article-body p { margin: 0 0 1.1em; white-space: pre-wrap; }
 .article-body p:last-child { margin-bottom: 0; }
 
-/* --- comments --- */
+/* --- comments, on the article page and in the editor's review --- */
 
-.comments {
-  max-width: 40rem;
-  margin-top: calc(var(--gap) * 2);
-  padding-top: var(--gap);
-  border-top: 1px solid var(--line);
-}
-.comments h2 { font-size: 1.2rem; margin: 0 0 .25rem; }
-.comments h2 .muted { font-weight: 400; font-size: 1rem; }
+.comments { max-width: 42rem; margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
+.comments h2 .muted { font: 400 1rem var(--sans); }
 
-.comment-note { margin: 0 0 .5rem; font-size: .85rem; }
-
-.comment-list { list-style: none; padding: 0; margin: 0; }
-
-.comment { padding: .75rem 0; border-bottom: 1px solid var(--line); }
-.comment:last-child { border-bottom: none; }
-
-.comment-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: .6rem;
-  font-size: .8rem;
-  color: var(--muted);
-}
-.comment-author { font-weight: 700; color: var(--text); }
-
+.comment-list { list-style: none; margin: 0; padding: 0; }
+.comment { padding: .85rem 0; border-bottom: 1px solid var(--line); }
+.comment:last-child { border-bottom: 0; }
+.comment-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .6rem; font-size: .8125rem; color: var(--muted); }
+.comment-author { font-size: .9375rem; font-weight: 600; color: var(--ink); }
 .comment-body { margin: .25rem 0 0; white-space: pre-wrap; }
+.comment textarea { margin-top: .5rem; }
 
-.comment-form { margin-top: var(--gap); }
-.comment-form textarea { resize: vertical; font-family: inherit; }
-
-.comment-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: .5rem .75rem;
-}
-.comment-hint { font-size: .8rem; }
+.comment-form { margin-top: 1.25rem; }
+.comment-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; margin-top: .6rem; }
+.comment-form .comment-actions { margin-top: 0; }

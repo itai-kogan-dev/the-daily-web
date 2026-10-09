@@ -253,7 +253,7 @@ if (form && !form.dataset.readonly) {
     const btn = document.createElement('button')
     btn.id = 'delete-btn'
     btn.type = 'button'
-    btn.className = 'button-secondary danger-text'
+    btn.className = 'btn btn-danger'
     btn.textContent = 'Delete draft'
     container.appendChild(btn)
     attachDeleteHandler(btn)
