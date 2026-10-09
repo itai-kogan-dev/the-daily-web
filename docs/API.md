@@ -17,7 +17,7 @@ Roles: `guest` (not logged in), `reporter`, `editor`.
 | GET | `/api/articles` | guest | Feed data. Query: `page`, `q`, `category`, `sort` (`date`\|`popular`). Returns published articles only. |
 | GET | `/api/articles/:id/comments` | guest | Comments for one article. |
 | POST | `/api/articles/:id/comments` | guest | Body `{ authorName, body }`. Rate limited to 3 per minute per device. |
-| GET | `/api/weather` | guest | Sidebar widget. Cached server side, up to 15 min old. |
+| GET | `/api/weather` | guest | Sidebar widget (T4, `routes/weather.js`). Query: `lat` and `lon`, both required - there is no default place; missing or off the globe is a `400`. Cached server side per place, up to 15 min old. Returns `{ city, temperature, feelsLike, high, low, humidity, wind, description, icon, fetchedAt, stale }`; `city` is the place name from OpenStreetMap, or `null` if it could not be found. `stale` is true when the weather service is down and this is the last known answer. `503` if there has never been one. |
 
 ## Auth - `routes/auth.js` (T2) - done
 

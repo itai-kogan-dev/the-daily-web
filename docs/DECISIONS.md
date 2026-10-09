@@ -88,6 +88,41 @@ count is what creates one, so only people who comment cost us a row.
 
 See `middleware/rateLimit.js`.
 
+## Weather is the reader's own, from Open-Meteo
+
+Open-Meteo instead of OpenWeather because it needs no API key: no secret to
+pass between four laptops, nothing to leak, and the widget works on a fresh
+clone. It has no place names, so the name comes from OpenStreetMap's Nominatim,
+which also needs no key.
+
+The browser asks the reader for their location. There is no default city:
+weather for somewhere the reader is not would look like theirs. When there is no
+location - permission refused, no fix, no support - the widget says so in plain
+words and offers to try again. The widget names the place ("In Haifa") so the
+reader can see the weather is theirs. If the reader allows location while the
+page is open, the widget notices and loads at once, no reload needed.
+
+The location is rounded to a tenth of a degree (about 11 km) in the browser
+before it is sent: that is plenty for weather, it is the most precise location
+we ever see, and it lets a whole city share one cache entry. It is remembered
+for the visit, so the next page skips the lookup.
+
+We looked at finding the place from the reader's IP address instead, which
+needs no permission. We kept the browser's location: the free IP services we
+found send the reader's IP over plain HTTP to a third party, an IP is often
+placed in the wrong city (many Israeli addresses resolve to Tel Aviv), and on
+a developer's laptop it finds nothing at all.
+
+Every page with a sidebar asks for the weather, so the server caches it per
+place for 15 minutes - the limit the spec allows. When the cache is cold and
+many readers of one place arrive at once, they share a single request. If the
+weather service is down the last answer is shown, labelled as such. Place
+names are kept for good, since towns don't move, and Nominatim is asked at
+most once a second, as its rules require. Both caches hold at most 500 places,
+oldest out first. A 5 second timeout means a hung service cannot hang the
+sidebar, and the browser fills the widget after the page loads, so a slow
+weather service never delays an article.
+
 ## Interface language is English
 
 The spec never asks for Hebrew - its only mention of "languages" is about
