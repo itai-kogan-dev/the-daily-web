@@ -18,8 +18,8 @@
       <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
       <span>By <%= article.author && article.author.displayName ? article.author.displayName : 'Staff' %></span>
       <span><%= CATEGORY_LABELS[content.category] %></span>
-      <% if (article.publishedAt) { %><span>Published <%= new Date(article.publishedAt).toLocaleDateString() %></span><% } %>
-      <span>Updated <%= new Date(article.updatedAt).toLocaleDateString() %></span>
+      <% if (article.publishedAt) { %><span>Published <%= new Date(article.publishedAt).toLocaleDateString('en-GB') %></span><% } %>
+      <span>Updated <%= new Date(article.updatedAt).toLocaleDateString('en-GB') %></span>
     </div>
 
     <% if (hasDraft) { %>
@@ -38,7 +38,7 @@
         <ul>
           <% article.updateEvents.forEach(event => { %>
             <li>
-              Approved <%= new Date(event.at).toLocaleString() %><% if (event.editor && event.editor.displayName) { %> by <%= event.editor.displayName %><% } %>
+              Approved <%= new Date(event.at).toLocaleString('en-GB') %><% if (event.editor && event.editor.displayName) { %> by <%= event.editor.displayName %><% } %>
             </li>
           <% }) %>
         </ul>
@@ -66,7 +66,7 @@
           <h2 class="ed-pane-title"><%= article.publishedContent.title %></h2>
           <p class="muted ed-pane-cat"><%= CATEGORY_LABELS[article.publishedContent.category] %></p>
           <% if (article.publishedContent.imagePath) { %>
-            <img class="article-hero" src="<%= article.publishedContent.imagePath %>" alt="">
+            <img class="article-hero" src="<%= article.publishedContent.imagePath %>" alt="Live article image">
           <% } %>
           <p class="article-lead"><%= article.publishedContent.summary %></p>
           <div class="article-body">
@@ -129,7 +129,7 @@
           <h2 class="ed-pane-title"><%= article.draftContent.title %></h2>
           <p class="muted ed-pane-cat"><%= CATEGORY_LABELS[article.draftContent.category] %></p>
           <% if (article.draftContent.imagePath) { %>
-            <img class="article-hero" src="<%= article.draftContent.imagePath %>" alt="">
+            <img class="article-hero" src="<%= article.draftContent.imagePath %>" alt="Reporter's draft image">
           <% } %>
           <p class="article-lead"><%= article.draftContent.summary %></p>
           <div class="article-body">
@@ -168,7 +168,7 @@
             <li class="comment" data-comment="<%= comment._id %>">
               <div class="comment-head">
                 <span class="comment-author"><%= comment.authorName %></span>
-                <time datetime="<%= new Date(comment.createdAt).toISOString() %>"><%= new Date(comment.createdAt).toLocaleString() %></time>
+                <time datetime="<%= new Date(comment.createdAt).toISOString() %>"><%= new Date(comment.createdAt).toLocaleString('en-GB') %></time>
               </div>
               <p class="comment-body" data-body><%= comment.body %></p>
               <div class="comment-actions">

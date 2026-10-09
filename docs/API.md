@@ -108,6 +108,7 @@ Behind `requireRole('editor')`.
 |---|---|---|
 | Not logged in | `302 -> /login` | `401 { error }` |
 | Wrong role | `403` page | `403 { error }` |
+| Correct role but article is with the other side | - | `403 { error }` |
 | No such route | `404` page | `404 { error }` |
 | Illegal state change | - | `400 { error }` |
 | Crash | `500` page, generic message | `500 { error }` |
@@ -119,6 +120,6 @@ The spec wants full CRUD on every model. Where each operation lives:
 | Model | Create | Read | Update | Delete |
 |---|---|---|---|---|
 | User | `POST /editor/api/users` | `GET /editor/users` | `PATCH /editor/api/users/:id` | `DELETE /editor/api/users/:id` |
-| Article | `POST /reporter/api/article` | `GET /api/articles` | `PATCH /reporter/api/article/:id` | `DELETE /editor/api/article/:id` |
+| Article | `POST /reporter/api/article` | `GET /api/articles` | `PATCH /reporter/api/article/:id` | `DELETE /editor/api/article/:id` and `DELETE /reporter/api/article/:id` (never-published drafts only) |
 | Comment | `POST /api/articles/:id/comments` | `GET /api/articles/:id/comments` | `PATCH /editor/api/comments/:id` | `DELETE /editor/api/comments/:id` |
 | ViewBucket | on every article view | `GET /api/analytics/article/:id` | the increment on each view | `DELETE /editor/api/article/:id/views` |

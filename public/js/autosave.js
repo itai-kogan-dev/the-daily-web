@@ -85,6 +85,10 @@ if (form && !form.dataset.readonly) {
       form.dataset.id = data.id
       // so a refresh lands on the real article instead of the empty form
       history.replaceState(null, '', `/reporter/article/${data.id}`)
+      // a freshly created article is an unpublished in_progress draft, which
+      // the reporter can always delete - reveal the button without a reload
+      // so a false start can be removed straight away
+      ensureDeleteButton()
     }
 
     // editing a published article moves it back to in_progress
@@ -215,8 +219,7 @@ if (form && !form.dataset.readonly) {
   // --- delete ---
   // Only rendered for a draft that was never published. Autosave is stopped
   // first, so a save cannot land on an article that no longer exists.
-  const deleteBtn = document.getElementById('delete-btn')
-  if (deleteBtn) deleteBtn.addEventListener('click', async () => {
+  async function handleDelete(deleteBtn) {
     if (!window.confirm('Delete this draft? This cannot be undone.')) return
 
     hasUnsavedChanges = false
@@ -232,7 +235,31 @@ if (form && !form.dataset.readonly) {
     }
 
     location.href = '/reporter'
-  })
+  }
+
+  function attachDeleteHandler(deleteBtn) {
+    if (deleteBtn && !deleteBtn.dataset.bound) {
+      deleteBtn.dataset.bound = '1'
+      deleteBtn.addEventListener('click', () => handleDelete(deleteBtn))
+    }
+  }
+
+  // A new article starts with no delete button (nothing exists yet). Once the
+  // first autosave creates it, the button appears without needing a reload.
+  function ensureDeleteButton() {
+    if (document.getElementById('delete-btn')) return
+    const container = document.querySelector('.sticky-bar .sticky-right')
+    if (!container) return
+    const btn = document.createElement('button')
+    btn.id = 'delete-btn'
+    btn.type = 'button'
+    btn.className = 'button-secondary danger-text'
+    btn.textContent = 'Delete draft'
+    container.appendChild(btn)
+    attachDeleteHandler(btn)
+  }
+
+  attachDeleteHandler(document.getElementById('delete-btn'))
 
   // --- send to editor ---
   if (submitBtn) submitBtn.addEventListener('click', async () => {

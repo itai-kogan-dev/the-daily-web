@@ -5,8 +5,8 @@
       <% if (user.role === 'guest') { %>
         <% if (currentPath !== '/login') { %><a href="/login">Log in</a><% } %>
       <% } else { %>
-        <% if (user.role === 'reporter' && !currentPath.startsWith('/reporter')) { %><a href="/reporter">My articles</a><% } %>
-        <% if (user.role === 'editor' && currentPath !== '/editor') { %><a href="/editor">Editor</a><% } %>
+        <% if (user.role === 'reporter') { %><a href="/reporter">Reporter Space</a><% } %>
+        <% if (user.role === 'editor') { %><a href="/editor">Editor Space</a><% } %>
         <span class="who"><%= user.displayName %></span>
         <span class="nav-divider" aria-hidden="true">&middot;</span>
         <form method="post" action="/logout"><button type="submit">Log out</button></form>

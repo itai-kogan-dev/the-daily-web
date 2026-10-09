@@ -191,7 +191,7 @@ async function submitArticle(req, res) {
 async function deleteArticle(req, res) {
   const article = await findOwnArticle(req.params.id, req.session.user.id)
   if (!workflow.canReporterDelete(article)) {
-    throw makeError(400, 'Only a draft that has never been published can be deleted')
+    throw makeError(403, 'Only a draft that has never been published can be deleted')
   }
 
   await EditorDraft.deleteMany({ article: article._id })

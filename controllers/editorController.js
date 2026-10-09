@@ -120,7 +120,7 @@ function readDraftContent(body, current) {
 async function editDraft(req, res) {
   const article = await findArticle(req.params.id)
   if (!workflow.canEditorEdit(article)) {
-    throw makeError(400, 'Only articles waiting for approval can be edited')
+    throw makeError(403, 'Only articles waiting for approval can be edited')
   }
 
   const existing = await EditorDraft.findOne({ article: article._id })
@@ -196,7 +196,7 @@ async function returnArticle(req, res) {
 async function deleteArticle(req, res) {
   const article = await findArticle(req.params.id)
   if (!workflow.canEditorDelete(article)) {
-    throw makeError(400, 'This article is with the reporter - it can be deleted once it is sent for approval or published')
+    throw makeError(403, 'This article is with the reporter - it can be deleted once it is sent for approval or published')
   }
 
   await Comment.deleteMany({ article: article._id })
