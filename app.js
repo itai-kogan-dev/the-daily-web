@@ -37,7 +37,6 @@ app.use(session({
 app.use(attachViewData)
 
 app.use('/images', require('./routes/images'))
-// before the public router, which still has a todo() stub at this path
 app.use('/api/weather', require('./routes/weather'))
 app.use('/', require('./routes/public'))
 app.use('/', require('./routes/auth'))

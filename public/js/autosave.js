@@ -124,9 +124,6 @@ if (form && !form.dataset.readonly) {
   })
 
   // --- image ---
-  // The picture is read in the browser and stored as a data URI, so it sits in
-  // the database with the article and everyone who opens the project sees it.
-  // Saving the file to disk instead would leave it on one laptop.
   const MAX_IMAGE_BYTES = 2 * 1024 * 1024
 
   const imageError = document.getElementById('image-error')
