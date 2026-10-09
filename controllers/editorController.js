@@ -151,18 +151,24 @@ async function uploadImage(req, res) {
 }
 
 // approval. the workflow owns the transition, this just carries the article
-// there and back
+// there and back. what the editor saw is what goes live, so their copy is
+// folded over the submitted draft first. a failed publish keeps the copy
 async function publishArticle(req, res) {
   const article = await findArticle(req.params.id)
 
+  const draft = await EditorDraft.findOne({ article: article._id })
+  if (draft) article.draftContent = draft.content.toObject()
+
   workflow.publish(article, req.session.user.id)
   await article.save()
+  await EditorDraft.deleteMany({ article: article._id })
 
   res.json({ status: article.status, isLive: article.isLive, publishedAt: article.publishedAt })
 }
 
-// sends the draft back with a note. what is already live stays as it is -
-// the workflow never touches the live copy on this path
+// sends the draft back with a note. this is the only moment the editor's
+// copy overwrites the reporter's version. what is already live stays as it
+// is - the workflow never touches the live copy on this path
 async function returnArticle(req, res) {
   const article = await findArticle(req.params.id)
 
@@ -171,8 +177,12 @@ async function returnArticle(req, res) {
   if (!note) throw makeError(400, 'Write a note so the reporter knows what to fix')
   if (note.length > 1000) throw makeError(400, 'The note is too long')
 
+  const draft = await EditorDraft.findOne({ article: article._id })
+  if (draft) article.draftContent = draft.content.toObject()
+
   workflow.returnForRevision(article, note)
   await article.save()
+  await EditorDraft.deleteMany({ article: article._id })
 
   res.json({ status: article.status, editorNote: article.editorNote })
 }
@@ -182,6 +192,7 @@ async function deleteArticle(req, res) {
 
   await Comment.deleteMany({ article: article._id })
   await ViewBucket.deleteMany({ article: article._id })
+  await EditorDraft.deleteMany({ article: article._id })
   await article.deleteOne()
 
   res.json({ deleted: true })
