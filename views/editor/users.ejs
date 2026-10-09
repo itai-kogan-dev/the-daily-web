@@ -20,6 +20,7 @@
             <a class="article-title" href="/editor/users/<%= account._id %>">
               <%= account.displayName %>
             </a>
+            <% if (String(account._id) === currentUserId) { %><span class="muted">(you)</span><% } %>
             <div class="article-meta">
               <span class="badge role-<%= account.role %>"><%= ROLE_LABELS[account.role] %></span>
               <span>@<%= account.username %></span>
@@ -29,7 +30,9 @@
           </div>
           <div class="user-actions">
             <a class="button-secondary" href="/editor/users/<%= account._id %>">Edit</a>
-            <button type="button" class="button-secondary danger-text" data-delete>Delete</button>
+            <% if (String(account._id) !== currentUserId) { %>
+              <button type="button" class="button-secondary danger-text" data-delete>Delete</button>
+            <% } %>
           </div>
         </li>
       <% }) %>

@@ -11,11 +11,12 @@
 
   <form id="user-form" class="stack" data-id="<%= account ? account._id : '' %>">
     <label>Username
-      <input name="username" value="<%= account ? account.username : '' %>" autocomplete="username" required autofocus>
+      <input name="username" value="<%= account ? account.username : '' %>" autocomplete="username" required autofocus
+             pattern="[A-Za-z0-9._\-]{3,30}" title="3-30 letters, numbers, dots, dashes or underscores">
     </label>
 
     <label>Display name
-      <input name="displayName" value="<%= account ? account.displayName : '' %>" required>
+      <input name="displayName" value="<%= account ? account.displayName : '' %>" maxlength="60" required>
     </label>
 
     <% if (account) { %>
@@ -31,7 +32,7 @@
     <% } %>
 
     <label>Password
-      <input name="password" type="password" autocomplete="new-password" <%= account ? '' : 'required' %>>
+      <input name="password" type="password" autocomplete="new-password" minlength="8" <%= account ? '' : 'required' %>>
     </label>
     <% if (account) { %>
       <p class="muted hint">Leave the password blank to keep the current one.</p>
@@ -41,7 +42,7 @@
     <p id="user-error" class="error" hidden></p>
   </form>
 
-  <% if (account) { %>
+  <% if (account && !isSelf) { %>
     <div class="danger-zone">
       <button id="delete-btn" type="button" class="danger">Delete this account</button>
     </div>

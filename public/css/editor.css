@@ -192,6 +192,10 @@ button.danger {
   white-space: nowrap;
 }
 
+/* same shape as the status badges: editors stand out, reporters stay quiet */
+.role-editor   { background: #fdeaea; color: #8f2020; border-color: #f2c4c4; }
+.role-reporter { background: #f3f3f3; color: #444; }
+
 .danger-zone {
   margin-top: 1.75rem;
   padding-top: 1.25rem;
