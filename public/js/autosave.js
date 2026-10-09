@@ -212,6 +212,28 @@ if (form && !form.dataset.readonly) {
     })
   }
 
+  // --- delete ---
+  // Only rendered for a draft that was never published. Autosave is stopped
+  // first, so a save cannot land on an article that no longer exists.
+  const deleteBtn = document.getElementById('delete-btn')
+  if (deleteBtn) deleteBtn.addEventListener('click', async () => {
+    if (!window.confirm('Delete this draft? This cannot be undone.')) return
+
+    hasUnsavedChanges = false
+    clearTimeout(idleTimer)
+    clearTimeout(ceilingTimer)
+    deleteBtn.disabled = true
+
+    const res = await fetch(`/reporter/api/article/${articleId}`, { method: 'DELETE' }).catch(() => null)
+    if (!res || !res.ok) {
+      deleteBtn.disabled = false
+      showSubmitError(res ? (await res.json().catch(() => ({}))).error || 'Could not delete the draft' : 'Could not reach the server')
+      return
+    }
+
+    location.href = '/reporter'
+  })
+
   // --- send to editor ---
   if (submitBtn) submitBtn.addEventListener('click', async () => {
     submitError.hidden = true

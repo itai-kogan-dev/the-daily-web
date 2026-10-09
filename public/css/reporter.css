@@ -180,6 +180,7 @@
   white-space: nowrap;
 }
 .button-secondary:hover { border-color: var(--muted) }
+.button-secondary.danger-text { color: var(--accent) }
 
 .sticky-bar .save-status { margin: 0 }
 .sticky-bar .error { margin: 0 }

@@ -40,6 +40,7 @@ their own articles - check `article.author` on every one of these.
 | POST | `/reporter/api/article` | Create. Starts at `in_progress`. |
 | PATCH | `/reporter/api/article/:id` | Autosave. Writes `draftContent` only. Called every couple of seconds while typing - there is no save button. |
 | POST | `/reporter/api/article/:id/submit` | To `pending_editor`. Goes through `articleWorkflow`. |
+| DELETE | `/reporter/api/article/:id` | Delete a draft. Only `in_progress` or `needs_revision`, and only if it was never published. |
 
 ## Editor - `routes/editor.js`
 
@@ -50,10 +51,10 @@ Whole file is behind `requireRole('editor')`.
 | GET | `/editor` | All articles, filterable by status. |
 | GET | `/editor/article/:id` | Review. Has to show what is live now next to what is waiting. |
 | GET | `/editor/analytics` | Impact analytics page. |
-| PATCH | `/editor/api/article/:id` | Editor edits `draftContent` directly. |
+| PATCH | `/editor/api/article/:id` | Autosave of the editor's own copy (`EditorDraft`), folded in on publish or send back. Only while `pending_editor`. |
 | POST | `/editor/api/article/:id/publish` | Approve. Copies draft over published, sets `isLive`, adds an `updateEvent`. |
 | POST | `/editor/api/article/:id/return` | Body `{ note }`. Sends it back for revision. |
-| DELETE | `/editor/api/article/:id` | Delete. |
+| DELETE | `/editor/api/article/:id` | Delete. Only while `pending_editor`, or when the article is live. |
 | DELETE | `/editor/api/article/:id/views` | Clear the view stats for one article. |
 
 ### Users

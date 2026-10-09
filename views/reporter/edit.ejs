@@ -89,6 +89,9 @@
 
     <div class="sticky-right">
       <p id="save-status" class="save-status"></p>
+      <% if (canDelete) { %>
+        <button id="delete-btn" type="button" class="button-secondary danger-text">Delete draft</button>
+      <% } %>
     </div>
   </div>
 </main>
