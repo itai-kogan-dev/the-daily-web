@@ -8,10 +8,11 @@ const router = express.Router()
 
 router.use(requireRole(ROLES.EDITOR))
 
-// live articles for the picker on the analytics page, most read first.
-// Query: q (title contains), limit (max 50)
+// live articles for the picker on the analytics page, most read first, a page
+// at a time. Query: q (title contains), skip, limit (default 20, max 50).
+// Returns { articles, hasMore, total }
 router.get('/articles', async (req, res) => {
-  res.json({ articles: await analytics.listArticles(req.query) })
+  res.json(await analytics.listArticles(req.query))
 })
 
 // views over time plus the points where an editor published an update.

@@ -55,37 +55,90 @@ async function getJson(url) {
 
 let searchTimer = null
 let listRequest = 0
+const picker = { q: '', loaded: 0, hasMore: false, loading: false, ids: new Set() }
 
-async function loadList(q = '') {
+function renderItem(article) {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.dataset.id = article.id
+  if (article.id === state.articleId) button.setAttribute('aria-current', 'true')
+
+  const title = document.createElement('span')
+  title.className = 'an-item-title'
+  title.textContent = article.title
+  const meta = document.createElement('span')
+  meta.className = 'muted'
+  meta.textContent = `${number(article.viewCount)} views · ${article.updates} update${article.updates === 1 ? '' : 's'}`
+
+  button.append(title, meta)
+  const item = document.createElement('li')
+  item.append(button)
+  return item
+}
+
+// A new search starts the list over; scrolling to the end appends the next
+// page. Same pattern as the public feed (public/js/feed.js).
+async function loadList(q = picker.q, { append = false } = {}) {
+  if (append && (picker.loading || !picker.hasMore)) return
+
   // a slow answer to an old search must not overwrite a newer one
   const mine = ++listRequest
-  const body = await getJson('/api/analytics/articles?q=' + encodeURIComponent(q))
+  picker.loading = true
+  const skip = append ? picker.loaded : 0
+
+  let body
+  try {
+    body = await getJson(`/api/analytics/articles?q=${encodeURIComponent(q)}&skip=${skip}`)
+  } finally {
+    if (mine === listRequest) picker.loading = false
+  }
   if (!body || mine !== listRequest) return
 
-  $('an-list-hint').textContent = q ? `${body.articles.length} matching` : 'Most read first'
-  const list = $('an-list')
-  list.replaceChildren(...body.articles.map(article => {
-    const button = document.createElement('button')
-    button.type = 'button'
-    button.dataset.id = article.id
-    if (article.id === state.articleId) button.setAttribute('aria-current', 'true')
+  if (!append) {
+    picker.q = q
+    picker.ids.clear()
+    $('an-scroll').scrollTop = 0
+  }
+  picker.loaded = skip + body.articles.length
+  picker.hasMore = body.hasMore
 
-    const title = document.createElement('span')
-    title.className = 'an-item-title'
-    title.textContent = article.title
-    const meta = document.createElement('span')
-    meta.className = 'muted'
-    meta.textContent = `${number(article.viewCount)} views · ${article.updates} update${article.updates === 1 ? '' : 's'}`
+  // the rollup can move an article up into a page we already have while we
+  // scroll, so it would come back a second time - skip it
+  const fresh = body.articles.filter(article => !picker.ids.has(article.id))
+  fresh.forEach(article => picker.ids.add(article.id))
+  const items = fresh.map(renderItem)
+  if (append) $('an-list').append(...items)
+  else $('an-list').replaceChildren(...items)
 
-    button.append(title, meta)
-    const item = document.createElement('li')
-    item.append(button)
-    return item
-  }))
+  const total = number(body.total)
+  $('an-list-hint').textContent = picker.q
+    ? `${total} matching`
+    : `Most read first · ${total} articles`
+  $('an-more').hidden = !picker.hasMore
+  recheckSentinel()
 
   // first visit: show the most read article instead of an empty panel
-  if (!state.articleId && body.articles.length) selectArticle(body.articles[0].id)
-  if (!body.articles.length && !state.articleId) setStatus('No published articles yet.')
+  if (!append && !state.articleId && body.articles.length) selectArticle(body.articles[0].id)
+  if (!append && !body.articles.length && !state.articleId) setStatus('No published articles yet.')
+}
+
+function loadMore() {
+  loadList(picker.q, { append: true }).catch(err => setStatus(err.message))
+}
+
+// the scroll box is the root, not the page - the list scrolls inside it.
+// 200px early so the next page is usually there before the reader gets to it
+const observer = 'IntersectionObserver' in window && new IntersectionObserver(entries => {
+  if (entries.some(entry => entry.isIntersecting)) loadMore()
+}, { root: $('an-scroll'), rootMargin: '0px 0px 200px 0px' })
+if (observer) observer.observe($('an-sentinel'))
+
+// The observer only fires when the sentinel's visibility changes. If a page
+// was too short to push it out of view it never changes, so look again.
+function recheckSentinel() {
+  if (!observer || !picker.hasMore) return
+  observer.unobserve($('an-sentinel'))
+  observer.observe($('an-sentinel'))
 }
 
 function selectArticle(id) {
@@ -324,6 +377,8 @@ $('an-search').addEventListener('input', event => {
   clearTimeout(searchTimer)
   searchTimer = setTimeout(() => loadList(event.target.value).catch(err => setStatus(err.message)), 250)
 })
+
+$('an-more').addEventListener('click', loadMore)
 
 $('an-list').addEventListener('click', event => {
   const button = event.target.closest('button[data-id]')

@@ -17,13 +17,21 @@
 .an-search input { font-weight: normal; }
 .an-hint { font-size: .85rem; margin: .75rem 0 .25rem; }
 
-.an-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.an-scroll {
   max-height: 70vh;
   overflow-y: auto;
   border-top: 1px solid var(--line);
+}
+.an-list { list-style: none; margin: 0; padding: 0; }
+#an-sentinel { height: 1px; }
+.an-more {
+  display: block;
+  width: 100%;
+  margin: .5rem 0;
+  background: var(--bg);
+  color: var(--text);
+  border-color: var(--line);
+  font-size: .85rem;
 }
 .an-list button {
   display: flex;
@@ -87,6 +95,6 @@
 
 @media (max-width: 760px) {
   .an-layout { grid-template-columns: minmax(0, 1fr); }
-  .an-list { max-height: 240px; }
+  .an-scroll { max-height: 240px; }
   .an-canvas { height: 260px; }
 }

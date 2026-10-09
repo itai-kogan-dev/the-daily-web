@@ -215,26 +215,45 @@ async function articleViews(articleId, { range = 'all', interval, tz } = {}) {
 // ".*" matches everything
 const escapeRegex = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-// The picker on the analytics page: live articles, most read first.
-async function listArticles({ q = '', limit = 20 } = {}) {
+const PICKER_PAGE = 20
+
+// The picker on the analytics page: live articles, most read first, a page
+// at a time - the client asks for the next one as the list scrolls.
+//
+// _id is the last tiebreaker so equal view counts always come back in the
+// same order; without it two articles on 0 views can swap between pages.
+// The rollup can still move an article up between two page loads, so the
+// client also skips ids it already has.
+async function listArticles({ q = '', skip = 0, limit = PICKER_PAGE } = {}) {
   const filter = { isLive: true }
   const search = String(q).trim().slice(0, 100)
   if (search) filter['publishedContent.title'] = { $regex: escapeRegex(search), $options: 'i' }
 
-  const rows = await Article.find(filter, {
-    'publishedContent.title': 1, viewCount: 1, publishedAt: 1, updateEvents: 1
-  })
-    .sort({ viewCount: -1, publishedAt: -1 })
-    .limit(Math.min(Math.max(Number(limit) || 20, 1), 50))
-    .lean()
+  const size = Math.min(Math.max(parseInt(limit, 10) || PICKER_PAGE, 1), 50)
+  const from = Math.max(parseInt(skip, 10) || 0, 0)
 
-  return rows.map(row => ({
-    id: row._id,
-    title: row.publishedContent.title,
-    viewCount: row.viewCount,
-    publishedAt: row.publishedAt,
-    updates: row.updateEvents.length
-  }))
+  // one row more than the page, so we know whether there is another page
+  // without a second query
+  const [rows, total] = await Promise.all([
+    Article.find(filter, { 'publishedContent.title': 1, viewCount: 1, publishedAt: 1, updateEvents: 1 })
+      .sort({ viewCount: -1, publishedAt: -1, _id: -1 })
+      .skip(from)
+      .limit(size + 1)
+      .lean(),
+    Article.countDocuments(filter)
+  ])
+
+  return {
+    articles: rows.slice(0, size).map(row => ({
+      id: row._id,
+      title: row.publishedContent.title,
+      viewCount: row.viewCount,
+      publishedAt: row.publishedAt,
+      updates: row.updateEvents.length
+    })),
+    hasMore: rows.length > size,
+    total
+  }
 }
 
 module.exports = { articleViews, listArticles, RANGES, INTERVALS, binStart, zoneOffset }
