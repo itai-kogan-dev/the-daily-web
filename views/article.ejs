@@ -1,22 +1,116 @@
-<%- include('partials/head', { title: 'Article' }) %>
+<%- include('partials/head', { title: content.title }) %>
 <%- include('partials/header') %>
 
 <div class="layout">
   <main class="page">
-    <!-- T1: the whole article has to be rendered here on the server. The spec
-         needs the text present in the HTML with JavaScript turned off. -->
-    <article>
-      <h1>TODO: article</h1>
+    <!-- The whole article is in the HTML. The spec needs the text to be there
+         with JavaScript turned off, so nothing below waits for a request. -->
+    <article class="article">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="/">The Daily Web</a>
+        <span aria-hidden="true">&rsaquo;</span>
+        <a href="<%= feedLink({ category: content.category }) %>">
+          <%= CATEGORY_LABELS[content.category] %>
+        </a>
+        <span aria-hidden="true">&rsaquo;</span>
+        <span class="crumb-current"><%= content.title %></span>
+      </nav>
+
+      <h1 class="article-title"><%= content.title %></h1>
+
+      <div class="article-byline">
+        <span>By <%= article.author ? article.author.displayName : 'The Daily Web' %></span>
+        <time datetime="<%= new Date(article.publishedAt).toISOString() %>">
+          <%= new Date(article.publishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) %>
+        </time>
+        <%# the same as the feed card, and the count T1 does not yet move %>
+        <span><%= Number(article.viewCount || 0).toLocaleString('en-US') %> views</span>
+        <% if (updatedAt) { %>
+          <!-- null until a second version is approved, so the date never moves
+               on its own and this only appears after a real update -->
+          <span class="article-updated">
+            Updated <time datetime="<%= new Date(updatedAt).toISOString() %>"><%= new Date(updatedAt).toLocaleDateString() %></time>
+          </span>
+        <% } %>
+      </div>
+
+      <% if (content.imagePath) { %>
+        <img class="article-hero" src="<%= content.imagePath %>" alt="">
+      <% } %>
+
+      <% if (content.summary) { %>
+        <p class="article-lead"><%= content.summary %></p>
+      <% } %>
+
+      <div class="article-body">
+        <% paragraphs.forEach(paragraph => { %>
+          <p><%= paragraph %></p>
+        <% }) %>
+      </div>
     </article>
 
-    <!-- comments load with the page, new ones get appended without a reload -->
-    <section class="comments">
-      <h2>Comments</h2>
-      <p class="muted">TODO</p>
+    <!-- Comments are on the page too, not fetched after it. A reader with
+         JavaScript off still sees the discussion. -->
+    <section class="comments" id="comments">
+      <h2>
+        Comments
+        <span class="muted" id="comment-count"><%= comments.total %></span>
+      </h2>
+
+      <% if (comments.total > comments.items.length) { %>
+        <p class="comment-note muted" id="comment-note">
+          Showing the most recent <%= comments.items.length %> of <%= comments.total %>.
+        </p>
+      <% } else { %>
+        <p class="comment-note muted" id="comment-note" hidden></p>
+      <% } %>
+
+      <p class="muted" id="comment-empty" <%= comments.items.length ? 'hidden' : '' %>>
+        No comments yet. Be the first.
+      </p>
+
+      <ul class="comment-list" id="comment-list" <%= comments.items.length ? '' : 'hidden' %>>
+        <% comments.items.forEach(comment => { %>
+          <li class="comment" id="comment-<%= comment.id %>">
+            <div class="comment-head">
+              <span class="comment-author"><%= comment.authorName %></span>
+              <time datetime="<%= new Date(comment.createdAt).toISOString() %>">
+                <%= new Date(comment.createdAt).toLocaleString() %>
+              </time>
+            </div>
+            <p class="comment-body"><%= comment.body %></p>
+          </li>
+        <% }) %>
+      </ul>
+
+      <!-- Commenting needs JavaScript. The endpoint is the JSON one the spec
+           lists, so a form post that was not intercepted has nowhere to go -
+           unlike reading, which is all in the page already. -->
+      <form class="comment-form stack" id="comment-form" method="post"
+            action="/api/articles/<%= article._id %>/comments"
+            data-article="<%= article._id %>">
+        <label>Your name
+          <input name="authorName" maxlength="60" required autocomplete="name" placeholder="How you want to be credited">
+        </label>
+
+        <label>Comment
+          <textarea name="body" rows="4" maxlength="1000" required
+                    placeholder="What did you make of it?"></textarea>
+        </label>
+
+        <div class="comment-actions">
+          <button type="submit" id="comment-submit">Post comment</button>
+          <span class="muted" id="comment-busy" role="status" aria-live="polite"></span>
+          <span class="muted comment-hint">Up to three a minute.</span>
+        </div>
+
+        <p class="error" id="comment-error" hidden></p>
+      </form>
     </section>
   </main>
   <%- include('partials/sidebar') %>
 </div>
 
+<script src="/js/read.js"></script>
 <script src="/js/article.js"></script>
 <%- include('partials/footer') %>

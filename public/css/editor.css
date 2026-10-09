@@ -1,0 +1,210 @@
+/* editor queue + review only. shared bits like tabs and badges live in
+   reporter.css so both sides stay looking the same. */
+
+.empty-state {
+  padding: 2rem 0;
+}
+
+.article-row.is-pending {
+  border-left: 3px solid var(--accent);
+  background: #fffdf4;
+}
+
+.review .article-meta {
+  margin-bottom: 1rem;
+}
+
+.update-history {
+  margin: 1.25rem 0;
+  padding: .8rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.update-history h2 {
+  font-size: 1rem;
+  margin: 0 0 .4rem;
+}
+
+.update-history ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: .9rem;
+  color: var(--muted);
+}
+
+.compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.1rem;
+  margin: 1.25rem 0;
+}
+
+.compare-pane {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+}
+
+.compare-pane h2 {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.compare-pane h3 {
+  margin: .6rem 0 .25rem;
+  font-size: 1.15rem;
+}
+
+.live-pane {
+  background: #f7faf7;
+}
+
+.waiting-pane {
+  border-left: 3px solid var(--accent);
+  background: #fef9ec;
+}
+
+.pane-hint {
+  margin: .15rem 0 0;
+  font-size: .85rem;
+}
+
+.compare-summary {
+  font-size: .95rem;
+}
+
+.compare-body {
+  white-space: pre-wrap;
+  font-size: .93rem;
+  margin: .75rem 0;
+}
+
+.compare-image {
+  max-width: 100%;
+  border-radius: var(--radius);
+  margin-top: .5rem;
+}
+
+.draft-pane {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: .95rem 1rem;
+  margin: 1.25rem 0;
+}
+
+.draft-pane h2 {
+  font-size: 1.05rem;
+  margin: 0 0 .25rem;
+}
+
+.draft-pane h3 {
+  margin: .4rem 0 .25rem;
+}
+
+.live-details {
+  margin-top: 1rem;
+  border-top: 1px solid var(--line);
+  padding-top: .75rem;
+}
+
+.live-details summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.edit-box,
+.return-box {
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.comments-box {
+  margin-top: 2rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--line);
+}
+
+.edit-box h2,
+.return-box h2 {
+  font-size: 1.15rem;
+  margin: 0 0 .75rem;
+}
+
+.comments-box h2 {
+  font-size: 1.1rem;
+  margin: 0 0 .7rem;
+}
+
+.return-box label {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+}
+
+.review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+  margin-top: 1rem;
+}
+
+button.danger {
+  background: #8f2020;
+  border-color: #8f2020;
+}
+
+button.go {
+  background: #1e6b34;
+  border-color: #1e6b34;
+}
+
+.button-secondary.danger-text {
+  color: #8f2020;
+}
+
+.comment-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.comment-row {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: .8rem .95rem;
+  margin-bottom: .65rem;
+}
+
+.comment-meta {
+  margin: 0 0 .3rem;
+  font-size: .9rem;
+}
+
+.comment-body {
+  white-space: pre-wrap;
+  margin: 0 0 .6rem;
+}
+
+.comment-row textarea {
+  width: 100%;
+  margin-bottom: .6rem;
+  font: inherit;
+}
+
+.comment-actions {
+  display: flex;
+  gap: .5rem;
+}
+
+/* the two panes sit side by side on desktop, stacked on a phone */
+@media (max-width: 800px) {
+  .compare {
+    grid-template-columns: 1fr;
+  }
+
+  .review-actions button {
+    flex: 1 1 100%;
+  }
+}

@@ -62,7 +62,6 @@ async function showDashboard(req, res) {
 
   res.render('reporter/dashboard', {
     articles: [...needsWork, ...rest],
-    needsWorkCount: counts[STATUS.NEEDS_REVISION],
     counts,
     filter,
     statuses,
