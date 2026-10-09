@@ -68,7 +68,7 @@ the seed script, otherwise nobody could log in to create anyone.
 | GET | `/editor/users/new` | Create form. |
 | GET | `/editor/users/:id` | Edit form. |
 | POST | `/editor/api/users` | Body `{ username, displayName, password, role }`. Password goes through `User.hashPassword`. |
-| PATCH | `/editor/api/users/:id` | Update. Only re-hash the password if a new one was sent. |
+| PATCH | `/editor/api/users/:id` | Update. Role can't be changed. Only re-hash the password if a new one was sent. |
 | DELETE | `/editor/api/users/:id` | Delete. Refuse to delete the last editor, or nobody can log in. |
 
 ### Comment moderation

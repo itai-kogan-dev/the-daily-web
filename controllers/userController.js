@@ -100,10 +100,8 @@ async function updateUser(req, res) {
     user.displayName = displayName
   }
 
-  if (body.role !== undefined) {
-    if (!STORED_ROLES.includes(body.role)) throw makeError(400, 'Role must be reporter or editor')
-    user.role = body.role
-  }
+  // role is deliberately not editable - an editor can pick the role when
+  // creating an account, but cannot change it afterwards
 
   // a blank password means the edit form left it alone - only a real value
   // replaces the hash, so saving anything else never locks the account

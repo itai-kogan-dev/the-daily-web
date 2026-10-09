@@ -18,13 +18,17 @@
       <input name="displayName" value="<%= account ? account.displayName : '' %>" required>
     </label>
 
-    <label>Role
-      <select name="role">
-        <% STORED_ROLES.forEach(role => { %>
-          <option value="<%= role %>" <%= account && account.role === role ? 'selected' : '' %>><%= ROLE_LABELS[role] %></option>
-        <% }) %>
-      </select>
-    </label>
+    <% if (account) { %>
+      <p class="muted">Role: <span class="badge role-<%= account.role %>"><%= ROLE_LABELS[account.role] %></span></p>
+    <% } else { %>
+      <label>Role
+        <select name="role">
+          <% STORED_ROLES.forEach(role => { %>
+            <option value="<%= role %>"><%= ROLE_LABELS[role] %></option>
+          <% }) %>
+        </select>
+      </label>
+    <% } %>
 
     <label>Password
       <input name="password" type="password" autocomplete="new-password" <%= account ? '' : 'required' %>>
@@ -73,9 +77,9 @@
 
     const payload = {
       username: form.elements.username.value,
-      displayName: form.elements.displayName.value,
-      role: form.elements.role.value
+      displayName: form.elements.displayName.value
     }
+    if (!accountId) payload.role = form.elements.role.value
     const password = form.elements.password.value
     if (!accountId || password) payload.password = password
 
