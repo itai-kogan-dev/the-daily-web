@@ -1,7 +1,10 @@
 <aside class="sidebar">
-  <!-- T4 fills this from /api/weather -->
-  <section class="widget" id="weather-widget">
+  <!-- filled by /js/weather.js from /api/weather -->
+  <section class="widget" id="weather-widget" aria-live="polite">
     <h2>Weather</h2>
-    <p class="muted">TODO</p>
+    <div class="weather-body">
+      <p class="muted">Finding your location…</p>
+      <noscript><p class="muted">Turn on JavaScript to see the weather.</p></noscript>
+    </div>
   </section>
 </aside>
