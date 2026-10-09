@@ -157,6 +157,17 @@ that requirement is testing. JWT would also survive a restart, but logging out
 does not really work with it - a token stays valid until it expires unless you
 keep a blocklist on the server, which makes it stateful anyway.
 
+The session id is renewed on every login, so an id seen before the login cannot
+be reused after it. The cookie is `httpOnly` and `SameSite=lax`: scripts cannot
+read it, and the browser only sends it from our own site, which is what stops
+another site from driving the editor's session. There is no per-form CSRF token
+- the lax cookie is the protection, and the state-changing fetches ride on
+same-origin cookies only.
+
+Password guessing is capped at 20 failed tries per username and address in 10
+minutes (in memory, fails open on restart). Only failures count, so the real
+password always works. See `middleware/rateLimit.js` and `routes/auth.js`.
+
 ## No sign up page - editors create accounts
 
 The spec never mentions registration, and it shouldn't: reporters and editors
@@ -284,4 +295,28 @@ the local days from those, so DST days (23 and 25 hours) come out right.
 Chart.js draws the graph from a CDN, the same way the site gets no build step.
 It has no built-in event marker, so the dashed lines are a twenty line plugin
 in `public/js/analytics.js` rather than another dependency.
+
+## Pictures live in the database, not on disk
+
+Four laptops cannot share a folder, so uploads go to MongoDB's GridFS and every
+checkout sees the same pictures. The browser posts raw bytes
+(`POST /reporter/api/image` or `/editor/api/image`, 2 MB max) and gets back a
+path like `/images/<id>`; that short path is what the article stores, so the
+article document stays small and the picture is cached like any other image.
+`GET /images/:id` streams the bytes back out, with an error listener on the
+stream so a broken read closes the connection instead of crashing the server.
+
+Only `/images/<24hex>` counts as a valid picture. An external URL in a draft is
+never rendered to readers: the feed and the article page read `publishedContent`,
+and only an approved `/images/` path ever reaches it. No SVG uploads - it can
+carry a script, and we serve uploads from our own origin.
+
+## The editor never types over the reporter's draft
+
+The review page autosaves into `EditorDraft`, one document per article, and
+nothing else. The reporter's `draftContent` is left alone while the editor
+works; it is folded over only when the editor publishes or sends back, and the
+`EditorDraft` is deleted right after. Opening the review page creates nothing -
+the first autosave does. This is what fixed the old overwrite where an editor's
+stale copy replaced a reporter's newer save.
 

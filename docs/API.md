@@ -24,7 +24,7 @@ Roles: `guest` (not logged in), `reporter`, `editor`.
 | Method | Path | Role | Notes |
 |---|---|---|---|
 | GET | `/login` | guest | Login form. |
-| POST | `/login` | guest | Body `{ username, password }`. Reporter goes to `/reporter`, editor to `/editor`. |
+| POST | `/login` | guest | Body `{ username, password }`. Reporter goes to `/reporter`, editor to `/editor`. The session id is renewed on success. After 20 failed tries in 10 minutes the form answers `429`; wrong user and wrong password always get the same message. |
 | POST | `/logout` | any | Destroys the session. |
 
 ## Reporter - `routes/reporter.js`
@@ -40,6 +40,7 @@ their own articles - check `article.author` on every one of these.
 | POST | `/reporter/api/article` | Create. Starts at `in_progress`. |
 | PATCH | `/reporter/api/article/:id` | Autosave. Writes `draftContent` only. Called every couple of seconds while typing - there is no save button. |
 | POST | `/reporter/api/article/:id/submit` | To `pending_editor`. Goes through `articleWorkflow`. |
+| POST | `/reporter/api/image` | Picture upload. Raw image bytes as the body (`Content-Type` is the image type, name in `X-Image-Name`), max 2 MB. Returns `{ url }` (`/images/<id>`), which the next autosave carries like any other field. |
 
 ## Editor - `routes/editor.js`
 
@@ -50,11 +51,12 @@ Whole file is behind `requireRole('editor')`.
 | GET | `/editor` | All articles, filterable by status. |
 | GET | `/editor/article/:id` | Review. Has to show what is live now next to what is waiting. |
 | GET | `/editor/analytics` | Impact analytics page. |
-| PATCH | `/editor/api/article/:id` | Editor edits `draftContent` directly. |
-| POST | `/editor/api/article/:id/publish` | Approve. Copies draft over published, sets `isLive`, adds an `updateEvent`. |
-| POST | `/editor/api/article/:id/return` | Body `{ note }`. Sends it back for revision. |
-| DELETE | `/editor/api/article/:id` | Delete. |
-| DELETE | `/editor/api/article/:id/views` | Clear the view stats for one article. |
+| PATCH | `/editor/api/article/:id` | Editor autosave. Writes the editor's private `EditorDraft` only - the reporter's `draftContent` is untouched until publish or return folds it over. |
+| POST | `/editor/api/article/:id/publish` | Approve. Folds the `EditorDraft` over the draft if there is one, copies draft over published, sets `isLive`, adds an `updateEvent`, deletes the `EditorDraft`. |
+| POST | `/editor/api/article/:id/return` | Body `{ note }`. Sends it back for revision, folding the `EditorDraft` over the draft first. |
+| POST | `/editor/api/image` | Picture upload, same shape as the reporter's. The picker puts the returned path in the form; the next autosave carries it. |
+| DELETE | `/editor/api/article/:id` | Delete. Removes the article with its comments, view buckets and editor draft. |
+| DELETE | `/editor/api/article/:id/views` | Clear the view stats for one article. Buckets go, `viewCount` returns to 0, the article stays. |
 
 ### Users
 
@@ -77,6 +79,15 @@ the seed script, otherwise nobody could log in to create anyone.
 |---|---|---|
 | PATCH | `/editor/api/comments/:id` | Edit a comment. |
 | DELETE | `/editor/api/comments/:id` | Delete a comment. |
+
+## Images - `routes/images.js`
+
+Pictures live in MongoDB (GridFS), so every checkout sees the same ones. No
+SVG: it can carry a script, and uploads are served from our own origin.
+
+| Method | Path | Role | Notes |
+|---|---|---|---|
+| GET | `/images/:id` | guest | Streams the stored bytes with a long cache header. Bad id is `404`, which goes through the error handler like everything else. |
 
 ## Analytics - `routes/analytics.js`
 
@@ -109,6 +120,8 @@ Behind `requireRole('editor')`.
 | Wrong role | `403` page | `403 { error }` |
 | No such route | `404` page | `404 { error }` |
 | Illegal state change | - | `400 { error }` |
+| Too many comments (`POST /api/articles/:id/comments`) | - | `429 { error }` with a `Retry-After` header |
+| Too many login tries (`POST /login`) | `429` page | - |
 | Crash | `500` page, generic message | `500 { error }` |
 
 ## CRUD coverage
