@@ -56,7 +56,7 @@ if (form && listEl) {
 
     const time = document.createElement('time')
     time.dateTime = comment.createdAt
-    time.textContent = new Date(comment.createdAt).toLocaleString()
+    time.textContent = new Date(comment.createdAt).toLocaleString('en-GB')
     head.append(time)
 
     const body = document.createElement('p')

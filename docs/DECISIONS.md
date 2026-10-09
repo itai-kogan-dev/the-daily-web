@@ -23,6 +23,31 @@ which is already published sends the new version through the same approval
 process - and that process starts at `in_progress`. So we read that sentence as
 the missing transition. It is the only place we go past the literal text.
 
+## What the editor can do depends on the status
+
+The spec lists the editor's actions - view, edit, publish, send back with a
+note, delete - for an article waiting for approval, and the only moves it gives
+the editor start from `pending_editor`. So the review page shows the full set
+there and nothing else changes hands:
+
+| Status | Editor | Reporter (own article) |
+|---|---|---|
+| `pending_editor` | edit, publish, send back, delete | read only |
+| `in_progress`, `needs_revision` | read only (delete if it is live) | edit, send; delete if it was never published |
+| `published` | read only, delete | edit, which starts a new version |
+
+Editing outside `pending_editor` is refused on the server too, not just hidden.
+The editor's edits go to a private copy that is only applied on publish or send
+back - an edit made while the reporter still had the article sat there and later
+replaced whatever the reporter sent. The same copy is cleared when a reporter
+submits, so the editor always starts from what was actually sent.
+
+Delete follows whose hands the article is in. The reporter can delete a draft
+that never went live - autosave creates an article on the first keystroke, so a
+false start would otherwise stay forever. Anything readers have seen is the
+editor's to remove. Between the two, every article always has exactly one
+person who can delete it.
+
 ## `status` and `isLive` are two fields
 
 `status` says where the working version is in the approval process. `isLive`

@@ -1,9 +1,9 @@
-<%- include('../partials/head', { title: 'My articles', extraCss: '/css/reporter.css' }) %>
+<%- include('../partials/head', { title: 'Reporter Space', extraCss: '/css/reporter.css' }) %>
 <%- include('../partials/header') %>
 
 <main class="page">
   <div class="page-top">
-    <h1>My articles</h1>
+    <h1>Reporter Space</h1>
     <a class="button" href="/reporter/article/new">New article</a>
   </div>
 
@@ -46,7 +46,7 @@
               <span class="badge status-<%= article.status %>"><%= STATUS_LABELS[article.status] %></span>
               <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
               <span><%= CATEGORY_LABELS[article.draftContent.category] %></span>
-              <span>edited <%= new Date(article.updatedAt).toLocaleDateString() %></span>
+              <span>edited <%= new Date(article.updatedAt).toLocaleDateString('en-GB') %></span>
             </div>
           </div>
         </li>

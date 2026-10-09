@@ -98,7 +98,28 @@ function returnForRevision(article, note) {
   return article
 }
 
+// Who may change or remove an article depends on whose hands it is in. The
+// editor acts on what was sent for approval; an article still with the
+// reporter is theirs until they send it. Between the two rules below every
+// article always has exactly one person who can delete it.
+function canEditorEdit(article) {
+  return article.status === STATUS.PENDING_EDITOR
+}
+
+// pending, or live - taking something off the site is the editor's call
+function canEditorDelete(article) {
+  return article.status === STATUS.PENDING_EDITOR || article.isLive
+}
+
+// an unpublished draft that is back in the reporter's hands
+function canReporterDelete(article) {
+  return !article.isLive && [STATUS.IN_PROGRESS, STATUS.NEEDS_REVISION].includes(article.status)
+}
+
 module.exports = {
+  canEditorEdit,
+  canEditorDelete,
+  canReporterDelete,
   isValidImageSource,
   submitForReview,
   startNewVersion,

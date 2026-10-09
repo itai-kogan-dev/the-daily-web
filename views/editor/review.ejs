@@ -3,7 +3,7 @@
 <%- include('../partials/header') %>
 
 <div class="layout">
-  <main class="page review">
+  <main class="page review" data-article="<%= article._id %>">
     <nav class="breadcrumb" aria-label="Breadcrumb">
       <a href="/editor">Editor queue</a>
       <span aria-hidden="true">&rsaquo;</span>
@@ -18,8 +18,8 @@
       <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
       <span>By <%= article.author && article.author.displayName ? article.author.displayName : 'Staff' %></span>
       <span><%= CATEGORY_LABELS[content.category] %></span>
-      <% if (article.publishedAt) { %><span>Published <%= new Date(article.publishedAt).toLocaleDateString() %></span><% } %>
-      <span>Updated <%= new Date(article.updatedAt).toLocaleDateString() %></span>
+      <% if (article.publishedAt) { %><span>Published <%= new Date(article.publishedAt).toLocaleDateString('en-GB') %></span><% } %>
+      <span>Updated <%= new Date(article.updatedAt).toLocaleDateString('en-GB') %></span>
     </div>
 
     <% if (hasDraft) { %>
@@ -38,19 +38,29 @@
         <ul>
           <% article.updateEvents.forEach(event => { %>
             <li>
-              Approved <%= new Date(event.at).toLocaleString() %><% if (event.editor && event.editor.displayName) { %> by <%= event.editor.displayName %><% } %>
+              Approved <%= new Date(event.at).toLocaleString('en-GB') %><% if (event.editor && event.editor.displayName) { %> by <%= event.editor.displayName %><% } %>
             </li>
           <% }) %>
         </ul>
       </section>
     <% } %>
 
-    <% const waiting = article.status === STATUS.PENDING_EDITOR %>
     <% const showLive = article.isLive && article.publishedContent %>
+    <% const withReporter = !canEdit && article.status !== STATUS.PUBLISHED %>
 
-    <div class="ed-review-grid<%= showLive ? ' ed-with-live' : '' %>">
+    <% if (withReporter) { %>
+      <p class="notice">
+        This article is with the reporter. It can be edited, published or sent
+        back once they send it for approval.
+      </p>
+    <% } %>
+
+    <%# the live version when there is one, beside whatever is in progress:
+        the editor's form while it waits for approval, the reporter's draft
+        while it is with them %>
+    <div class="ed-review-grid<%= showLive && (canEdit || withReporter) ? ' ed-with-live' : '' %>">
       <% if (showLive) { %>
-        <section class="ed-compare-pane" aria-label="Live version">
+        <section class="ed-compare-pane" aria-label="Live now">
           <p class="ed-pane-label muted">Live now</p>
           <p class="ed-pane-sub muted">What readers see at this moment.</p>
           <h2 class="ed-pane-title"><%= article.publishedContent.title %></h2>
@@ -65,69 +75,88 @@
         </section>
       <% } %>
 
-      <section class="edit-box">
-        <p class="ed-pane-label muted">Draft under review</p>
-        <h2>Edit draft</h2>
-        <form id="review-form" class="stack" data-id="<%= article._id %>" data-status="<%= article.status %>">
-          <label>Title
-            <input name="title" value="<%= content.title %>">
-          </label>
+      <% if (canEdit) { %>
+        <section class="edit-box">
+          <p class="ed-pane-label muted">Draft under review</p>
+          <h2>Edit draft</h2>
+          <form id="review-form" class="stack">
+            <label>Title
+              <input name="title" value="<%= content.title %>">
+            </label>
 
-          <label>Category
-            <select name="category">
-              <% CATEGORIES.forEach(category => { %>
-                <option value="<%= category %>" <%= content.category === category ? 'selected' : '' %>><%= CATEGORY_LABELS[category] %></option>
-              <% }) %>
-            </select>
-          </label>
+            <label>Category
+              <select name="category">
+                <% CATEGORIES.forEach(category => { %>
+                  <option value="<%= category %>" <%= content.category === category ? 'selected' : '' %>><%= CATEGORY_LABELS[category] %></option>
+                <% }) %>
+              </select>
+            </label>
 
-          <label>Summary
-            <textarea name="summary" rows="3"><%= content.summary %></textarea>
-          </label>
+            <label>Summary
+              <textarea name="summary" rows="3"><%= content.summary %></textarea>
+            </label>
 
-          <label>Body
-            <textarea name="body" rows="12"><%= content.body %></textarea>
-          </label>
+            <label>Body
+              <textarea name="body" rows="12"><%= content.body %></textarea>
+            </label>
 
-          <div class="field">
-            <span class="field-label">Image</span>
-            <div id="image-drop" class="image-drop">
-              <button type="button" id="image-pick-btn" class="button-secondary">Choose image</button>
-              <button type="button" id="image-remove-btn" class="button-secondary danger-text"<%= content.imagePath ? '' : ' hidden' %>>Remove</button>
-              <span id="image-name" class="muted"><%= imageName || 'No image yet' %></span>
+            <div class="field">
+              <span class="field-label">Image</span>
+              <div id="image-drop" class="image-drop">
+                <button type="button" id="image-pick-btn" class="button-secondary">Choose image</button>
+                <button type="button" id="image-remove-btn" class="button-secondary danger-text"<%= content.imagePath ? '' : ' hidden' %>>Remove</button>
+                <span id="image-name" class="muted"><%= imageName || 'No image yet' %></span>
+              </div>
+              <input type="file" id="image-file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif" hidden>
+              <input type="hidden" name="imagePath" value="<%= content.imagePath %>">
+              <img id="image-preview" class="article-hero ed-thumb-preview" src="<%= content.imagePath %>" alt="Draft image preview"<%= content.imagePath ? '' : ' hidden' %>>
+              <p id="image-error" class="error" hidden></p>
             </div>
-            <input type="file" id="image-file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif" hidden>
-            <input type="hidden" name="imagePath" value="<%= content.imagePath %>">
-            <img id="image-preview" class="article-hero ed-thumb-preview" src="<%= content.imagePath %>" alt="Draft image preview"<%= content.imagePath ? '' : ' hidden' %>>
-            <p id="image-error" class="error" hidden></p>
-          </div>
-        </form>
+          </form>
 
-        <div class="review-actions ed-actions">
-          <button id="save-btn" type="button">Save edit</button>
-          <button id="publish-btn" type="button"<% if (!waiting) { %> title="Only articles waiting for approval can be published"<% } %>>Publish</button>
-          <button id="delete-btn" type="button" class="button-secondary danger-text">Delete</button>
-        </div>
-        <% if (!waiting) { %>
-          <p class="muted">Publish and send back are available only while waiting for approval.</p>
-        <% } %>
-        <p id="review-status" class="save-status" role="status"></p>
-        <p id="review-error" class="error" hidden></p>
-      </section>
+          <div class="review-actions ed-actions">
+            <button id="save-btn" type="button">Save edit</button>
+            <button id="publish-btn" type="button">Publish</button>
+            <button id="delete-btn" type="button" class="button-secondary danger-text">Delete</button>
+          </div>
+          <p id="review-status" class="save-status" role="status"></p>
+          <p id="review-error" class="error" hidden></p>
+        </section>
+      <% } else if (withReporter) { %>
+        <section class="ed-compare-pane" aria-label="Reporter's draft">
+          <p class="ed-pane-label muted">Reporter's draft</p>
+          <p class="ed-pane-sub muted">Still being written - it may change before it is sent.</p>
+          <h2 class="ed-pane-title"><%= article.draftContent.title %></h2>
+          <p class="muted ed-pane-cat"><%= CATEGORY_LABELS[article.draftContent.category] %></p>
+          <% if (article.draftContent.imagePath) { %>
+            <img class="article-hero" src="<%= article.draftContent.imagePath %>" alt="Reporter's draft image">
+          <% } %>
+          <p class="article-lead"><%= article.draftContent.summary %></p>
+          <div class="article-body">
+            <p><%= article.draftContent.body %></p>
+          </div>
+        </section>
+      <% } %>
     </div>
 
-    <section class="return-box">
-      <h2>Send back to reporter</h2>
-      <% if (!waiting) { %>
-        <p class="muted">Available only while waiting for approval.</p>
+    <% if (canEdit) { %>
+      <section class="return-box">
+        <h2>Send back to reporter</h2>
+        <label>Note for the reporter
+          <textarea id="return-note" rows="3" maxlength="1000" placeholder="What should the reporter fix?"></textarea>
+        </label>
+        <div class="review-actions ed-actions">
+          <button id="return-btn" type="button">Send back with note</button>
+        </div>
+      </section>
+    <% } else { %>
+      <% if (canDelete) { %>
+        <div class="review-actions ed-actions">
+          <button id="delete-btn" type="button" class="button-secondary danger-text">Delete article</button>
+        </div>
       <% } %>
-      <label>Note for the reporter
-        <textarea id="return-note" rows="3" maxlength="1000" placeholder="What should the reporter fix?"></textarea>
-      </label>
-      <div class="review-actions ed-actions">
-        <button id="return-btn" type="button">Send back with note</button>
-      </div>
-    </section>
+      <p id="review-error" class="error" hidden></p>
+    <% } %>
 
     <section class="comments comments-box">
       <h2>Comments <span class="muted" id="comments-count"><%= comments.length %></span></h2>
@@ -139,7 +168,7 @@
             <li class="comment" data-comment="<%= comment._id %>">
               <div class="comment-head">
                 <span class="comment-author"><%= comment.authorName %></span>
-                <time datetime="<%= new Date(comment.createdAt).toISOString() %>"><%= new Date(comment.createdAt).toLocaleString() %></time>
+                <time datetime="<%= new Date(comment.createdAt).toISOString() %>"><%= new Date(comment.createdAt).toLocaleString('en-GB') %></time>
               </div>
               <p class="comment-body" data-body><%= comment.body %></p>
               <div class="comment-actions">

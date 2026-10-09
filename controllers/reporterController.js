@@ -1,6 +1,7 @@
 const mongoose = require('mongoose')
 const Article = require('../models/Article')
 const { STATUS, STATUS_LABELS, CATEGORIES, CATEGORY_LABELS } = Article
+const EditorDraft = require('../models/EditorDraft')
 const workflow = require('../services/articleWorkflow')
 const imageStore = require('../services/imageStore')
 
@@ -76,6 +77,7 @@ function showNewEditor(req, res) {
     content: { title: '', summary: '', body: '', category: CATEGORIES[0], imagePath: '' },
     imageName: null,
     canEdit: true,
+    canDelete: false,
     CATEGORIES, CATEGORY_LABELS, STATUS, STATUS_LABELS
   })
 }
@@ -90,6 +92,7 @@ async function showEditor(req, res) {
     content: article.draftContent,
     imageName: await imageStore.findImageName(article.draftContent.imagePath),
     canEdit: EDITABLE.includes(article.status),
+    canDelete: workflow.canReporterDelete(article),
     CATEGORIES, CATEGORY_LABELS, STATUS, STATUS_LABELS
   })
 }
@@ -177,7 +180,24 @@ async function submitArticle(req, res) {
   workflow.submitForReview(article)
   await article.save()
 
+  // the editor starts from what was just sent, never from an older copy
+  await EditorDraft.deleteMany({ article: article._id })
+
   res.json({ status: article.status, statusLabel: STATUS_LABELS[article.status] })
 }
 
-module.exports = { showDashboard, showNewEditor, showEditor, createArticle, saveDraft, submitArticle, uploadImage }
+// Only a draft that never went live, so there are no comments or views to
+// clean up. Anything readers have seen is the editor's to remove.
+async function deleteArticle(req, res) {
+  const article = await findOwnArticle(req.params.id, req.session.user.id)
+  if (!workflow.canReporterDelete(article)) {
+    throw makeError(403, 'Only a draft that has never been published can be deleted')
+  }
+
+  await EditorDraft.deleteMany({ article: article._id })
+  await article.deleteOne()
+
+  res.json({ deleted: true })
+}
+
+module.exports = { showDashboard, showNewEditor, showEditor, createArticle, saveDraft, submitArticle, deleteArticle, uploadImage }

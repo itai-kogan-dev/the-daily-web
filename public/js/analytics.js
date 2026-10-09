@@ -20,8 +20,8 @@ let chart = null
 // --- formatting ---
 
 const number = n => n.toLocaleString('en-US')
-const dateTime = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-const dateOnly = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' })
+const dateTime = new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+const dateOnly = new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric' })
 const timeOnly = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' })
 
 const INTERVAL_NAMES = { '5m': '5 minutes', '1h': 'hour', '1d': 'day' }
