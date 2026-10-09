@@ -57,11 +57,26 @@
     }
   }
 
-  const saveBtn = document.getElementById('save-btn')
-  if (saveBtn) saveBtn.addEventListener('click', async () => {
-    showError('')
+  // --- autosave ---
+  // No reliance on the Save button: typing goes to the server on its own, so
+  // an editor's in-progress draft survives a refresh or another computer.
+  const IDLE_MS = 1500     // save this long after typing stops
+  const CEILING_MS = 10000 // ...but never go longer than this while typing
+
+  let hasUnsavedChanges = false
+  let idleTimer = null
+  let ceilingTimer = null
+
+  async function saveDraft() {
+    if (!hasUnsavedChanges) return
+    clearTimeout(idleTimer)
+    clearTimeout(ceilingTimer)
+    ceilingTimer = null
+
+    // clear the flag before the request, so anything typed while it is in
+    // flight is not swallowed
+    hasUnsavedChanges = false
     showStatus('Saving...')
-    saveBtn.disabled = true
 
     const res = await fetch(`/editor/api/article/${articleId}`, {
       method: 'PATCH',
@@ -69,17 +84,18 @@
       body: JSON.stringify(readForm())
     }).catch(() => null)
 
-    saveBtn.disabled = false
-
-    if (!res) {
+    // the server said no (bad image path and the like) - show it instead of
+    // retrying something that will fail the same way again
+    if (res && !res.ok) {
       showStatus('', '')
-      showError('Could not save, check your connection')
+      showError(await readError(res))
       return
     }
 
-    if (!res.ok) {
-      showStatus('', '')
-      showError(await readError(res))
+    if (!res) {
+      hasUnsavedChanges = true
+      showStatus('Could not save, retrying...', 'error')
+      setTimeout(saveDraft, 3000)
       return
     }
 
@@ -91,7 +107,147 @@
     }
     refreshBadge(data)
     showStatus('Saved ' + new Date(data.savedAt).toLocaleTimeString())
+  }
+
+  const preview = document.getElementById('image-preview')
+
+  // a pasted path shows its picture as soon as it looks like a stored one
+  function syncPreview() {
+    if (!preview) return
+    const value = getField('imagePath').value.trim()
+    if (!value) {
+      preview.hidden = true
+      preview.removeAttribute('src')
+      return
+    }
+    if (/^\/images\/[a-f0-9]{24}$/i.test(value)) {
+      preview.src = value
+      preview.hidden = false
+    }
+  }
+
+  form.addEventListener('input', () => {
+    hasUnsavedChanges = true
+    showStatus('Unsaved changes', 'pending')
+    syncPreview()
+
+    clearTimeout(idleTimer)
+    idleTimer = setTimeout(saveDraft, IDLE_MS)
+
+    // someone typing without pause would otherwise never trigger the idle save
+    if (!ceilingTimer) ceilingTimer = setTimeout(saveDraft, CEILING_MS)
   })
+
+  // closing the tab or switching away - keepalive lets the request outlive
+  // the page, a normal fetch gets cancelled when the page goes
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'hidden' || !hasUnsavedChanges) return
+
+    fetch(`/editor/api/article/${articleId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(readForm()),
+      keepalive: true
+    })
+  })
+
+  const saveBtn = document.getElementById('save-btn')
+  if (saveBtn) saveBtn.addEventListener('click', async () => {
+    showError('')
+    showStatus('Saving...')
+    saveBtn.disabled = true
+    hasUnsavedChanges = true
+
+    await saveDraft()
+
+    saveBtn.disabled = false
+  })
+
+  // --- image ---
+  // The picture goes to the server on its own and comes back as a path. Only
+  // that short path is kept in the form, so the draft stays small and the
+  // browser can cache the picture like any other image.
+  const MAX_IMAGE_BYTES = 2 * 1024 * 1024
+  const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/avif']
+
+  const imageError = document.getElementById('image-error')
+  const imageName = document.getElementById('image-name')
+  const fileInput = document.getElementById('image-file')
+  const pickBtn = document.getElementById('image-pick-btn')
+
+  function showImageError(text) {
+    if (!imageError) return
+    imageError.textContent = text
+    imageError.hidden = !text
+  }
+
+  async function sendImage(file) {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      showImageError('That file type is not supported - use PNG, JPEG, GIF, WebP or AVIF')
+      return
+    }
+
+    if (file.size > MAX_IMAGE_BYTES) {
+      showImageError(`That picture is ${Math.round(file.size / 1024)} KB, the limit is ${MAX_IMAGE_BYTES / 1024 / 1024} MB`)
+      return
+    }
+
+    showImageError('')
+    if (imageName) imageName.textContent = 'Uploading...'
+
+    const res = await fetch('/editor/api/image', {
+      method: 'POST',
+      headers: { 'Content-Type': file.type, 'X-Image-Name': file.name },
+      body: file
+    }).catch(() => null)
+
+    if (!res || !res.ok) {
+      if (imageName) imageName.textContent = 'No image yet'
+      return showImageError('Could not upload that picture')
+    }
+
+    const data = await res.json()
+    getField('imagePath').value = data.url
+    if (imageName) imageName.textContent = file.name
+    syncPreview()
+
+    // the path field fires no input event of its own, so autosave is told
+    // directly - and saved now rather than in a second and a half, so the
+    // draft points at the picture almost as soon as it is stored
+    hasUnsavedChanges = true
+    saveDraft()
+  }
+
+  if (pickBtn && fileInput) {
+    pickBtn.addEventListener('click', () => fileInput.click())
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0]
+      fileInput.value = ''   // so picking the same file twice still fires
+      if (file) sendImage(file)
+    })
+  }
+
+  const dropZone = document.getElementById('image-drop')
+
+  if (dropZone) {
+    // the browser opens a dropped file in the tab unless both of these are stopped
+    for (const name of ['dragenter', 'dragover']) {
+      dropZone.addEventListener(name, event => {
+        event.preventDefault()
+        dropZone.classList.add('dragging')
+      })
+    }
+    for (const name of ['dragleave', 'drop']) {
+      dropZone.addEventListener(name, () => dropZone.classList.remove('dragging'))
+    }
+
+    dropZone.addEventListener('drop', event => {
+      event.preventDefault()
+      const file = event.dataTransfer.files[0]
+      if (file) sendImage(file)
+    })
+  }
 
   const publishBtn = document.getElementById('publish-btn')
   if (publishBtn) publishBtn.addEventListener('click', async () => {
