@@ -11,8 +11,6 @@ const LEGAL_TRANSITIONS = {
   [STATUS.PUBLISHED]:      [STATUS.IN_PROGRESS]
 }
 
-// Reporters upload a file, which is stored as a data URI. The seeded demo
-// articles use plain links, so both count as a valid image.
 // Every picture is uploaded and lives in the database, so the only shape a
 // valid image takes is the path to one.
 function isValidImageSource(value) {
@@ -37,19 +35,18 @@ function assertPublishable(article) {
   }
 }
 
-// for views deciding which buttons to show
 function canTransition(from, to) {
   return (LEGAL_TRANSITIONS[from] || []).includes(to)
 }
 
-// for routes enforcing it. the check has to happen on the server because
-// anyone can send a request without going through our UI
 function httpError(status, message) {
   const err = new Error(message)
   err.status = status
   return err
 }
 
+// the check has to happen on the server because anyone can send a request
+// without going through our UI
 function assertTransition(from, to) {
   if (!canTransition(from, to)) {
     throw httpError(400, `Illegal transition: ${from} -> ${to}`)
@@ -102,10 +99,6 @@ function returnForRevision(article, note) {
 }
 
 module.exports = {
-  LEGAL_TRANSITIONS,
-  canTransition,
-  assertTransition,
-  assertPublishable,
   isValidImageSource,
   submitForReview,
   startNewVersion,

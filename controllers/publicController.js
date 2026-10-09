@@ -66,7 +66,7 @@ function feedMatch({ category, q }) {
   // $text only ever matched whole words, and the only way to get a substring is
   // a regex - which no index can serve, so this reads every live article.
   // At that size it is instant. If it ever is not, the fix is a wildcard text
-  // index or a generated n-gram field, not a larger regex. See docs/T1.md.
+  // index or a generated n-gram field, not a larger regex. See docs/DECISIONS.md.
   //
   // Each term is one pattern, reused for both fields and matched twice per
   // request (once for the page, once for the count). No /g flag: a global regex
@@ -98,7 +98,7 @@ function rowsPipeline(options) {
     { $limit: PAGE_SIZE },
 
     // The byline. populate() does not work on an aggregation, and looking it up
-    // here costs the ten rows on this page rather than the whole feed.
+    // here costs the rows on this page rather than the whole feed.
     { $lookup: { from: 'users', localField: 'author', foreignField: '_id', as: 'author' } },
     { $unwind: { path: '$author', preserveNullAndEmptyArrays: true } },
 
@@ -224,8 +224,6 @@ function pageWindow(current, pages, span = 2) {
   return entries
 }
 
-// The controls need links that work on their own, before any script runs - and
-// the whole page is a working feed with the browser's JavaScript turned off.
 // Loads an article a reader is allowed to see. isLive and not status, for the
 // same reason the feed is: an article is not reader visible until an editor has
 // approved it, and a live article stays readable whatever its status is now.
@@ -363,9 +361,4 @@ async function addComment(req, res) {
   res.status(201).json(toComment(comment))
 }
 
-module.exports = {
-  findFeed, listArticles, articleIds, feedPage, feedLink, pageWindow,
-  articlePage, findLiveArticle, toParagraphs,
-  listComments, findComments, toComment, assertLiveArticle, addComment,
-  escapeRegExp, searchTerms, PAGE_SIZE, SORTS, DEFAULT_SORT, SEARCH_MAX, COMMENTS_LIMIT, readQuery
-}
+module.exports = { feedPage, articlePage, listArticles, articleIds, listComments, addComment }

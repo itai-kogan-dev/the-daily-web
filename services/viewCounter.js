@@ -7,7 +7,7 @@ const ViewBucket = require('../models/ViewBucket')
 // Article.viewCount is deliberately not touched here. It is a rollup of these
 // buckets and has to be aggregated on a cadence, because that document stays
 // hot for the life of the article while a bucket is replaced every 5 minutes.
-// That rollup belongs with the analytics track, not with the article page.
+// services/viewRollup.js does that.
 async function increment(articleId) {
   const bucket = { article: articleId, bucketStart: ViewBucket.bucketFor() }
 
@@ -34,4 +34,4 @@ async function countView(articleId) {
   }
 }
 
-module.exports = { countView, BUCKET_MINUTES: ViewBucket.BUCKET_MINUTES }
+module.exports = { countView }

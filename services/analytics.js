@@ -257,4 +257,4 @@ async function listArticles({ q = '', skip = 0, limit = PICKER_PAGE } = {}) {
   }
 }
 
-module.exports = { articleViews, listArticles, RANGES, INTERVALS, binStart, zoneOffset }
+module.exports = { articleViews, listArticles }

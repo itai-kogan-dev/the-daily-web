@@ -99,7 +99,7 @@ function readDraftContent(body, current) {
   const data = body || {}
 
   const imagePath = String(data.imagePath ?? src.imagePath ?? '').trim()
-  if (imagePath && !/^\/images\/[a-f0-9]{24}$/i.test(imagePath)) {
+  if (imagePath && !workflow.isValidImageSource(imagePath)) {
     throw makeError(400, 'The image is not a valid picture')
   }
 
@@ -124,7 +124,7 @@ async function editDraft(req, res) {
   const draft = await EditorDraft.findOneAndUpdate(
     { article: article._id },
     { article: article._id, editor: req.session.user.id, content },
-    { upsert: true, new: true, runValidators: true }
+    { upsert: true, returnDocument: 'after', runValidators: true }
   )
 
   res.json({

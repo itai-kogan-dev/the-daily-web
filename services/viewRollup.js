@@ -75,4 +75,4 @@ function startViewRollup() {
   return timer
 }
 
-module.exports = { startViewRollup, rollup }
+module.exports = { startViewRollup }

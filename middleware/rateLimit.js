@@ -26,4 +26,4 @@ function commentRateLimit(req, res, next) {
   next()
 }
 
-module.exports = { commentRateLimit, WINDOW_MS, MAX_COMMENTS }
+module.exports = { commentRateLimit }

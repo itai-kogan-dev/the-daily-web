@@ -1,4 +1,4 @@
-/* Sidebar weather widget (T4). Linked from views/partials/sidebar.ejs. */
+/* Sidebar weather widget. Linked from views/partials/sidebar.ejs. */
 
 #weather-widget h2 { font-size: 1rem; margin: 0 0 .5rem; }
 

@@ -60,11 +60,8 @@ article that would stay hot for the life of the article, and Mongo locks per
 document. The seed already does it the right way - it aggregates the buckets at
 the end instead of counting as it inserts.
 
-The rollup belongs to T4, next to the analytics page: a job aggregates the
-buckets into `Article.viewCount` every 5 minutes, so `?sort=popular` lags the
-live counts by at most one window. Until that job exists, `viewCount` is the
-seed value and popularity does not move - that is a missing job, not a missing
-increment.
+`services/viewRollup.js` aggregates the buckets into `Article.viewCount` every
+5 minutes, so `?sort=popular` lags the live counts by at most one window.
 
 ## Guest is a role, but never stored
 
@@ -162,6 +159,89 @@ every model. `docs/API.md` has the coverage table.
 
 One thing to handle when building it: refuse to delete the last editor, or
 nobody can log in afterwards.
+
+## Search matches part of a word
+
+`q` is a case-insensitive regex over the published title and summary, so `por`
+finds "port", "sport" and "transport". `$text` only matches whole words, and
+part-word search is worth more than its index. Each whitespace-separated term
+has to appear somewhere on its own, so `old port` does not need the words next
+to each other, and every term is escaped, so `(` or `.*` is a literal. `q` is
+capped at 80 characters, the search box's `maxlength`.
+
+What it costs: no index serves a substring, so a search reads every live
+article - well under a second at this size; past that the fix is a generated
+n-gram field, not a bigger regex. There is no relevance score either, so the
+chosen sort alone decides the order, and stopwords such as `the` are searched
+like any other word.
+
+## The feed: infinite scroll, with a pager for no JavaScript
+
+With JavaScript, the next 20 articles are appended when a sentinel below the
+cards comes within 600px of the viewport. A Load more link under the list is the
+keyboard path and the fallback without `IntersectionObserver`. Appended pages
+never change the URL - pushing `?page=2..21` would bury the back button - so only
+a fresh search, filter or sort moves the address bar. A fresh feed stops the
+observer until its own response arrives, so an automatic append can never land
+on a feed the reader already left.
+
+Without JavaScript the same page is a working feed: the form and chips are real
+links and the server renders a pager. The script removes that pager and carries
+on from the `data-` numbers on `#feed-results` instead of fetching page one again.
+
+The address bar is the only state. `feed.js` reads `location.search` and writes
+it back with `pushState`, so a reload, a bookmark and the back button all mean
+the same thing, and feed links act on their `data-` attributes rather than an
+`href` that went stale the moment the URL moved without a reload.
+
+## Feed queries
+
+- Two parallel aggregations, one for the page and one for the count. `$facet`
+  would save a round trip but its count branch would re-sort the whole feed.
+- The pipeline ends with an explicit `$project`. `draftContent` is unapproved
+  and `editorNote` is between reporter and editor - neither may reach a public
+  endpoint.
+- `?page=999` re-runs against the last real page instead of showing an empty one.
+- Unknown values (`?sort=sideways`, `?category=gossip`, `?page=-2`) fall back to
+  the defaults, so an old or mistyped link still lands on a working feed and
+  nothing outside the enums reaches Mongo.
+
+## The article page
+
+- A missing article and one that is not live both answer "Article not found", on
+  the page and on the comment endpoints, so the public site cannot reveal what
+  is still with an editor.
+- The body is plain text split on blank lines, and each paragraph is escaped.
+  There is no markdown or HTML anywhere, so nothing needs a sanitiser.
+- "Updated" needs two update events. `publish()` records the first publication
+  too, so one event means "published once".
+- The breadcrumb returns to the article's own category; the server cannot know
+  which filtered page the reader came from.
+- View counts are formatted with `toLocaleString('en-US')` on the server and in
+  `feed.js`, so a card does not change from `8,264` to `8.264` when it is redrawn.
+
+## Comments
+
+The newest 100 are shown, oldest first, with the form underneath - the order
+they were written in. The cap stops a heavily commented article handing a guest
+an unbounded list; the page says when it has truncated. Reading needs no
+JavaScript, but posting does: the endpoint is JSON, and the form carries the
+schema's `maxlength`s so the browser catches the obvious cases first.
+
+Everything rendered in the browser - headlines, bylines, comments - is built
+with `textContent`, never `innerHTML`, so nothing a user typed can bring markup
+with it.
+
+## Unread lives in this browser only
+
+Guests have no account, so opening an article records its id in `localStorage`
+(`the-daily-web:read`, newest first, capped at 500 - an old id falling off
+counts as unread again). The Unread only switch is added by `feed.js` and stays
+out of the URL, so no-JS readers never see a control that cannot work and a
+bookmark never promises a filter the server cannot apply. Its count covers the
+whole feed: `GET /api/articles/ids` returns every matching id in one small
+response. Coming back from an article re-applies the filter, since the reading
+was recorded on the other page.
 
 ## The analytics graph
 

@@ -1,25 +1,25 @@
 # API
 
-Every endpoint in the system. This is the contract - write client code against
-it before the server side exists, and change it here first if it needs to change.
+Every endpoint in the system.
 
 Rule: pages return HTML, anything under `/api/` returns JSON. The error handler
 and the auth middleware both use that to decide what to send back on failure.
 
 Roles: `guest` (not logged in), `reporter`, `editor`.
 
-## Public - `routes/public.js` (T1)
+## Public - `routes/public.js`
 
 | Method | Path | Role | Notes |
 |---|---|---|---|
 | GET | `/` | guest | Feed page. Server rendered. |
 | GET | `/article/:id` | guest | Article page. **Must be server rendered** - the full text has to be in the HTML with JS disabled. Counts a view. |
-| GET | `/api/articles` | guest | Feed data. Query: `page`, `q`, `category`, `sort` (`date`\|`popular`). Returns published articles only. |
+| GET | `/api/articles` | guest | Feed data. Query: `page`, `q`, `category`, `sort` (`date`\|`popular`). Returns live articles only - approved at least once, even while an update waits for approval. |
+| GET | `/api/articles/ids` | guest | Same filters as `/api/articles`, ids only. Used by the feed's unread count. |
 | GET | `/api/articles/:id/comments` | guest | Comments for one article. |
 | POST | `/api/articles/:id/comments` | guest | Body `{ authorName, body }`. Rate limited to 3 per minute per device. |
-| GET | `/api/weather` | guest | Sidebar widget (T4, `routes/weather.js`). Query: `lat` and `lon`, both required - there is no default place; missing or off the globe is a `400`. Cached server side per place, up to 15 min old. Returns `{ city, temperature, feelsLike, high, low, humidity, wind, description, icon, fetchedAt, stale }`; `city` is the place name from OpenStreetMap, or `null` if it could not be found. `stale` is true when the weather service is down and this is the last known answer. `503` if there has never been one. |
+| GET | `/api/weather` | guest | Sidebar widget (`routes/weather.js`). Query: `lat` and `lon`, both required - there is no default place; missing or off the globe is a `400`. Cached server side per place, up to 15 min old. Returns `{ city, temperature, feelsLike, high, low, humidity, wind, description, icon, fetchedAt, stale }`; `city` is the place name from OpenStreetMap, or `null` if it could not be found. `stale` is true when the weather service is down and this is the last known answer. `503` if there has never been one. |
 
-## Auth - `routes/auth.js` (T2) - done
+## Auth - `routes/auth.js`
 
 | Method | Path | Role | Notes |
 |---|---|---|---|
@@ -27,7 +27,7 @@ Roles: `guest` (not logged in), `reporter`, `editor`.
 | POST | `/login` | guest | Body `{ username, password }`. Reporter goes to `/reporter`, editor to `/editor`. |
 | POST | `/logout` | any | Destroys the session. |
 
-## Reporter - `routes/reporter.js` (T2)
+## Reporter - `routes/reporter.js`
 
 Whole file is behind `requireRole('reporter')`. A reporter only ever touches
 their own articles - check `article.author` on every one of these.
@@ -41,7 +41,7 @@ their own articles - check `article.author` on every one of these.
 | PATCH | `/reporter/api/article/:id` | Autosave. Writes `draftContent` only. Called every couple of seconds while typing - there is no save button. |
 | POST | `/reporter/api/article/:id/submit` | To `pending_editor`. Goes through `articleWorkflow`. |
 
-## Editor - `routes/editor.js` (T3)
+## Editor - `routes/editor.js`
 
 Whole file is behind `requireRole('editor')`.
 
@@ -56,7 +56,7 @@ Whole file is behind `requireRole('editor')`.
 | DELETE | `/editor/api/article/:id` | Delete. |
 | DELETE | `/editor/api/article/:id/views` | Clear the view stats for one article. |
 
-### Users (T2)
+### Users
 
 There is no sign up. Reporters and editors are staff, so an editor creates their
 accounts - and an editor can create other editors. The first editor comes from
@@ -71,14 +71,14 @@ the seed script, otherwise nobody could log in to create anyone.
 | PATCH | `/editor/api/users/:id` | Update. Only re-hash the password if a new one was sent. |
 | DELETE | `/editor/api/users/:id` | Delete. Refuse to delete the last editor, or nobody can log in. |
 
-### Comment moderation (T3)
+### Comment moderation
 
 | Method | Path | Notes |
 |---|---|---|
 | PATCH | `/editor/api/comments/:id` | Edit a comment. |
 | DELETE | `/editor/api/comments/:id` | Delete a comment. |
 
-## Analytics - `routes/analytics.js` (T4)
+## Analytics - `routes/analytics.js`
 
 Behind `requireRole('editor')`.
 

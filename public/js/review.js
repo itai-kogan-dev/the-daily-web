@@ -41,10 +41,6 @@
 
   // publish and send-back are only legal from pending_editor - the server
   // still 400s outside it, this just explains it instead of looking broken
-  function currentStatus() {
-    return form.dataset.status || ''
-  }
-
   function waitingForApproval() {
     return form.dataset.status === 'pending_editor'
   }
