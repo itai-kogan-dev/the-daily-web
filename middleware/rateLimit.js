@@ -17,6 +17,7 @@ function commentRateLimit(req, res, next) {
 
   if (recent.length >= MAX_COMMENTS) {
     const wait = Math.ceil((WINDOW_MS - (now - recent[0])) / 1000)
+    res.set('Retry-After', String(wait))   // the standard header, for clients that read it
     return res.status(429).json({ error: `Too many comments. Try again in ${wait} seconds.` })
   }
 
@@ -25,4 +26,4 @@ function commentRateLimit(req, res, next) {
   next()
 }
 
-module.exports = { commentRateLimit, WINDOW_MS, MAX_COMMENTS }
+module.exports = { commentRateLimit }

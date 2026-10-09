@@ -15,6 +15,10 @@ const viewBucketSchema = new mongoose.Schema({
 // requests for the same article land at the same time
 viewBucketSchema.index({ article: 1, bucketStart: 1 }, { unique: true })
 
+// the viewCount rollup asks "which articles got a view since the last run",
+// which the index above cannot answer - it starts with the article
+viewBucketSchema.index({ bucketStart: 1 })
+
 // rounds a timestamp down to the start of its window
 viewBucketSchema.statics.bucketFor = function (date = new Date()) {
   const ms = BUCKET_MINUTES * 60 * 1000

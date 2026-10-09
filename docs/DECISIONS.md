@@ -60,11 +60,8 @@ article that would stay hot for the life of the article, and Mongo locks per
 document. The seed already does it the right way - it aggregates the buckets at
 the end instead of counting as it inserts.
 
-The rollup belongs to T4, next to the analytics page: a job aggregates the
-buckets into `Article.viewCount` every 5 minutes, so `?sort=popular` lags the
-live counts by at most one window. Until that job exists, `viewCount` is the
-seed value and popularity does not move - that is a missing job, not a missing
-increment.
+`services/viewRollup.js` aggregates the buckets into `Article.viewCount` every
+5 minutes, so `?sort=popular` lags the live counts by at most one window.
 
 ## Guest is a role, but never stored
 
@@ -87,6 +84,60 @@ browser, which is closer to a device.
 count is what creates one, so only people who comment cost us a row.
 
 See `middleware/rateLimit.js`.
+
+## Weather is the reader's own, from Open-Meteo
+
+Open-Meteo instead of OpenWeather because it needs no API key: no secret to
+pass between four laptops, nothing to leak, and the widget works on a fresh
+clone. It has no place names, so the name comes from OpenStreetMap's Nominatim,
+which also needs no key.
+
+The browser asks the reader for their location. There is no default city:
+weather for somewhere the reader is not would look like theirs. When there is no
+location - permission refused, no fix, no support - the widget says so in plain
+words and offers to try again. The widget names the place ("In Haifa") so the
+reader can see the weather is theirs. If the reader allows location while the
+page is open, the widget notices and loads at once, no reload needed.
+
+The location is rounded to a tenth of a degree (about 11 km) in the browser
+before it is sent: that is plenty for weather, it is the most precise location
+we ever see, and it lets a whole city share one cache entry. It is remembered
+for the visit, so the next page skips the lookup.
+
+We looked at finding the place from the reader's IP address instead, which
+needs no permission. We kept the browser's location: the free IP services we
+found send the reader's IP over plain HTTP to a third party, an IP is often
+placed in the wrong city (many Israeli addresses resolve to Tel Aviv), and on
+a developer's laptop it finds nothing at all.
+
+Every page with a sidebar asks for the weather, so the server caches it per
+place for 15 minutes - the limit the spec allows. The browser is told to keep
+an answer only for what is left of those 15 minutes, not a fixed time on top
+of them: a flat 5 minutes let a reader see weather up to 20 minutes old. When the cache is cold and
+many readers of one place arrive at once, they share a single request. If the
+weather service is down the last answer is shown, labelled as such. Place
+names are kept for good, since towns don't move, and Nominatim is asked at
+most once a second, as its rules require. Both caches hold at most 500 places,
+oldest out first. A 5 second timeout means a hung service cannot hang the
+sidebar, and the browser fills the widget after the page loads, so a slow
+weather service never delays an article.
+
+## Logs go to the terminal and to a file per day
+
+Every line the server logs is also appended to `logs/app-YYYY-MM-DD.log`, with
+a timestamp and a level, so it can be read after the terminal is closed or the
+server restarted. The whole app logs through `console`, so `config/logFile.js`
+wraps console once at startup instead of changing every call - nobody has to
+remember to use a special logger, and the terminal looks the same as before.
+
+One file per day keeps any one file small and a day easy to find; files older
+than 14 days are deleted (`LOG_KEEP_DAYS`). The folder is gitignored.
+
+Lines are written synchronously. After an uncaught exception the process logs
+and exits straight away, and a buffered write would lose exactly that line,
+the one we most need. At our traffic a synchronous append costs microseconds.
+If the file cannot be written - a full disk, say - the server keeps running and
+logs to the terminal only.
 
 ## Interface language is English
 
@@ -127,3 +178,110 @@ every model. `docs/API.md` has the coverage table.
 
 One thing to handle when building it: refuse to delete the last editor, or
 nobody can log in afterwards.
+
+## Search matches part of a word
+
+`q` is a case-insensitive regex over the published title and summary, so `por`
+finds "port", "sport" and "transport". `$text` only matches whole words, and
+part-word search is worth more than its index. Each whitespace-separated term
+has to appear somewhere on its own, so `old port` does not need the words next
+to each other, and every term is escaped, so `(` or `.*` is a literal. `q` is
+capped at 80 characters, the search box's `maxlength`.
+
+What it costs: no index serves a substring, so a search reads every live
+article - well under a second at this size; past that the fix is a generated
+n-gram field, not a bigger regex. There is no relevance score either, so the
+chosen sort alone decides the order, and stopwords such as `the` are searched
+like any other word.
+
+## The feed: infinite scroll, with a pager for no JavaScript
+
+With JavaScript, the next 20 articles are appended when a sentinel below the
+cards comes within 600px of the viewport. A Load more link under the list is the
+keyboard path and the fallback without `IntersectionObserver`. Appended pages
+never change the URL - pushing `?page=2..21` would bury the back button - so only
+a fresh search, filter or sort moves the address bar. A fresh feed stops the
+observer until its own response arrives, so an automatic append can never land
+on a feed the reader already left.
+
+Without JavaScript the same page is a working feed: the form and chips are real
+links and the server renders a pager. The script removes that pager and carries
+on from the `data-` numbers on `#feed-results` instead of fetching page one again.
+
+The address bar is the only state. `feed.js` reads `location.search` and writes
+it back with `pushState`, so a reload, a bookmark and the back button all mean
+the same thing, and feed links act on their `data-` attributes rather than an
+`href` that went stale the moment the URL moved without a reload.
+
+## Feed queries
+
+- Two parallel aggregations, one for the page and one for the count. `$facet`
+  would save a round trip but its count branch would re-sort the whole feed.
+- The pipeline ends with an explicit `$project`. `draftContent` is unapproved
+  and `editorNote` is between reporter and editor - neither may reach a public
+  endpoint.
+- `?page=999` re-runs against the last real page instead of showing an empty one.
+- Unknown values (`?sort=sideways`, `?category=gossip`, `?page=-2`) fall back to
+  the defaults, so an old or mistyped link still lands on a working feed and
+  nothing outside the enums reaches Mongo.
+
+## The article page
+
+- A missing article and one that is not live both answer "Article not found", on
+  the page and on the comment endpoints, so the public site cannot reveal what
+  is still with an editor.
+- The body is plain text split on blank lines, and each paragraph is escaped.
+  There is no markdown or HTML anywhere, so nothing needs a sanitiser.
+- "Updated" needs two update events. `publish()` records the first publication
+  too, so one event means "published once".
+- The breadcrumb returns to the article's own category; the server cannot know
+  which filtered page the reader came from.
+- View counts are formatted with `toLocaleString('en-US')` on the server and in
+  `feed.js`, so a card does not change from `8,264` to `8.264` when it is redrawn.
+
+## Comments
+
+The newest 100 are shown, oldest first, with the form underneath - the order
+they were written in. The cap stops a heavily commented article handing a guest
+an unbounded list; the page says when it has truncated. Reading needs no
+JavaScript, but posting does: the endpoint is JSON, and the form carries the
+schema's `maxlength`s so the browser catches the obvious cases first.
+
+Everything rendered in the browser - headlines, bylines, comments - is built
+with `textContent`, never `innerHTML`, so nothing a user typed can bring markup
+with it.
+
+## Unread lives in this browser only
+
+Guests have no account, so opening an article records its id in `localStorage`
+(`the-daily-web:read`, newest first, capped at 500 - an old id falling off
+counts as unread again). The Unread only switch is added by `feed.js` and stays
+out of the URL, so no-JS readers never see a control that cannot work and a
+bookmark never promises a filter the server cannot apply. Its count covers the
+whole feed: `GET /api/articles/ids` returns every matching id in one small
+response. Coming back from an article re-applies the filter, since the reading
+was recorded on the other page.
+
+## The analytics graph
+
+The editor's question is "did publishing an update bring readers back?", so
+the page answers it twice: a marker on the graph at every update, and a table
+with the views in the window after each update against the same length of time
+before it. The window is a day, cut shorter when the previous or next update is
+closer - otherwise one update's spike would be counted as the next one's
+"before". The first publication is not an update and gets no comparison.
+
+The width of a point is picked from the range - 5 minutes up to 2 days, hours
+up to 3 weeks, days after that - so the graph never has more than a few hundred
+points. Quiet periods are filled with zeros on the server: buckets only exist
+where there were views, and without the zeros the line would be drawn straight
+across a night with nobody reading.
+
+The browser sends its time zone. A daily point is a local day; in Israel a UTC
+day would start at 3am. Mongo groups the buckets by hour and the server makes
+the local days from those, so DST days (23 and 25 hours) come out right.
+
+Chart.js draws the graph from a CDN, the same way the site gets no build step.
+It has no built-in event marker, so the dashed lines are a twenty line plugin
+in `public/js/analytics.js` rather than another dependency.
+

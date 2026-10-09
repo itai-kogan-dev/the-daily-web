@@ -40,4 +40,4 @@ function requireRole(...roles) {
   }
 }
 
-module.exports = { currentUser, attachViewData, requireRole }
+module.exports = { attachViewData, requireRole }

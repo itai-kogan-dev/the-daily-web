@@ -1,5 +1,5 @@
-/* Reporter pages only. Kept out of main.css so T1 and T2 are not editing the
-   same file at the same time. */
+/* Article editing pages - the reporter's dashboard and editor, and the
+   editor's queue and review. */
 
 /* The browser's own [hidden] rule loses to any class that sets display, so a
    flex container can stay on screen while claiming to be hidden. */
