@@ -9,14 +9,6 @@
       <a class="muted" href="/editor/analytics">Impact analytics</a>
     </div>
 
-    <% if (pendingCount > 0 && filter !== STATUS.PENDING_EDITOR) { %>
-      <p class="notice warn ed-notice">
-        <%= pendingCount %> <%= pendingCount === 1 ? 'article is' : 'articles are' %>
-        waiting for a decision.
-        <a href="/editor?status=<%= STATUS.PENDING_EDITOR %>">Review <%= pendingCount === 1 ? 'it' : 'them' %></a>
-      </p>
-    <% } %>
-
     <nav class="feed-filters" aria-label="Filter by status">
       <span class="feed-filters-title" aria-hidden="true">Filter by:</span>
       <a href="/editor" class="chip<%= filter ? '' : ' active' %>">
