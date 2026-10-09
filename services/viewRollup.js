@@ -40,7 +40,9 @@ async function rollup() {
   const result = await Article.bulkWrite(totals.map(row => ({
     updateOne: {
       filter: { _id: row._id, viewCount: { $ne: row.total } },
-      update: { $set: { viewCount: row.total } }
+      update: { $set: { viewCount: row.total } },
+      // a view is not an edit - updatedAt is what the queues sort and date by
+      timestamps: false
     }
   })), { ordered: false })
 

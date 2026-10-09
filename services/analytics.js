@@ -249,7 +249,8 @@ async function listArticles({ q = '', skip = 0, limit = PICKER_PAGE } = {}) {
       title: row.publishedContent.title,
       viewCount: row.viewCount,
       publishedAt: row.publishedAt,
-      updates: row.updateEvents.length
+      // the first event is the publication itself, not an update
+      updates: Math.max(0, row.updateEvents.length - 1)
     })),
     hasMore: rows.length > size,
     total

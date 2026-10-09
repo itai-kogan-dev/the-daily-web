@@ -19,6 +19,4 @@ const editorDraftSchema = new mongoose.Schema({
   content: { type: editorContentSchema, required: true }
 }, { timestamps: true })
 
-editorDraftSchema.index({ article: 1 }, { unique: true })
-
 module.exports = mongoose.model('EditorDraft', editorDraftSchema)

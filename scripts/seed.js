@@ -6,6 +6,7 @@ const User = require('../models/User')
 const Article = require('../models/Article')
 const Comment = require('../models/Comment')
 const ViewBucket = require('../models/ViewBucket')
+const EditorDraft = require('../models/EditorDraft')
 const imageStore = require('../services/imageStore')
 const fs = require('fs')
 const path = require('path')
@@ -17,9 +18,16 @@ const { ROLES } = require('../models/User')
 const PASSWORD = process.env.SEED_PASSWORD
 if (!PASSWORD) throw new Error('SEED_PASSWORD is missing - copy .env.example to .env')
 
+const MINUTE = 60 * 1000
+const HOUR = 60 * MINUTE
+const DAY = 24 * HOUR
+
 const pick = list => list[Math.floor(Math.random() * list.length)]
 const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min
-const hoursAgo = hours => new Date(Date.now() - hours * 3600 * 1000)
+const hoursAgo = hours => new Date(Date.now() - hours * HOUR)
+const randomBetween = (from, to) => new Date(from.getTime() + Math.random() * (to - from))
+// 2.4 views becomes 2 or 3, so quiet hours still add up to the right total
+const roundRandomly = value => Math.floor(value + Math.random())
 
 const HEADLINES = {
   news:       ['Council approves', 'City reports', 'Officials confirm', 'Residents protest', 'Government announces'],
@@ -71,24 +79,82 @@ function makeContent(category) {
   }
 }
 
-// Views decay after publishing and jump again after each update. That shape is
-// the whole point of the analytics graph, so the demo data has to show it.
-function makeBuckets(article, resolutionHours, maxHours) {
+// Everything is relative to the moment the seed runs, so the demo looks
+// current on the day it is seeded: a slice of today, most of the last week,
+// and a tail back to a month.
+function pickPublishHours() {
+  const roll = Math.random()
+  if (roll < 0.15) return randInt(1, 23)
+  if (roll < 0.55) return randInt(24, 24 * 7)
+  return randInt(24 * 7, 24 * 30)
+}
+
+// The articles the analytics page is demoed on: a few days old, a week or
+// two, and most of a month, so every range on the graph has one that fills it.
+function pickFeaturedHours(index) {
+  return [randInt(36, 96), randInt(24 * 5, 24 * 12), randInt(24 * 14, 24 * 28)][index % 3]
+}
+
+// The first event is the publication itself, as publish() records it, then
+// one per approved update. recentLast puts the last update inside the past
+// day, so the 24h graph has a marker with traffic on both sides of it.
+function makeUpdateEvents(publishedAt, updates, editorId, { recentLast = false } = {}) {
+  const events = [{ at: publishedAt, editor: editorId }]
+  const first = publishedAt.getTime() + 6 * HOUR
+  const last = Date.now() - (recentLast ? randInt(3, 20) : randInt(2, 48)) * HOUR
+  if (!updates || last <= first) return events
+
+  const gap = (last - first) / updates
+  for (let u = 1; u <= updates; u++) {
+    const jitter = u < updates ? (Math.random() - 0.5) * gap * 0.3 : 0
+    events.push({ at: new Date(first + gap * u + jitter), editor: editorId })
+  }
+  return events
+}
+
+// Israel time, so the daily rhythm peaks in the local afternoon
+const LOCAL_UTC_OFFSET = 3
+
+// Views per hour at one moment: a launch spike that fades over a couple of
+// days, a long tail, a day/night rhythm, and a new spike after every update.
+// That shape is the whole point of the analytics graph.
+function estimateHourlyViews(article, baseline, at) {
+  const age = (at - article.publishedAt) / HOUR
+  if (age < 0) return 0
+
+  let rate = baseline * (Math.exp(-age / 36) + 0.03)
+  for (const event of article.updateEvents.slice(1)) {
+    const since = (at - event.at) / HOUR
+    if (since >= 0) rate += baseline * 0.8 * Math.exp(-since / 10)
+  }
+
+  const localHour = (at.getUTCHours() + at.getUTCMinutes() / 60 + LOCAL_UTC_OFFSET) % 24
+  const rhythm = 0.6 + 0.4 * Math.sin((localHour - 9) / 24 * 2 * Math.PI)
+  return rate * rhythm * (0.7 + Math.random() * 0.6)
+}
+
+// Real views land in 5 minute buckets. Recent history keeps that resolution
+// because the 24h graph draws it; older history is stored coarser, at the
+// resolution the longer ranges draw anyway. It matches services/analytics.js
+// pickInterval, so no range ever shows coarse buckets as spikes.
+function pickBucketStep(bucketAge, articleAge) {
+  if (bucketAge <= DAY || articleAge <= 2 * DAY) return 5 * MINUTE
+  if (bucketAge <= 21 * DAY) return HOUR
+  return DAY
+}
+
+function makeBuckets(article, baseline) {
   const buckets = []
-  const baseline = randInt(40, 260)
-  const start = article.publishedAt
-  const span = Math.min(maxHours, Math.floor((Date.now() - start.getTime()) / 3600000))
+  const now = Date.now()
+  const articleAge = now - article.publishedAt.getTime()
 
-  for (let h = 0; h < span; h += resolutionHours) {
-    const at = new Date(start.getTime() + h * 3600000)
-    let count = Math.round(baseline * Math.exp(-h / 60) * (0.6 + Math.random() * 0.8))
-
-    for (const ev of article.updateEvents) {
-      const since = (at - ev.at) / 3600000
-      if (since >= 0 && since < 40) count += Math.round(baseline * 0.8 * Math.exp(-since / 10))
-    }
-
-    if (count > 0) buckets.push({ article: article._id, bucketStart: ViewBucket.bucketFor(at), count })
+  let at = ViewBucket.bucketFor(article.publishedAt).getTime()
+  while (at < now) {
+    const step = pickBucketStep(now - at, articleAge)
+    const span = Math.min(step, now - at)
+    const count = roundRandomly(estimateHourlyViews(article, baseline, new Date(at + span / 2)) * span / HOUR)
+    if (count > 0) buckets.push({ article: article._id, bucketStart: new Date(at), count })
+    at += step
   }
   return buckets
 }
@@ -100,7 +166,7 @@ async function seed() {
   await Promise.all([
     User.deleteMany({}), Article.deleteMany({}),
     Comment.deleteMany({}), ViewBucket.deleteMany({}),
-    imageStore.clearImages()
+    EditorDraft.deleteMany({}), imageStore.clearImages()
   ])
 
   imagePaths = await uploadSeedImages()
@@ -122,35 +188,48 @@ async function seed() {
 
   // --- articles ---
   // 500 spread over every status, plus some live ones with an update waiting,
-  // which is the case the spec cares most about.
+  // which is the case the spec cares most about. updates counts the approved
+  // updates after the first publication.
   const plan = [
-    { n: 385, status: STATUS.PUBLISHED,      live: true,  updates: [1, 1] },
-    { n:  15, status: STATUS.PUBLISHED,      live: true,  updates: [3, 5] },  // for the graph
-    { n:  10, status: STATUS.PENDING_EDITOR, live: true,  updates: [1, 2] },  // live, update waiting
-    { n:   5, status: STATUS.NEEDS_REVISION, live: true,  updates: [1, 2] },  // live, fix requested
+    { n: 385, status: STATUS.PUBLISHED,      live: true,  updates: [0, 1] },
+    { n:  15, status: STATUS.PUBLISHED,      live: true,  updates: [3, 5], featured: true },  // for the graph
+    { n:  10, status: STATUS.PENDING_EDITOR, live: true,  updates: [0, 2] },  // live, update waiting
+    { n:   5, status: STATUS.NEEDS_REVISION, live: true,  updates: [0, 2] },  // live, fix requested
     { n:  40, status: STATUS.PENDING_EDITOR, live: false, updates: [0, 0] },
     { n:  30, status: STATUS.IN_PROGRESS,    live: false, updates: [0, 0] },
     { n:  15, status: STATUS.NEEDS_REVISION, live: false, updates: [0, 0] }
   ]
 
   const docs = []
-  const featured = []
+  const baselines = []   // launch views per hour, one per article
+  let featuredCount = 0
 
   for (const group of plan) {
     for (let i = 0; i < group.n; i++) {
       const category = pick(CATEGORIES)
       const author = pick(reporters)
       const draft = makeContent(category)
-      const publishedAt = group.live ? hoursAgo(randInt(24, 24 * 30)) : null
+      const featuredIndex = group.featured ? featuredCount++ : null
 
-      const updateCount = randInt(group.updates[0], group.updates[1])
-      const updateEvents = []
-      for (let u = 0; u < updateCount; u++) {
-        const age = (Date.now() - publishedAt.getTime()) / 3600000
-        updateEvents.push({ at: new Date(publishedAt.getTime() + (age * (u + 1) / (updateCount + 1)) * 3600000), editor: editor._id })
+      let publishedAt = null
+      let updateEvents = []
+      let createdAt, updatedAt
+
+      if (group.live) {
+        publishedAt = hoursAgo(group.featured ? pickFeaturedHours(featuredIndex) : pickPublishHours())
+        updateEvents = makeUpdateEvents(publishedAt, randInt(...group.updates), editor._id, {
+          recentLast: group.featured
+        })
+        createdAt = new Date(publishedAt.getTime() - randInt(1, 12) * HOUR)
+        const lastApproved = updateEvents[updateEvents.length - 1].at
+        // a live article with an edit in progress was touched after its last approval
+        updatedAt = group.status === STATUS.PUBLISHED ? lastApproved : randomBetween(lastApproved, new Date())
+      } else {
+        createdAt = hoursAgo(randInt(2, 24 * 10))
+        updatedAt = randomBetween(createdAt, new Date())
       }
 
-      const doc = {
+      docs.push({
         author: author._id,
         status: group.status,
         isLive: group.live,
@@ -162,14 +241,16 @@ async function seed() {
         ]) : '',
         publishedAt,
         updateEvents,
-        viewCount: 0
-      }
-      docs.push(doc)
-      if (group.updates[1] >= 3) featured.push(docs.length - 1)
+        viewCount: 0,
+        createdAt,
+        updatedAt
+      })
+      baselines.push(group.featured ? randInt(150, 400) : randInt(20, 200))
     }
   }
 
-  const articles = await Article.insertMany(docs)
+  // timestamps off, or Mongoose would stamp all 500 with this very second
+  const articles = await Article.insertMany(docs, { timestamps: false })
   console.log(`created ${articles.length} articles`)
 
   // --- comments ---
@@ -182,25 +263,24 @@ async function seed() {
   const comments = []
   for (const article of articles.filter(one => one.isLive).slice(0, 180)) {
     for (let i = 0; i < randInt(0, 7); i++) {
+      // never before the article went live
+      const at = randomBetween(article.publishedAt, new Date())
       comments.push({
         article: article._id,
         authorName: pick(NAMES),
         body: pick(TEXTS),
-        createdAt: hoursAgo(randInt(1, 24 * 20))
+        createdAt: at,
+        updatedAt: at
       })
     }
   }
-  await Comment.insertMany(comments)
+  await Comment.insertMany(comments, { timestamps: false })
   console.log(`created ${comments.length} comments`)
 
   // --- view buckets ---
-  // Dense history for the articles the analytics graph will show, a light
-  // sprinkle for the rest so the popularity sort has something to work with.
   const buckets = []
   articles.forEach((article, index) => {
-    if (!article.isLive) return
-    const isFeatured = featured.includes(index)
-    buckets.push(...makeBuckets(article, isFeatured ? 1 : 12, isFeatured ? 24 * 14 : 24 * 30))
+    if (article.isLive) buckets.push(...makeBuckets(article, baselines[index]))
   })
   await ViewBucket.insertMany(buckets)
   console.log(`created ${buckets.length} view buckets`)
@@ -210,7 +290,8 @@ async function seed() {
     { $group: { _id: '$article', total: { $sum: '$count' } } }
   ])
   await Article.bulkWrite(totals.map(row => ({
-    updateOne: { filter: { _id: row._id }, update: { $set: { viewCount: row.total } } }
+    // a view count is not an edit, so updatedAt keeps the seeded date
+    updateOne: { filter: { _id: row._id }, update: { $set: { viewCount: row.total } }, timestamps: false }
   })))
 
   console.log('')
