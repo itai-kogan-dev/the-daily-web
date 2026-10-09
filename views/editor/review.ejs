@@ -1,11 +1,159 @@
-<%- include('../partials/head', { title: 'Review' }) %>
+<%- include('../partials/head', { title: 'Review article', extraCss: '/css/reporter.css' }) %>
+<link rel="stylesheet" href="/css/editor.css">
 <%- include('../partials/header') %>
 
-<main class="page">
-  <!-- T3: has to show what is live right now next to what is waiting for
-       approval, then publish / send back with a note / delete. -->
-  <h1>TODO: review</h1>
-</main>
+<div class="layout">
+  <main class="page review">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/editor">Editor queue</a>
+      <span aria-hidden="true">&rsaquo;</span>
+      <span class="crumb-current"><%= content.title %></span>
+    </nav>
+
+    <p class="ed-eyebrow muted">Review article</p>
+    <h1 class="article-title"><%= content.title %></h1>
+
+    <div class="article-byline">
+      <span id="status-badge" class="badge status-<%= article.status %>"><%= STATUS_LABELS[article.status] %></span>
+      <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
+      <span>By <%= article.author && article.author.displayName ? article.author.displayName : 'Staff' %></span>
+      <span><%= CATEGORY_LABELS[content.category] %></span>
+      <% if (article.publishedAt) { %><span>Published <%= new Date(article.publishedAt).toLocaleDateString() %></span><% } %>
+      <span>Updated <%= new Date(article.updatedAt).toLocaleDateString() %></span>
+    </div>
+
+    <% if (hasDraft) { %>
+      <p class="notice">Unsent changes from an earlier editing session are loaded below. They are visible only to editors until published or sent back.</p>
+    <% } %>
+
+    <% if (article.status === STATUS.NEEDS_REVISION && article.editorNote) { %>
+      <p class="editor-note"><strong>Sent back:</strong> <%= article.editorNote %></p>
+    <% } else if (article.editorNote) { %>
+      <p class="editor-note"><strong>Editor note:</strong> <%= article.editorNote %></p>
+    <% } %>
+
+    <% if (article.updateEvents && article.updateEvents.length) { %>
+      <section class="update-history">
+        <h2>Update history</h2>
+        <ul>
+          <% article.updateEvents.forEach(event => { %>
+            <li>
+              Approved <%= new Date(event.at).toLocaleString() %><% if (event.editor && event.editor.displayName) { %> by <%= event.editor.displayName %><% } %>
+            </li>
+          <% }) %>
+        </ul>
+      </section>
+    <% } %>
+
+    <% const waiting = article.status === STATUS.PENDING_EDITOR %>
+    <% const showLive = article.isLive && article.publishedContent %>
+
+    <div class="ed-review-grid<%= showLive ? ' ed-with-live' : '' %>">
+      <% if (showLive) { %>
+        <section class="ed-compare-pane" aria-label="Live version">
+          <p class="ed-pane-label muted">Live now</p>
+          <p class="ed-pane-sub muted">What readers see at this moment.</p>
+          <h2 class="ed-pane-title"><%= article.publishedContent.title %></h2>
+          <p class="muted ed-pane-cat"><%= CATEGORY_LABELS[article.publishedContent.category] %></p>
+          <% if (article.publishedContent.imagePath) { %>
+            <img class="article-hero" src="<%= article.publishedContent.imagePath %>" alt="Live article image">
+          <% } %>
+          <p class="article-lead"><%= article.publishedContent.summary %></p>
+          <div class="article-body">
+            <p><%= article.publishedContent.body %></p>
+          </div>
+        </section>
+      <% } %>
+
+      <section class="edit-box">
+        <p class="ed-pane-label muted">Draft under review</p>
+        <h2>Edit draft</h2>
+        <form id="review-form" class="stack" data-id="<%= article._id %>" data-status="<%= article.status %>">
+          <label>Title
+            <input name="title" value="<%= content.title %>">
+          </label>
+
+          <label>Category
+            <select name="category">
+              <% CATEGORIES.forEach(category => { %>
+                <option value="<%= category %>" <%= content.category === category ? 'selected' : '' %>><%= CATEGORY_LABELS[category] %></option>
+              <% }) %>
+            </select>
+          </label>
+
+          <label>Summary
+            <textarea name="summary" rows="3"><%= content.summary %></textarea>
+          </label>
+
+          <label>Body
+            <textarea name="body" rows="12"><%= content.body %></textarea>
+          </label>
+
+          <div class="field">
+            <span class="field-label">Image</span>
+            <div id="image-drop" class="image-drop">
+              <button type="button" id="image-pick-btn" class="button-secondary">Choose image</button>
+              <button type="button" id="image-remove-btn" class="button-secondary danger-text"<%= content.imagePath ? '' : ' hidden' %>>Remove</button>
+              <span id="image-name" class="muted"><%= imageName || 'No image yet' %></span>
+            </div>
+            <input type="file" id="image-file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif" hidden>
+            <input type="hidden" name="imagePath" value="<%= content.imagePath %>">
+            <img id="image-preview" class="article-hero ed-thumb-preview" src="<%= content.imagePath %>" alt="Draft image preview"<%= content.imagePath ? '' : ' hidden' %>>
+            <p id="image-error" class="error" hidden></p>
+          </div>
+        </form>
+
+        <div class="review-actions ed-actions">
+          <button id="save-btn" type="button">Save edit</button>
+          <button id="publish-btn" type="button"<% if (!waiting) { %> title="Only articles waiting for approval can be published"<% } %>>Publish</button>
+          <button id="delete-btn" type="button" class="button-secondary danger-text">Delete</button>
+        </div>
+        <% if (!waiting) { %>
+          <p class="muted">Publish and send back are available only while waiting for approval.</p>
+        <% } %>
+        <p id="review-status" class="save-status" role="status"></p>
+        <p id="review-error" class="error" hidden></p>
+      </section>
+    </div>
+
+    <section class="return-box">
+      <h2>Send back to reporter</h2>
+      <% if (!waiting) { %>
+        <p class="muted">Available only while waiting for approval.</p>
+      <% } %>
+      <label>Note for the reporter
+        <textarea id="return-note" rows="3" maxlength="1000" placeholder="What should the reporter fix?"></textarea>
+      </label>
+      <div class="review-actions ed-actions">
+        <button id="return-btn" type="button">Send back with note</button>
+      </div>
+    </section>
+
+    <section class="comments comments-box">
+      <h2>Comments <span class="muted" id="comments-count"><%= comments.length %></span></h2>
+      <% if (comments.length === 0) { %>
+        <p class="muted">No comments yet.</p>
+      <% } else { %>
+        <ul class="comment-list">
+          <% comments.forEach(comment => { %>
+            <li class="comment" data-comment="<%= comment._id %>">
+              <div class="comment-head">
+                <span class="comment-author"><%= comment.authorName %></span>
+                <time datetime="<%= new Date(comment.createdAt).toISOString() %>"><%= new Date(comment.createdAt).toLocaleString() %></time>
+              </div>
+              <p class="comment-body" data-body><%= comment.body %></p>
+              <div class="comment-actions">
+                <button type="button" class="button-secondary" data-edit>Edit</button>
+                <button type="button" class="button-secondary danger-text" data-delete>Delete</button>
+              </div>
+              <p class="error" data-error hidden></p>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </section>
+  </main>
+</div>
 
 <script src="/js/review.js"></script>
 <%- include('../partials/footer') %>

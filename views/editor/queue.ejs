@@ -1,9 +1,56 @@
-<%- include('../partials/head', { title: 'Editor' }) %>
+<%- include('../partials/head', { title: 'Editor queue', extraCss: '/css/reporter.css' }) %>
+<link rel="stylesheet" href="/css/editor.css">
 <%- include('../partials/header') %>
 
-<main class="page">
-  <!-- T3: every article in the system, filterable by status -->
-  <h1>TODO: editor queue</h1>
-</main>
+<div class="layout">
+  <main class="page ed-queue">
+    <div class="page-top">
+      <h1>Editor queue</h1>
+      <a class="muted" href="/editor/analytics">Impact analytics</a>
+    </div>
+
+    <nav class="feed-filters" aria-label="Filter by status">
+      <span class="feed-filters-title" aria-hidden="true">Filter by:</span>
+      <a href="/editor" class="chip<%= filter ? '' : ' active' %>">
+        All <span class="tab-count"><%= counts.all %></span>
+      </a>
+      <% statuses.forEach(status => { %>
+        <a href="/editor?status=<%= status %>" class="chip<%= filter === status ? ' active' : '' %>">
+          <%= STATUS_LABELS[status] %> <span class="tab-count"><%= counts[status] %></span>
+        </a>
+      <% }) %>
+      <span class="feed-count muted"><%= articles.length %> <%= articles.length === 1 ? 'article' : 'articles' %></span>
+    </nav>
+
+    <% if (articles.length === 0) { %>
+      <p class="feed-empty muted">
+        <%= filter ? 'No articles with this status.' : 'Nothing here yet.' %>
+      </p>
+    <% } else { %>
+      <ul class="feed-list">
+        <% articles.forEach(article => { %>
+          <li class="feed-card<%= article.status === STATUS.PENDING_EDITOR ? ' is-pending' : '' %>">
+            <% if (article.draftContent.imagePath) { %>
+              <a class="feed-thumb" href="/editor/article/<%= article._id %>" tabindex="-1" aria-hidden="true">
+                <img src="<%= article.draftContent.imagePath %>" alt="" loading="lazy" width="160" height="107">
+              </a>
+            <% } %>
+            <div class="feed-card-body">
+              <a class="feed-card-title" href="/editor/article/<%= article._id %>"><%= article.draftContent.title %></a>
+              <% if (article.draftContent.summary) { %><p class="feed-summary"><%= article.draftContent.summary %></p><% } %>
+              <div class="feed-meta">
+                <span class="badge status-<%= article.status %>"><%= STATUS_LABELS[article.status] %></span>
+                <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
+                <span><%= article.author && article.author.displayName ? article.author.displayName : 'Staff' %></span>
+                <span><%= CATEGORY_LABELS[article.draftContent.category] %></span>
+                <span>updated <%= new Date(article.updatedAt).toLocaleDateString() %></span>
+              </div>
+            </div>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </main>
+</div>
 
 <%- include('../partials/footer') %>

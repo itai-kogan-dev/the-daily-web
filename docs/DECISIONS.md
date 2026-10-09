@@ -60,6 +60,12 @@ article that would stay hot for the life of the article, and Mongo locks per
 document. The seed already does it the right way - it aggregates the buckets at
 the end instead of counting as it inserts.
 
+The rollup belongs to T4, next to the analytics page: a job aggregates the
+buckets into `Article.viewCount` every 5 minutes, so `?sort=popular` lags the
+live counts by at most one window. Until that job exists, `viewCount` is the
+seed value and popularity does not move - that is a missing job, not a missing
+increment.
+
 ## Guest is a role, but never stored
 
 The spec has three user types. Guest has no username and no password, so there
@@ -82,22 +88,59 @@ count is what creates one, so only people who comment cost us a row.
 
 See `middleware/rateLimit.js`.
 
-## Weather comes from Open-Meteo, cached on the server
+## Weather is the reader's own, from Open-Meteo
 
 Open-Meteo instead of OpenWeather because it needs no API key: no secret to
 pass between four laptops, nothing to leak, and the widget works on a fresh
-clone. The place is set in `.env` (`WEATHER_CITY`, `WEATHER_LAT`, `WEATHER_LON`).
+clone. It has no place names, so the name comes from OpenStreetMap's Nominatim,
+which also needs no key.
 
-Every page with a sidebar asks for the weather, so the server caches the answer
-for 15 minutes - the limit the spec allows - and the weather service hears from
-us about 4 times an hour whatever the traffic. When the cache is cold and many
-readers arrive at once, they all wait for the same single request instead of
-sending one each. If the service is down we keep showing the last answer,
-labelled as such, rather than an error. A 5 second timeout means a hung weather
-service cannot hang the sidebar.
+The browser asks the reader for their location. There is no default city:
+weather for somewhere the reader is not would look like theirs. When there is no
+location - permission refused, no fix, no support - the widget says so in plain
+words and offers to try again. The widget names the place ("In Haifa") so the
+reader can see the weather is theirs. If the reader allows location while the
+page is open, the widget notices and loads at once, no reload needed.
 
-The widget is filled by the browser, not rendered into the page, so a slow
-weather service never delays the article itself.
+The location is rounded to a tenth of a degree (about 11 km) in the browser
+before it is sent: that is plenty for weather, it is the most precise location
+we ever see, and it lets a whole city share one cache entry. It is remembered
+for the visit, so the next page skips the lookup.
+
+We looked at finding the place from the reader's IP address instead, which
+needs no permission. We kept the browser's location: the free IP services we
+found send the reader's IP over plain HTTP to a third party, an IP is often
+placed in the wrong city (many Israeli addresses resolve to Tel Aviv), and on
+a developer's laptop it finds nothing at all.
+
+Every page with a sidebar asks for the weather, so the server caches it per
+place for 15 minutes - the limit the spec allows. The browser is told to keep
+an answer only for what is left of those 15 minutes, not a fixed time on top
+of them: a flat 5 minutes let a reader see weather up to 20 minutes old. When the cache is cold and
+many readers of one place arrive at once, they share a single request. If the
+weather service is down the last answer is shown, labelled as such. Place
+names are kept for good, since towns don't move, and Nominatim is asked at
+most once a second, as its rules require. Both caches hold at most 500 places,
+oldest out first. A 5 second timeout means a hung service cannot hang the
+sidebar, and the browser fills the widget after the page loads, so a slow
+weather service never delays an article.
+
+## Logs go to the terminal and to a file per day
+
+Every line the server logs is also appended to `logs/app-YYYY-MM-DD.log`, with
+a timestamp and a level, so it can be read after the terminal is closed or the
+server restarted. The whole app logs through `console`, so `config/logFile.js`
+wraps console once at startup instead of changing every call - nobody has to
+remember to use a special logger, and the terminal looks the same as before.
+
+One file per day keeps any one file small and a day easy to find; files older
+than 14 days are deleted (`LOG_KEEP_DAYS`). The folder is gitignored.
+
+Lines are written synchronously. After an uncaught exception the process logs
+and exits straight away, and a buffered write would lose exactly that line,
+the one we most need. At our traffic a synchronous append costs microseconds.
+If the file cannot be written - a full disk, say - the server keeps running and
+logs to the terminal only.
 
 ## Interface language is English
 
@@ -138,3 +181,27 @@ every model. `docs/API.md` has the coverage table.
 
 One thing to handle when building it: refuse to delete the last editor, or
 nobody can log in afterwards.
+
+## The analytics graph
+
+The editor's question is "did publishing an update bring readers back?", so
+the page answers it twice: a marker on the graph at every update, and a table
+with the views in the window after each update against the same length of time
+before it. The window is a day, cut shorter when the previous or next update is
+closer - otherwise one update's spike would be counted as the next one's
+"before". The first publication is not an update and gets no comparison.
+
+The width of a point is picked from the range - 5 minutes up to 2 days, hours
+up to 3 weeks, days after that - so the graph never has more than a few hundred
+points. Quiet periods are filled with zeros on the server: buckets only exist
+where there were views, and without the zeros the line would be drawn straight
+across a night with nobody reading.
+
+The browser sends its time zone. A daily point is a local day; in Israel a UTC
+day would start at 3am. Mongo groups the buckets by hour and the server makes
+the local days from those, so DST days (23 and 25 hours) come out right.
+
+Chart.js draws the graph from a CDN, the same way the site gets no build step.
+It has no built-in event marker, so the dashed lines are a twenty line plugin
+in `public/js/analytics.js` rather than another dependency.
+

@@ -17,7 +17,7 @@ Roles: `guest` (not logged in), `reporter`, `editor`.
 | GET | `/api/articles` | guest | Feed data. Query: `page`, `q`, `category`, `sort` (`date`\|`popular`). Returns published articles only. |
 | GET | `/api/articles/:id/comments` | guest | Comments for one article. |
 | POST | `/api/articles/:id/comments` | guest | Body `{ authorName, body }`. Rate limited to 3 per minute per device. |
-| GET | `/api/weather` | guest | Sidebar widget (T4, `routes/weather.js`). Cached server side, up to 15 min old. Returns `{ city, temperature, feelsLike, high, low, humidity, wind, description, icon, fetchedAt, stale }`; `stale` is true when the weather service is down and this is the last known answer. `503` if there has never been one. |
+| GET | `/api/weather` | guest | Sidebar widget (T4, `routes/weather.js`). Query: `lat` and `lon`, both required - there is no default place; missing or off the globe is a `400`. Cached server side per place, up to 15 min old; the `Cache-Control` max-age is whatever is left of those 15 minutes, so with the browser's copy it is never older either. Returns `{ city, temperature, feelsLike, high, low, humidity, wind, description, icon, fetchedAt, stale }`; `city` is the place name from OpenStreetMap, or `null` if it could not be found. `stale` is true when the weather service is down and this is the last known answer. `503` if there has never been one. |
 
 ## Auth - `routes/auth.js` (T2) - done
 
@@ -84,7 +84,22 @@ Behind `requireRole('editor')`.
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/api/analytics/article/:id` | View counts over time plus the update points. Reads `ViewBucket`, returns something Chart.js can draw. |
+| GET | `/api/analytics/articles` | Live articles for the picker, most read first, one page at a time. Query: `q` (title contains), `skip`, `limit` (default 20, max 50). Returns `{ articles, hasMore, total }`. |
+| GET | `/api/analytics/article/:id` | View counts over time plus the update points. Reads `ViewBucket`, returns something Chart.js can draw. Query: `range` (`24h`\|`7d`\|`30d`\|`all`), `interval` (`5m`\|`1h`\|`1d`, picked from the range if left out), `tz` (browser time zone, so a day on the graph is a local day). |
+
+`/api/analytics/article/:id` returns:
+
+```js
+{
+  article:  { id, title, isLive, publishedAt, viewCount },
+  range, interval, intervalMs, timeZone, from, to,
+  total,                       // views inside the range
+  points:  [{ x, y }],         // x = start of the point in ms, y = views. Zero filled.
+  updates: [{ at, editor, kind, label, impact }]
+  // kind 'first' is the first publication, 'update' is every approval after it.
+  // impact = { windowHours, before, after, change } or null when it can't be measured
+}
+```
 
 ## Errors
 
