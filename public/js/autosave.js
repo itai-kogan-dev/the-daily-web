@@ -47,13 +47,92 @@ if (form && !form.dataset.readonly) {
   const isBlank = content => !content.title.trim() && !content.summary.trim() &&
                              !content.body.trim() && !content.imagePath.trim()
 
+  // A copy in this browser, under this article's key, written on every
+  // keystroke. The server is the truth - this only matters when a save never
+  // reached it: a keepalive that the browser drops (they are capped around
+  // 64KB, and a long body alone is bigger), or a tab killed mid-request.
+  const backupKey = () => `the-daily-web:draft:${articleId || 'new'}`
+
+  function writeBackup(dirty) {
+    try {
+      window.localStorage.setItem(backupKey(), JSON.stringify({
+        content: readForm(),
+        at: Date.now(),
+        dirty
+      }))
+    } catch {
+      // private mode or full storage: the server saves still work
+    }
+  }
+
+  function readBackup() {
+    try {
+      const raw = window.localStorage.getItem(backupKey())
+      if (!raw) return null
+      const parsed = JSON.parse(raw)
+      if (!parsed || typeof parsed !== 'object' || !parsed.content) return null
+      return parsed
+    } catch {
+      return null
+    }
+  }
+
+  // A save that never reached the server leaves dirty:true behind. If the
+  // form still shows what the server rendered, the backup is newer - put it
+  // back and queue a save, so nothing is silently lost.
+  (function recoverBackup() {
+    const saved = readBackup()
+    if (!saved || !saved.dirty) return
+    const current = readForm()
+    const same = ['title', 'summary', 'body', 'category', 'imagePath']
+      .every(name => (saved.content[name] || '') === (current[name] || ''))
+    if (same) return
+    const fields = { title: 'title', summary: 'summary', body: 'body', category: 'category', imagePath: 'imagePath' }
+    for (const name of Object.keys(fields)) {
+      if (typeof saved.content[name] === 'string') getField(name).value = saved.content[name]
+    }
+    hasUnsavedChanges = true
+    showStatus('Recovered unsent changes', 'pending')
+    clearTimeout(idleTimer)
+    idleTimer = setTimeout(saveDraft, IDLE_MS)
+  })()
+
+  // One request at a time. While a first POST is still in flight the id is
+  // unknown, so a second save would POST again and create the article twice.
+  // Instead it waits for the first one and then saves as a PATCH, or skips
+  // when there is nothing new left to send.
+  let inflight = null
+
+  // Logged out mid-edit (or the article left the reporter's hands): saving
+  // again would fail the same way forever, so stop and say so instead.
+  let stopped = false
+
+  function showLoggedOut() {
+    stopped = true
+    hasUnsavedChanges = false
+    clearTimeout(idleTimer)
+    clearTimeout(ceilingTimer)
+    ceilingTimer = null
+    if (!statusEl) return
+    statusEl.textContent = ''
+    statusEl.className = 'save-status error'
+    statusEl.append('Session ended. ', Object.assign(document.createElement('a'), {
+      href: '/login',
+      textContent: 'Log in again'
+    }), ' - nothing will save until then.')
+  }
+
   async function saveDraft() {
-    if (!hasUnsavedChanges) return
+    if (!hasUnsavedChanges || stopped) return
     // typed something then deleted it again - nothing worth creating yet
     if (!articleId && isBlank(readForm())) {
       hasUnsavedChanges = false
       showStatus('')
       return
+    }
+    if (inflight) {
+      await inflight.catch(() => null)
+      if (!hasUnsavedChanges || stopped) return
     }
     clearTimeout(idleTimer)
     clearTimeout(ceilingTimer)
@@ -64,42 +143,61 @@ if (form && !form.dataset.readonly) {
     hasUnsavedChanges = false
     showStatus('Saving...')
 
-    const isNew = !articleId
-    const res = await fetch(isNew ? '/reporter/api/article' : `/reporter/api/article/${articleId}`, {
-      method: isNew ? 'POST' : 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(readForm())
-    }).catch(() => null)
+    const run = (async () => {
+      const isNew = !articleId
+      const res = await fetch(isNew ? '/reporter/api/article' : `/reporter/api/article/${articleId}`, {
+        method: isNew ? 'POST' : 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(readForm())
+      }).catch(() => null)
 
-    if (!res || !res.ok) {
-      hasUnsavedChanges = true
-      showStatus('Could not save, retrying...', 'error')
-      setTimeout(saveDraft, 3000)
-      return
+      // the server said the session is gone or the article is not ours to
+      // save - retrying would loop forever on the same answer
+      if (res && (res.status === 401 || res.status === 403)) {
+        showLoggedOut()
+        return
+      }
+
+      if (!res || !res.ok) {
+        hasUnsavedChanges = true
+        showStatus('Could not save, retrying...', 'error')
+        setTimeout(saveDraft, 3000)
+        return
+      }
+
+      const data = await res.json()
+
+      if (isNew) {
+        articleId = data.id
+        form.dataset.id = data.id
+        // so a refresh lands on the real article instead of the empty form
+        history.replaceState(null, '', `/reporter/article/${data.id}`)
+      }
+
+      // editing a published article moves it back to in_progress
+      const badge = document.getElementById('status-badge')
+      if (badge && data.statusLabel) {
+        badge.textContent = data.statusLabel
+        badge.className = 'badge status-' + data.status
+      }
+
+      writeBackup(false)
+      showStatus('Saved ' + new Date(data.savedAt).toLocaleTimeString())
+    })()
+
+    inflight = run
+    try {
+      await run
+    } finally {
+      if (inflight === run) inflight = null
     }
-
-    const data = await res.json()
-
-    if (isNew) {
-      articleId = data.id
-      form.dataset.id = data.id
-      // so a refresh lands on the real article instead of the empty form
-      history.replaceState(null, '', `/reporter/article/${data.id}`)
-    }
-
-    // editing a published article moves it back to in_progress
-    const badge = document.getElementById('status-badge')
-    if (badge && data.statusLabel) {
-      badge.textContent = data.statusLabel
-      badge.className = 'badge status-' + data.status
-    }
-
-    showStatus('Saved ' + new Date(data.savedAt).toLocaleTimeString())
   }
 
   form.addEventListener('input', () => {
+    if (stopped) return
     hasUnsavedChanges = true
     showStatus('Unsaved changes', 'pending')
+    writeBackup(true)
 
     clearTimeout(idleTimer)
     idleTimer = setTimeout(saveDraft, IDLE_MS)
@@ -111,8 +209,10 @@ if (form && !form.dataset.readonly) {
   // Closing the tab or switching away. keepalive lets the request outlive the
   // page - a normal fetch gets cancelled when the page goes. The check matters:
   // without it, opening a new article and closing it untouched would create one.
+  // Large bodies (over ~64KB) may be dropped by the browser here; the backup
+  // above already holds them and is restored on the next visit.
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'hidden' || !hasUnsavedChanges) return
+    if (document.visibilityState !== 'hidden' || !hasUnsavedChanges || stopped) return
 
     const isNew = !articleId
     fetch(isNew ? '/reporter/api/article' : `/reporter/api/article/${articleId}`, {
