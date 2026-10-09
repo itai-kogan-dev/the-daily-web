@@ -110,19 +110,26 @@
   }
 
   const preview = document.getElementById('image-preview')
+  const removeBtn = document.getElementById('image-remove-btn')
 
-  // a pasted path shows its picture as soon as it looks like a stored one
+  // the hidden field is set only by the picker, show its picture when valid
   function syncPreview() {
-    if (!preview) return
-    const value = getField('imagePath').value.trim()
+    const field = getField('imagePath')
+    const value = field ? field.value.trim() : ''
     if (!value) {
-      preview.hidden = true
-      preview.removeAttribute('src')
+      if (preview) {
+        preview.hidden = true
+        preview.removeAttribute('src')
+      }
+      if (removeBtn) removeBtn.hidden = true
       return
     }
     if (/^\/images\/[a-f0-9]{24}$/i.test(value)) {
-      preview.src = value
-      preview.hidden = false
+      if (preview) {
+        preview.src = value
+        preview.hidden = false
+      }
+      if (removeBtn) removeBtn.hidden = false
     }
   }
 
@@ -207,9 +214,11 @@
     }
 
     const data = await res.json()
-    getField('imagePath').value = data.url
+    const pathField = getField('imagePath')
+    if (pathField) pathField.value = data.url
     if (imageName) imageName.textContent = file.name
     syncPreview()
+    if (removeBtn) removeBtn.hidden = false
 
     // the path field fires no input event of its own, so autosave is told
     // directly - and saved now rather than in a second and a half, so the
@@ -227,6 +236,20 @@
       if (file) sendImage(file)
     })
   }
+
+  if (removeBtn) removeBtn.addEventListener('click', () => {
+    const pathField = getField('imagePath')
+    if (pathField) pathField.value = ''
+    if (preview) {
+      preview.hidden = true
+      preview.removeAttribute('src')
+    }
+    if (imageName) imageName.textContent = 'No image yet'
+    showImageError('')
+    removeBtn.hidden = true
+    hasUnsavedChanges = true
+    saveDraft()
+  })
 
   const dropZone = document.getElementById('image-drop')
 
