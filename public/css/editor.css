@@ -170,6 +170,11 @@ button.danger {
   color: var(--accent);
 }
 
+.ed-thumb-preview {
+  max-width: 240px;
+  margin: .6rem 0 0;
+}
+
 .comments .comment textarea {
   width: 100%;
   font: inherit;

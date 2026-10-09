@@ -89,9 +89,17 @@
             <textarea name="body" rows="12"><%= content.body %></textarea>
           </label>
 
-          <label>Image path
+          <div class="field">
+            <span class="field-label">Image</span>
+            <div id="image-drop" class="image-drop">
+              <button type="button" id="image-pick-btn" class="button-secondary">Choose image</button>
+              <span id="image-name" class="muted"><%= imageName || 'No image yet' %></span>
+            </div>
+            <input type="file" id="image-file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif" hidden>
             <input name="imagePath" value="<%= content.imagePath %>" placeholder="/images/...">
-          </label>
+            <img id="image-preview" class="article-hero ed-thumb-preview" src="<%= content.imagePath %>" alt="Draft image preview"<%= content.imagePath ? '' : ' hidden' %>>
+            <p id="image-error" class="error" hidden></p>
+          </div>
         </form>
 
         <div class="review-actions ed-actions">

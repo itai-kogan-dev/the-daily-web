@@ -134,6 +134,22 @@ async function editDraft(req, res) {
   })
 }
 
+// the picture goes to the store on its own and comes back as a path. the
+// article is not touched here - the picker puts the path in the form and
+// the next autosave carries it like any other field
+async function uploadImage(req, res) {
+  if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+    throw makeError(400, 'No picture received')
+  }
+
+  const url = await imageStore.saveImage(req.body, {
+    filename: (req.get('X-Image-Name') || 'image').slice(0, 120),
+    contentType: req.get('Content-Type')
+  })
+
+  res.status(201).json({ url })
+}
+
 // approval. the workflow owns the transition, this just carries the article
 // there and back
 async function publishArticle(req, res) {
@@ -242,6 +258,7 @@ module.exports = {
   showQueue,
   showReview,
   editDraft,
+  uploadImage,
   publishArticle,
   returnArticle,
   deleteArticle,
