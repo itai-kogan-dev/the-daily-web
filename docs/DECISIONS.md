@@ -201,8 +201,14 @@ read and comment without one.
 This is also what gives the User model its full CRUD, which the spec asks for on
 every model. `docs/API.md` has the coverage table.
 
-One thing to handle when building it: refuse to delete the last editor, or
-nobody can log in afterwards.
+Deleting the last editor is refused, or nobody could log in afterwards, and so
+is deleting your own account. A role is picked when the account is created and
+cannot be changed later.
+
+The session holds a copy of the account from login, so staff routes reload it
+from the database (`refreshSessionUser` in `middleware/auth.js`). A deleted
+account is logged out on its next request instead of working until the cookie
+expires.
 
 ## Search matches part of a word
 

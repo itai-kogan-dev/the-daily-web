@@ -2,14 +2,13 @@ const express = require('express')
 const { requireRole } = require('../middleware/auth')
 const { ROLES } = require('../models/User')
 const editor = require('../controllers/editorController')
+const users = require('../controllers/userController')
 const imageStore = require('../services/imageStore')
 
 const router = express.Router()
 
 // guards every route in this file
 router.use(requireRole(ROLES.EDITOR))
-
-const todo = name => (req, res) => res.status(501).send(`TODO: ${name}`)
 
 // pages
 router.get('/', editor.showQueue)
@@ -33,14 +32,15 @@ router.delete('/api/article/:id/views', editor.clearViews)
 // --- users: pages ---
 // There is no sign up. Reporters and editors are staff, so an editor creates
 // their accounts. The very first editor comes from the seed script.
-router.get('/users', (req, res) => res.render('editor/users'))
-router.get('/users/new', (req, res) => res.render('editor/user-edit'))
-router.get('/users/:id', (req, res) => res.render('editor/user-edit'))
+// /users/new has to come first, otherwise :id would match the word "new"
+router.get('/users', users.showUsers)
+router.get('/users/new', users.showNewUser)
+router.get('/users/:id', users.showEditUser)
 
 // --- users: json ---
-router.post('/api/users', todo('create user'))
-router.patch('/api/users/:id', todo('update user'))
-router.delete('/api/users/:id', todo('delete user'))
+router.post('/api/users', users.createUser)
+router.patch('/api/users/:id', users.updateUser)
+router.delete('/api/users/:id', users.deleteUser)
 
 // comment moderation
 router.patch('/api/comments/:id', editor.editComment)

@@ -69,8 +69,10 @@ the seed script, otherwise nobody could log in to create anyone.
 | GET | `/editor/users/new` | Create form. |
 | GET | `/editor/users/:id` | Edit form. |
 | POST | `/editor/api/users` | Body `{ username, displayName, password, role }`. Password goes through `User.hashPassword`. |
-| PATCH | `/editor/api/users/:id` | Update. Only re-hash the password if a new one was sent. |
-| DELETE | `/editor/api/users/:id` | Delete. Refuse to delete the last editor, or nobody can log in. |
+| PATCH | `/editor/api/users/:id` | Update. Role can't be changed. Only re-hash the password if a new one was sent. |
+| DELETE | `/editor/api/users/:id` | Delete. Refuse to delete the last editor, or nobody can log in, and refuse your own account. |
+
+Usernames are 3-30 letters, numbers, dots, dashes or underscores; passwords at least 8 characters. Staff routes reload the account behind the session on every request, so a deleted account is logged out straight away.
 
 ### Comment moderation
 

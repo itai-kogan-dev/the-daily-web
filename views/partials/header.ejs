@@ -7,6 +7,7 @@
       <% } else { %>
         <% if (user.role === 'reporter') { %><a href="/reporter">Reporter Space</a><% } %>
         <% if (user.role === 'editor') { %><a href="/editor">Editor Space</a><% } %>
+        <% if (user.role === 'editor') { %><a href="/editor/users">Manage Users</a><% } %>
         <span class="who"><%= user.displayName %></span>
         <span class="nav-divider" aria-hidden="true">&middot;</span>
         <form method="post" action="/logout"><button type="submit">Log out</button></form>
