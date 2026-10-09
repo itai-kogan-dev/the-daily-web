@@ -1,9 +1,10 @@
 // Fills the sidebar weather widget from /api/weather. Loaded by the sidebar
 // partial, so every page that has the sidebar gets it.
 //
-// The default place shows straight away, then we ask the browser where the
-// reader is and swap in their weather if they let us. Nothing waits on the
-// permission prompt, and saying no just leaves the default.
+// The weather is always the reader's own: we ask the browser where they are.
+// There is no default city - weather for somewhere else would look like
+// theirs - so every way of not getting a location ends in a plain message
+// saying what happened, never in an empty box or the wrong city.
 (() => {
   const widget = document.getElementById('weather-widget')
   const body = widget && widget.querySelector('.weather-body')
@@ -14,8 +15,8 @@
   const round = value => Math.round(value * 10) / 10
   const STORE_KEY = 'weather-coords'
 
-  // Remembered for the visit, so the next page goes straight to the reader's
-  // weather instead of showing the default first and then switching.
+  // Remembered for the visit, so the next page goes straight to the weather
+  // instead of waiting for the browser to find the reader again.
   function savedCoords() {
     try { return JSON.parse(sessionStorage.getItem(STORE_KEY)) } catch { return null }
   }
@@ -46,8 +47,14 @@
     temp.className = 'weather-temp'
     temp.textContent = `${w.temperature}°`
     const desc = document.createElement('span')
-    desc.textContent = w.city ? `${w.description} in ${w.city}` : `${w.description} near you`
+    desc.textContent = w.description
     now.append(icon, temp, desc)
+
+    // the place goes on a line of its own: it is how the reader knows the
+    // weather is theirs
+    const place = document.createElement('p')
+    place.className = 'weather-place'
+    place.textContent = w.city ? `In ${w.city}` : 'Near you'
 
     const details = document.createElement('dl')
     details.className = 'weather-details'
@@ -62,49 +69,89 @@
     updated.className = 'muted weather-updated'
     updated.textContent = w.stale ? `Last known, from ${time}` : `Updated ${time}`
 
-    body.replaceChildren(now, details, updated)
+    body.replaceChildren(place, now, details, updated)
   }
 
-  function showError() {
+  // A message, and optionally a button that tries again.
+  function showMessage(text, retryLabel) {
     const p = document.createElement('p')
     p.className = 'muted'
-    p.textContent = 'Weather is not available right now.'
-    body.replaceChildren(p)
+    p.textContent = text
+    const parts = [p]
+    if (retryLabel) {
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = 'weather-retry'
+      button.textContent = retryLabel
+      button.addEventListener('click', locate)
+      parts.push(button)
+    }
+    body.replaceChildren(...parts)
   }
 
-  // the two requests can finish in either order - a cached position answers
-  // instantly - and the default must never replace the reader's own weather
-  let showingLocal = false
+  let showing = false   // the reader's weather is on screen
 
   async function load(coords) {
-    const query = coords ? `?lat=${coords.lat}&lon=${coords.lon}` : ''
-    const res = await fetch('/api/weather' + query, { headers: { Accept: 'application/json' } })
-    if (!res.ok) throw new Error()
-    const weather = await res.json()
-    if (!coords && showingLocal) return
-    if (coords) showingLocal = true
-    render(weather)
+    try {
+      const res = await fetch(`/api/weather?lat=${coords.lat}&lon=${coords.lon}`, { headers: { Accept: 'application/json' } })
+      if (!res.ok) throw new Error()
+      render(await res.json())
+      showing = true
+    } catch {
+      if (!showing) showMessage("Weather isn't available for your area right now.", 'Try again')
+    }
   }
 
-  const known = savedCoords()
-  if (known) {
-    // their place failed (service down for it, say) -> the default beats nothing
-    load(known).catch(() => load().catch(showError))
+  let locating = false
+
+  function locate() {
+    if (locating) return
+    locating = true
+    if (!showing) showMessage('Finding your location…')
+
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        locating = false
+        const coords = { lat: round(position.coords.latitude), lon: round(position.coords.longitude) }
+        saveCoords(coords)
+        load(coords)
+      },
+      error => {
+        locating = false
+        if (showing) return
+        if (error.code === error.PERMISSION_DENIED) {
+          // also what a dismissed prompt reports. The button asks again when
+          // the browser still can; when it can't, the text says what to do
+          showMessage('Allow location access for this site to see the weather where you are.', 'Use my location')
+        } else {
+          showMessage("We couldn't find your location, so weather isn't available right now.", 'Try again')
+        }
+      },
+      // The timer only starts once the reader allows it, but the first fix
+      // after a fresh grant can take a while - 8 seconds was not enough and
+      // looked like nothing happened until a reload. A position from the last
+      // 30 minutes is fine for weather and comes back at once.
+      { timeout: 30000, maximumAge: 30 * 60 * 1000 }
+    )
+  }
+
+  if (!navigator.geolocation) {
+    showMessage("Your browser can't share a location, so weather isn't available here.")
     return
   }
 
-  load().catch(() => { if (!showingLocal) showError() })
+  const known = savedCoords()
+  if (known) load(known)
+  else locate()
 
-  if (!navigator.geolocation) return
-  navigator.geolocation.getCurrentPosition(
-    position => {
-      const coords = { lat: round(position.coords.latitude), lon: round(position.coords.longitude) }
-      saveCoords(coords)
-      // if this fails the default is already on screen, so leave it there
-      load(coords).catch(() => {})
-    },
-    () => { /* denied, unavailable or timed out - the default stays */ },
-    // a position from the last 30 minutes is fine for weather, and is instant
-    { timeout: 8000, maximumAge: 30 * 60 * 1000 }
-  )
+  // If the reader changes the permission while the page is open - allows it
+  // from the address bar after saying no, say - look again right away
+  // instead of waiting for a reload.
+  if (navigator.permissions && navigator.permissions.query) {
+    navigator.permissions.query({ name: 'geolocation' }).then(status => {
+      status.addEventListener('change', () => {
+        if (status.state === 'granted' && !showing) locate()
+      })
+    }).catch(() => { /* not supported for geolocation here */ })
+  }
 })()

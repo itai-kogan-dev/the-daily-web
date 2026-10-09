@@ -1,9 +1,11 @@
-// The sidebar weather widget. Every page with a sidebar asks for it, so the
-// answer is cached here and the weather service hears from us at most once
-// per CACHE_MS per place, however many readers there are.
+// The sidebar weather widget: the weather where the reader is, and the name
+// of the place so they can see it is theirs. Every page with a sidebar asks
+// for it, so the answer is cached here and the weather service hears from us
+// at most once per CACHE_MS per place, however many readers there are.
 //
 // Open-Meteo rather than OpenWeather: it needs no API key, so there is no
 // secret to share between four laptops and nothing to leak into the repo.
+// It has no place names, so those come from OpenStreetMap's Nominatim.
 
 const CACHE_MS = 15 * 60 * 1000   // the spec allows up to 15 minutes old
 const TIMEOUT_MS = 5000
@@ -16,12 +18,10 @@ const PRECISION = 10
 // cannot grow the cache without limit. The oldest place goes first.
 const MAX_PLACES = 500
 
-// Where readers who don't share a location get their weather from.
-const DEFAULT_PLACE = {
-  city: process.env.WEATHER_CITY || 'Tel Aviv',
-  lat: Number(process.env.WEATHER_LAT || 32.08),
-  lon: Number(process.env.WEATHER_LON || 34.78)
-}
+// Nominatim's rules: say who we are, and at most one request a second.
+// A town's name never changes, so each place is looked up once and kept.
+const NOMINATIM_AGENT = 'TheDailyWeb/1.0 (course project; https://github.com/itai-kogan-dev/the-daily-web)'
+const NOMINATIM_GAP_MS = 1100
 
 // WMO weather codes, which is what Open-Meteo reports. Grouped, since the
 // widget has no room for "moderate freezing drizzle".
@@ -49,12 +49,11 @@ function httpError(status, message) {
 
 const round = value => Math.round(value * PRECISION) / PRECISION
 
-// Both or neither: no coordinates is the default place, one of the two or a
-// value off the globe is a bad request rather than a silent Tel Aviv.
+// There is no default place: weather for somewhere the reader is not would
+// look like theirs. Without a location the widget says so instead.
 function resolvePlace(lat, lon) {
   const given = [lat, lon].filter(value => value !== undefined && value !== '')
-  if (given.length === 0) return DEFAULT_PLACE
-  if (given.length === 1) throw httpError(400, 'Send both lat and lon, or neither')
+  if (given.length < 2) throw httpError(400, 'Send lat and lon')
 
   const latitude = Number(lat)
   const longitude = Number(lon)
@@ -62,8 +61,48 @@ function resolvePlace(lat, lon) {
       !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
     throw httpError(400, 'lat and lon must be a real place')
   }
-  // Open-Meteo has no city names for coordinates, so the widget says "near you"
-  return { city: null, lat: round(latitude), lon: round(longitude) }
+  return { lat: round(latitude), lon: round(longitude) }
+}
+
+const names = new Map()   // place key -> name, oldest first
+let nextNameAt = 0        // when Nominatim may next be asked
+
+// The city, town or village a place is in, or null if Nominatim cannot say.
+// A missing name never costs the reader their weather - the widget falls
+// back to "near you".
+async function placeName(place, key) {
+  if (names.has(key)) return names.get(key)
+
+  // queue behind the previous lookup, so a burst of new places still asks
+  // Nominatim at most once a second
+  const wait = Math.max(0, nextNameAt - Date.now())
+  nextNameAt = Date.now() + wait + NOMINATIM_GAP_MS
+  if (wait) await new Promise(resolve => setTimeout(resolve, wait))
+
+  try {
+    const url = new URL('https://nominatim.openstreetmap.org/reverse')
+    url.search = new URLSearchParams({
+      format: 'jsonv2', lat: place.lat, lon: place.lon,
+      zoom: '10',                 // city level - we never want a street
+      'accept-language': 'en'
+    })
+    const res = await fetch(url, {
+      headers: { 'User-Agent': NOMINATIM_AGENT },
+      signal: AbortSignal.timeout(TIMEOUT_MS)
+    })
+    if (!res.ok) throw new Error(`answered ${res.status}`)
+    const body = await res.json()
+    const address = body.address || {}
+    const name = address.city || address.town || address.village || address.municipality || body.name || null
+
+    // only an answer is kept; a failure is tried again next time
+    names.set(key, name)
+    if (names.size > MAX_PLACES) names.delete(names.keys().next().value)
+    return name
+  } catch (err) {
+    console.error('[weather] could not name', key, '-', err.message)
+    return null
+  }
 }
 
 async function fetchWeather(place) {
@@ -93,7 +132,6 @@ async function fetchWeather(place) {
 
   const { text, icon } = describe(now.weather_code, now.is_day)
   return {
-    city: place.city,
     temperature: Math.round(now.temperature_2m),
     feelsLike: Math.round(now.apparent_temperature),
     high: Math.round(daily.temperature_2m_max[0]),
@@ -135,8 +173,8 @@ async function getWeather({ lat, lon } = {}) {
 
   let pending = inFlight.get(key)
   if (!pending) {
-    pending = fetchWeather(place)
-      .then(data => remember(key, { data, fetchedAt: Date.now() }))
+    pending = Promise.all([fetchWeather(place), placeName(place, key)])
+      .then(([data, city]) => remember(key, { data: { city, ...data }, fetchedAt: Date.now() }))
       .catch(err => {
         // logged here, once per failed refresh, not once per waiting reader
         console.error('[weather] could not refresh', key, '-', err.message)
