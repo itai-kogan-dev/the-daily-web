@@ -1,14 +1,20 @@
 const express = require('express')
-const { getWeather } = require('../services/weather')
+const { getWeather, CACHE_MS } = require('../services/weather')
 
 const router = express.Router()
 
 // the sidebar widget, open to guests. Query: lat and lon, both required -
-// there is no default place. The server keeps its own 15 minute cache per
-// place; the browser may keep the answer for 5 of those
+// there is no default place.
 router.get('/', async (req, res) => {
   const weather = await getWeather({ lat: req.query.lat, lon: req.query.lon })
-  res.set('Cache-Control', 'public, max-age=300')
+
+  // The browser may keep the answer only for what is left of its 15 minutes.
+  // A flat max-age on top of the server cache would add up: an answer handed
+  // out at 14 minutes old, kept 5 more, is shown at 19.
+  // A stale answer (weather service down) is not kept at all, so the next
+  // page asks again and gets fresh weather as soon as there is some.
+  const left = Math.floor((CACHE_MS - (Date.now() - weather.fetchedAt.getTime())) / 1000)
+  res.set('Cache-Control', weather.stale || left <= 0 ? 'no-cache' : `public, max-age=${left}`)
   res.json(weather)
 })
 
