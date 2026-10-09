@@ -92,11 +92,22 @@ See `middleware/rateLimit.js`.
 
 Open-Meteo instead of OpenWeather because it needs no API key: no secret to
 pass between four laptops, nothing to leak, and the widget works on a fresh
-clone. The place is set in `.env` (`WEATHER_CITY`, `WEATHER_LAT`, `WEATHER_LON`).
+clone.
+
+The widget shows the reader's own weather when the browser lets us have their
+location, and the default place from `.env` (`WEATHER_CITY`, `WEATHER_LAT`,
+`WEATHER_LON` - Tel Aviv) otherwise. The default shows first and the reader's
+weather replaces it, so nothing waits on the permission prompt and saying no
+just leaves the default. The location is rounded to a tenth of a degree (about
+11 km) in the browser before it is sent: that is plenty for weather, it is the
+most precise location we ever see, and it lets a whole city share one cache
+entry. It is remembered for the visit, so the next page skips the lookup.
 
 Every page with a sidebar asks for the weather, so the server caches the answer
-for 15 minutes - the limit the spec allows - and the weather service hears from
-us about 4 times an hour whatever the traffic. When the cache is cold and many
+per place for 15 minutes - the limit the spec allows - and the weather service
+hears from us about 4 times an hour per place whatever the traffic. The cache
+holds at most 500 places, oldest out first, so readers from everywhere cannot
+grow it without limit. When the cache is cold and many
 readers arrive at once, they all wait for the same single request instead of
 sending one each. If the service is down we keep showing the last answer,
 labelled as such, rather than an error. A 5 second timeout means a hung weather
