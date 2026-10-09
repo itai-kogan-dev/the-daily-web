@@ -1,4 +1,6 @@
 require('dotenv').config()
+// before anything else can log, so the file has every line from the start
+require('./config/logFile').startLogFile()
 
 const express = require('express')
 const session = require('express-session')

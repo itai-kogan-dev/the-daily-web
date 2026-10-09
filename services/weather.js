@@ -195,4 +195,4 @@ async function getWeather({ lat, lon } = {}) {
   return answer(cache.get(key), false)
 }
 
-module.exports = { getWeather }
+module.exports = { getWeather, CACHE_MS }

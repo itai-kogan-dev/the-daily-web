@@ -17,7 +17,7 @@ Roles: `guest` (not logged in), `reporter`, `editor`.
 | GET | `/api/articles/ids` | guest | Same filters as `/api/articles`, ids only. Used by the feed's unread count. |
 | GET | `/api/articles/:id/comments` | guest | Comments for one article. |
 | POST | `/api/articles/:id/comments` | guest | Body `{ authorName, body }`. Rate limited to 3 per minute per device. |
-| GET | `/api/weather` | guest | Sidebar widget (`routes/weather.js`). Query: `lat` and `lon`, both required - there is no default place; missing or off the globe is a `400`. Cached server side per place, up to 15 min old. Returns `{ city, temperature, feelsLike, high, low, humidity, wind, description, icon, fetchedAt, stale }`; `city` is the place name from OpenStreetMap, or `null` if it could not be found. `stale` is true when the weather service is down and this is the last known answer. `503` if there has never been one. |
+| GET | `/api/weather` | guest | Sidebar widget (`routes/weather.js`). Query: `lat` and `lon`, both required - there is no default place; missing or off the globe is a `400`. Cached server side per place, up to 15 min old; the `Cache-Control` max-age is whatever is left of those 15 minutes, so with the browser's copy it is never older either. Returns `{ city, temperature, feelsLike, high, low, humidity, wind, description, icon, fetchedAt, stale }`; `city` is the place name from OpenStreetMap, or `null` if it could not be found. `stale` is true when the weather service is down and this is the last known answer. `503` if there has never been one. |
 
 ## Auth - `routes/auth.js`
 
