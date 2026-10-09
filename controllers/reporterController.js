@@ -96,14 +96,23 @@ async function showEditor(req, res) {
 
 // Pulls the content fields out of a request body. A draft is allowed to be
 // half written, so nothing here is rejected for being empty - losing work to a
-// validation error is exactly what the spec says must not happen.
+// validation error is exactly what the spec says must not happen. But a field
+// that is present must be text: calling .trim() on a number or an object is
+// a 500, and silently keeping it would fail later at save time instead.
+function readText(value, fallback) {
+  if (value === undefined || value === null) return fallback
+  if (typeof value !== 'string') throw makeError(400, 'Some of the details are not text')
+  return value
+}
+
 function readContent(body, current = {}) {
+  const data = body || {}
   return {
-    title:    (body.title    ?? current.title    ?? '').trim() || 'Untitled',
-    summary:  (body.summary  ?? current.summary  ?? '').trim(),
-    body:      body.body     ?? current.body     ?? '',
-    category: CATEGORIES.includes(body.category) ? body.category : (current.category || CATEGORIES[0]),
-    imagePath: (body.imagePath ?? current.imagePath ?? '').trim()
+    title:     (readText(data.title, current.title ?? '').trim() || 'Untitled'),
+    summary:   readText(data.summary, current.summary ?? '').trim(),
+    body:      readText(data.body, current.body ?? ''),
+    category: CATEGORIES.includes(data.category) ? data.category : (current.category || CATEGORIES[0]),
+    imagePath: readText(data.imagePath, current.imagePath ?? '').trim()
   }
 }
 

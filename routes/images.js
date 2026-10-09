@@ -13,7 +13,15 @@ router.get('/:id', async (req, res, next) => {
   // an id never points at different bytes, so it can be cached hard
   res.set('Cache-Control', 'public, max-age=31536000, immutable')
 
-  imageStore.openImage(req.params.id).pipe(res)
+  // A stream error with no listener is an uncaught exception and takes the
+  // whole server down. Hand it to the error handler instead - by then the
+  // headers are sent, so it can only log and close the connection.
+  const stream = imageStore.openImage(req.params.id)
+  stream.on('error', err => {
+    if (!res.headersSent) return next(err)
+    res.destroy()
+  })
+  stream.pipe(res)
 })
 
 module.exports = router

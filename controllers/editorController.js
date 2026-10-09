@@ -85,6 +85,12 @@ async function showReview(req, res) {
     article,
     content,
     hasDraft: Boolean(draft),
+    // the live body as paragraphs, the same split the article page uses - one
+    // <p> for the whole text would glue every paragraph together
+    liveParagraphs: String((article.publishedContent && article.publishedContent.body) || '')
+      .split(/\n\s*\n/)
+      .map(part => part.trim())
+      .filter(Boolean),
     imageName: await imageStore.findImageName(content.imagePath),
     comments,
     STATUS, STATUS_LABELS, CATEGORIES, CATEGORY_LABELS

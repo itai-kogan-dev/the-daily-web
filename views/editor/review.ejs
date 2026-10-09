@@ -60,7 +60,9 @@
           <% } %>
           <p class="article-lead"><%= article.publishedContent.summary %></p>
           <div class="article-body">
-            <p><%= article.publishedContent.body %></p>
+            <% liveParagraphs.forEach(paragraph => { %>
+              <p><%= paragraph %></p>
+            <% }) %>
           </div>
         </section>
       <% } %>

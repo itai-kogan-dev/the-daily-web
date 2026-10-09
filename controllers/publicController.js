@@ -84,8 +84,14 @@ function feedMatch({ category, q }) {
 // A regex gives no score to sort by, so the chosen order is the whole story:
 // searching narrows the feed, and sort decides where the results land. There
 // used to be a relevance field here, fed by $meta: 'textScore'.
+//
+// _id closes both orders: two articles can share a viewCount and a
+// publishedAt, and without a final tiebreaker they swap places between page
+// 1 and page 2 - the same article twice, another one never shown.
 function sortFor(sort) {
-  return sort === 'popular' ? { viewCount: -1, publishedAt: -1 } : { publishedAt: -1 }
+  return sort === 'popular'
+    ? { viewCount: -1, publishedAt: -1, _id: -1 }
+    : { publishedAt: -1, _id: -1 }
 }
 
 function rowsPipeline(options) {
@@ -337,13 +343,31 @@ async function listComments(req, res) {
   res.json(await findComments(req.params.id))
 }
 
+// Runs before the rate limiter on the comment route: a wrong or unapproved id
+// is a 404 even for a reader who already used up their three comments, and a
+// missing article must never cost anyone quota.
+async function requireLiveArticle(req, res, next) {
+  await assertLiveArticle(req.params.id)
+  next()
+}
+
 async function addComment(req, res) {
   await assertLiveArticle(req.params.id)
 
+  // Anything that is not a string is rejected outright - String() would turn
+  // 123 into a name instead of telling the caller it sent the wrong shape,
+  // and .trim() on an object is a 500.
+  const rawName = req.body ? req.body.authorName : undefined
+  const rawBody = req.body ? req.body.body : undefined
+  if ((rawName !== undefined && typeof rawName !== 'string') ||
+      (rawBody !== undefined && typeof rawBody !== 'string')) {
+    throw makeError(400, 'A name and a comment are both needed')
+  }
+
   // Trimmed here as well as in the schema: a name of spaces would otherwise
   // satisfy the maxlength and leave a blank comment on the page.
-  const authorName = String(req.body.authorName || '').trim()
-  const body = String(req.body.body || '').trim()
+  const authorName = String(rawName || '').trim()
+  const body = String(rawBody || '').trim()
 
   // The schema's own maxlength is the real check, but what it says is a Mongoose
   // message naming the field. The two mistakes anyone actually makes get a
@@ -361,4 +385,4 @@ async function addComment(req, res) {
   res.status(201).json(toComment(comment))
 }
 
-module.exports = { feedPage, articlePage, listArticles, articleIds, listComments, addComment }
+module.exports = { feedPage, articlePage, listArticles, articleIds, listComments, requireLiveArticle, addComment }
