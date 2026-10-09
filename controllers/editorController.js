@@ -3,7 +3,9 @@ const Article = require('../models/Article')
 const { STATUS, STATUS_LABELS, CATEGORIES, CATEGORY_LABELS } = Article
 const Comment = require('../models/Comment')
 const ViewBucket = require('../models/ViewBucket')
+const EditorDraft = require('../models/EditorDraft')
 const workflow = require('../services/articleWorkflow')
+const imageStore = require('../services/imageStore')
 
 function makeError(status, message) {
   const err = new Error(message)
@@ -58,7 +60,6 @@ async function showQueue(req, res) {
   res.render('editor/queue', {
     articles: [...waiting, ...rest],
     counts,
-    pendingCount: counts[STATUS.PENDING_EDITOR],
     filter,
     statuses,
     STATUS, STATUS_LABELS, CATEGORY_LABELS
@@ -68,12 +69,23 @@ async function showQueue(req, res) {
 async function showReview(req, res) {
   const article = await findArticle(req.params.id)
 
+  // the editor's own in-progress copy when one exists, otherwise what the
+  // reporter submitted. opening the page never creates anything - the first
+  // autosave does that
+  const draft = await EditorDraft.findOne({ article: article._id }).lean()
+  const content = draft
+    ? draft.content
+    : article.draftContent.toObject()
+
   const comments = await Comment.find({ article: article._id })
     .sort({ createdAt: 1 })
     .lean()
 
   res.render('editor/review', {
     article,
+    content,
+    hasDraft: Boolean(draft),
+    imageName: await imageStore.findImageName(content.imagePath),
     comments,
     STATUS, STATUS_LABELS, CATEGORIES, CATEGORY_LABELS
   })
@@ -100,15 +112,23 @@ function readDraftContent(body, current) {
   }
 }
 
-// editor fixes the working copy only, what readers see is left alone
+// the editor's typing lands in their private copy only. the reporter's
+// draftContent, the live page and the status are never touched here
 async function editDraft(req, res) {
   const article = await findArticle(req.params.id)
 
-  article.draftContent = readDraftContent(req.body, article.draftContent)
-  await article.save()
+  const existing = await EditorDraft.findOne({ article: article._id })
+  const seed = existing ? existing.content : article.draftContent
+  const content = readDraftContent(req.body, seed)
+
+  const draft = await EditorDraft.findOneAndUpdate(
+    { article: article._id },
+    { article: article._id, editor: req.session.user.id, content },
+    { upsert: true, new: true, runValidators: true }
+  )
 
   res.json({
-    savedAt: article.updatedAt,
+    savedAt: draft.updatedAt,
     status: article.status,
     statusLabel: STATUS_LABELS[article.status]
   })
