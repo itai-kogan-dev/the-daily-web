@@ -84,7 +84,22 @@ Behind `requireRole('editor')`.
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/api/analytics/article/:id` | View counts over time plus the update points. Reads `ViewBucket`, returns something Chart.js can draw. |
+| GET | `/api/analytics/articles` | Live articles for the picker, most read first, one page at a time. Query: `q` (title contains), `skip`, `limit` (default 20, max 50). Returns `{ articles, hasMore, total }`. |
+| GET | `/api/analytics/article/:id` | View counts over time plus the update points. Reads `ViewBucket`, returns something Chart.js can draw. Query: `range` (`24h`\|`7d`\|`30d`\|`all`), `interval` (`5m`\|`1h`\|`1d`, picked from the range if left out), `tz` (browser time zone, so a day on the graph is a local day). |
+
+`/api/analytics/article/:id` returns:
+
+```js
+{
+  article:  { id, title, isLive, publishedAt, viewCount },
+  range, interval, intervalMs, timeZone, from, to,
+  total,                       // views inside the range
+  points:  [{ x, y }],         // x = start of the point in ms, y = views. Zero filled.
+  updates: [{ at, editor, kind, label, impact }]
+  // kind 'first' is the first publication, 'update' is every approval after it.
+  // impact = { windowHours, before, after, change } or null when it can't be measured
+}
+```
 
 ## Errors
 

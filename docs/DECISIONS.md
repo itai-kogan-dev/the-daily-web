@@ -127,3 +127,27 @@ every model. `docs/API.md` has the coverage table.
 
 One thing to handle when building it: refuse to delete the last editor, or
 nobody can log in afterwards.
+
+## The analytics graph
+
+The editor's question is "did publishing an update bring readers back?", so
+the page answers it twice: a marker on the graph at every update, and a table
+with the views in the window after each update against the same length of time
+before it. The window is a day, cut shorter when the previous or next update is
+closer - otherwise one update's spike would be counted as the next one's
+"before". The first publication is not an update and gets no comparison.
+
+The width of a point is picked from the range - 5 minutes up to 2 days, hours
+up to 3 weeks, days after that - so the graph never has more than a few hundred
+points. Quiet periods are filled with zeros on the server: buckets only exist
+where there were views, and without the zeros the line would be drawn straight
+across a night with nobody reading.
+
+The browser sends its time zone. A daily point is a local day; in Israel a UTC
+day would start at 3am. Mongo groups the buckets by hour and the server makes
+the local days from those, so DST days (23 and 25 hours) come out right.
+
+Chart.js draws the graph from a CDN, the same way the site gets no build step.
+It has no built-in event marker, so the dashed lines are a twenty line plugin
+in `public/js/analytics.js` rather than another dependency.
+
