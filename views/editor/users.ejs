@@ -2,8 +2,36 @@
 <%- include('../partials/header') %>
 
 <main class="page">
-  <!-- T2: list every reporter and editor, with links to edit or delete -->
-  <h1>TODO: users</h1>
+  <div class="page-top">
+    <h1>Users</h1>
+    <a class="button" href="/editor/users/new">New user</a>
+  </div>
+
+  <p class="muted">Staff accounts. Reporters and editors log in with these; there is no sign-up page.</p>
+
+  <% if (!users.length) { %>
+    <p class="muted">No accounts yet.</p>
+  <% } else { %>
+    <ul class="article-list" id="user-list">
+      <% users.forEach(account => { %>
+        <li class="article-row" data-user="<%= account._id %>">
+          <div class="article-body">
+            <a class="article-title" href="/editor/users/<%= account._id %>"><%= account.displayName %></a>
+            <div class="article-meta">
+              <span><%= account.username %></span>
+              <span class="badge"><%= ROLE_LABELS[account.role] %></span>
+            </div>
+            <div class="comment-actions">
+              <a class="button-secondary" href="/editor/users/<%= account._id %>">Edit</a>
+              <button type="button" class="button-secondary danger-text" data-delete>Delete</button>
+            </div>
+            <p class="error" data-error hidden></p>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
 </main>
 
+<script src="/js/users.js"></script>
 <%- include('../partials/footer') %>

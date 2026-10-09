@@ -50,16 +50,24 @@ async function showEditUser(req, res) {
 
 // picks the account fields out of a request body. the schema lowercases and
 // trims the username on save, but lookups and duplicate checks run before
-// that, so the same normalising happens here first.
+// that, so the same normalising happens here first. Anything that is not a
+// string is rejected outright - String() would silently turn 123 into a
+// username instead of telling the caller it sent the wrong shape.
+function readText(value) {
+  if (typeof value !== 'string') throw makeError(400, 'Some of the details are not text')
+  return value.trim()
+}
+
 function readUsername(body) {
-  return String(body.username ?? '').trim().toLowerCase()
+  return readText(body.username ?? '').toLowerCase()
 }
 
 async function createUser(req, res) {
-  const username = readUsername(req.body || {})
-  const displayName = String(req.body.displayName ?? '').trim()
-  const password = req.body.password || ''
-  const role = req.body.role
+  const body = req.body || {}
+  const username = readUsername(body)
+  const displayName = readText(body.displayName ?? '')
+  const password = typeof body.password === 'string' ? body.password : ''
+  const role = body.role
 
   if (!username) throw makeError(400, 'Username is required')
   if (!displayName) throw makeError(400, 'Display name is required')
@@ -84,7 +92,7 @@ async function updateUser(req, res) {
   const body = req.body || {}
 
   if (body.username !== undefined) {
-    const username = String(body.username).trim().toLowerCase()
+    const username = readText(body.username).toLowerCase()
     if (!username) throw makeError(400, 'Username is required')
 
     const taken = await User.findOne({ username }).lean()
@@ -95,13 +103,21 @@ async function updateUser(req, res) {
   }
 
   if (body.displayName !== undefined) {
-    const displayName = String(body.displayName).trim()
+    const displayName = readText(body.displayName)
     if (!displayName) throw makeError(400, 'Display name is required')
     user.displayName = displayName
   }
 
   if (body.role !== undefined) {
-    if (!STORED_ROLES.includes(body.role)) throw makeError(400, 'Role must be reporter or editor')
+    if (typeof body.role !== 'string' || !STORED_ROLES.includes(body.role)) {
+      throw makeError(400, 'Role must be reporter or editor')
+    }
+    // demoting the last editor locks everyone out the same way deleting them
+    // does, so that change is refused instead
+    if (user.role === ROLES.EDITOR && body.role !== ROLES.EDITOR) {
+      const editors = await User.countDocuments({ role: ROLES.EDITOR })
+      if (editors <= 1) throw makeError(400, 'Cannot demote the last editor')
+    }
     user.role = body.role
   }
 

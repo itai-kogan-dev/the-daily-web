@@ -1,10 +1,47 @@
-<%- include('../partials/head', { title: 'User' }) %>
+<%- include('../partials/head', { title: account ? 'Edit user' : 'New user' }) %>
 <%- include('../partials/header') %>
 
 <main class="page narrow">
-  <!-- T2: create or edit a user. Password goes through User.hashPassword,
-       never stored as typed. -->
-  <h1>TODO: user form</h1>
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/editor/users">Users</a>
+    <span aria-hidden="true">&rsaquo;</span>
+    <span class="crumb-current"><%= account ? account.displayName : 'New user' %></span>
+  </nav>
+
+  <h1><%= account ? 'Edit user' : 'New user' %></h1>
+
+  <form id="user-form" class="stack" data-id="<%= account ? account._id : '' %>">
+    <label>Username
+      <input name="username" value="<%= account ? account.username : '' %>" autocomplete="username" required>
+    </label>
+
+    <label>Display name
+      <input name="displayName" value="<%= account ? account.displayName : '' %>" required
+             placeholder="Shown as the byline">
+    </label>
+
+    <label>Role
+      <select name="role">
+        <% STORED_ROLES.forEach(role => { %>
+          <option value="<%= role %>" <%= account && account.role === role ? 'selected' : '' %>><%= ROLE_LABELS[role] %></option>
+        <% }) %>
+      </select>
+    </label>
+
+    <label>Password<%= account ? ' (leave blank to keep the current one)' : '' %>
+      <input name="password" type="password" autocomplete="new-password" <%= account ? '' : 'required' %>>
+    </label>
+
+    <div class="comment-actions">
+      <button type="submit" id="user-save">Save</button>
+      <% if (account) { %>
+        <button type="button" id="user-delete" class="button-secondary danger-text">Delete</button>
+      <% } %>
+    </div>
+
+    <p class="error" id="user-error" hidden></p>
+  </form>
 </main>
 
+<script src="/js/users.js"></script>
 <%- include('../partials/footer') %>
