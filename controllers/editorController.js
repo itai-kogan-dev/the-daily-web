@@ -71,8 +71,9 @@ async function showReview(req, res) {
 
   // the editor's own in-progress copy when one exists, otherwise what the
   // reporter submitted. opening the page never creates anything - the first
-  // autosave does that
-  const draft = await EditorDraft.findOne({ article: article._id }).lean()
+  // autosave does that. Only an article waiting for approval can be edited.
+  const canEdit = workflow.canEditorEdit(article)
+  const draft = canEdit ? await EditorDraft.findOne({ article: article._id }).lean() : null
   const content = draft
     ? draft.content
     : article.draftContent.toObject()
@@ -85,6 +86,8 @@ async function showReview(req, res) {
     article,
     content,
     hasDraft: Boolean(draft),
+    canEdit,
+    canDelete: workflow.canEditorDelete(article),
     // the live body as paragraphs, the same split the article page uses - one
     // <p> for the whole text would glue every paragraph together
     liveParagraphs: String((article.publishedContent && article.publishedContent.body) || '')
@@ -122,6 +125,9 @@ function readDraftContent(body, current) {
 // draftContent, the live page and the status are never touched here
 async function editDraft(req, res) {
   const article = await findArticle(req.params.id)
+  if (!workflow.canEditorEdit(article)) {
+    throw makeError(403, 'Only articles waiting for approval can be edited')
+  }
 
   const existing = await EditorDraft.findOne({ article: article._id })
   const seed = existing ? existing.content : article.draftContent
@@ -208,6 +214,9 @@ async function returnArticle(req, res) {
 
 async function deleteArticle(req, res) {
   const article = await findArticle(req.params.id)
+  if (!workflow.canEditorDelete(article)) {
+    throw makeError(403, 'This article is with the reporter - it can be deleted once it is sent for approval or published')
+  }
 
   await Comment.deleteMany({ article: article._id })
   await ViewBucket.deleteMany({ article: article._id })

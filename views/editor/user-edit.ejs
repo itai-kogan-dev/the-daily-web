@@ -1,22 +1,22 @@
-<%- include('../partials/head', { title: account ? 'Edit user' : 'New user' }) %>
+<%- include('../partials/head', { title: account ? 'Edit user' : 'New user', extraCss: '/css/reporter.css' }) %>
+<link rel="stylesheet" href="/css/editor.css">
 <%- include('../partials/header') %>
 
 <main class="page narrow">
   <nav class="breadcrumb" aria-label="Breadcrumb">
-    <a href="/editor/users">Users</a>
+    <a href="/editor/users">Staff accounts</a>
     <span aria-hidden="true">&rsaquo;</span>
-    <span class="crumb-current"><%= account ? account.displayName : 'New user' %></span>
+    <h1 class="crumb-current"><%= account ? account.displayName : 'New user' %></h1>
   </nav>
-
-  <h1><%= account ? 'Edit user' : 'New user' %></h1>
 
   <form id="user-form" class="stack" data-id="<%= account ? account._id : '' %>">
     <label>Username
-      <input name="username" value="<%= account ? account.username : '' %>" autocomplete="username" required>
+      <input name="username" value="<%= account ? account.username : '' %>" autocomplete="username" required autofocus
+             pattern="[A-Za-z0-9._\-]{3,30}" title="3-30 letters, numbers, dots, dashes or underscores">
     </label>
 
     <label>Display name
-      <input name="displayName" value="<%= account ? account.displayName : '' %>" required
+      <input name="displayName" value="<%= account ? account.displayName : '' %>" maxlength="60" required
              placeholder="Shown as the byline">
     </label>
 
@@ -29,18 +29,24 @@
     </label>
 
     <label>Password<%= account ? ' (leave blank to keep the current one)' : '' %>
-      <input name="password" type="password" autocomplete="new-password" <%= account ? '' : 'required' %>>
+      <input name="password" type="password" autocomplete="new-password" minlength="8" <%= account ? '' : 'required' %>>
     </label>
+    <% if (account) { %>
+      <p class="muted hint">Leave the password blank to keep the current one.</p>
+    <% } %>
 
     <div class="comment-actions">
-      <button type="submit" id="user-save">Save</button>
-      <% if (account) { %>
-        <button type="button" id="user-delete" class="button-secondary danger-text">Delete</button>
-      <% } %>
+      <button type="submit" id="user-save"><%= account ? 'Save changes' : 'Create account' %></button>
     </div>
 
     <p class="error" id="user-error" hidden></p>
   </form>
+
+  <% if (account && !isSelf) { %>
+    <div class="danger-zone">
+      <button id="user-delete" type="button" class="danger">Delete this account</button>
+    </div>
+  <% } %>
 </main>
 
 <script src="/js/users.js"></script>

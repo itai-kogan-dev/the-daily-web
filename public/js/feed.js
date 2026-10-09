@@ -87,7 +87,7 @@ if (form && results) {
 
     meta.append(el('span', null, article.authorName))
 
-    const time = el('time', null, new Date(article.publishedAt).toLocaleDateString())
+    const time = el('time', null, new Date(article.publishedAt).toLocaleDateString('en-GB'))
     time.dateTime = article.publishedAt
     meta.append(time)
 

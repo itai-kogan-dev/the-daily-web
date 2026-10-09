@@ -23,6 +23,31 @@ which is already published sends the new version through the same approval
 process - and that process starts at `in_progress`. So we read that sentence as
 the missing transition. It is the only place we go past the literal text.
 
+## What the editor can do depends on the status
+
+The spec lists the editor's actions - view, edit, publish, send back with a
+note, delete - for an article waiting for approval, and the only moves it gives
+the editor start from `pending_editor`. So the review page shows the full set
+there and nothing else changes hands:
+
+| Status | Editor | Reporter (own article) |
+|---|---|---|
+| `pending_editor` | edit, publish, send back, delete | read only |
+| `in_progress`, `needs_revision` | read only (delete if it is live) | edit, send; delete if it was never published |
+| `published` | read only, delete | edit, which starts a new version |
+
+Editing outside `pending_editor` is refused on the server too, not just hidden.
+The editor's edits go to a private copy that is only applied on publish or send
+back - an edit made while the reporter still had the article sat there and later
+replaced whatever the reporter sent. The same copy is cleared when a reporter
+submits, so the editor always starts from what was actually sent.
+
+Delete follows whose hands the article is in. The reporter can delete a draft
+that never went live - autosave creates an article on the first keystroke, so a
+false start would otherwise stay forever. Anything readers have seen is the
+editor's to remove. Between the two, every article always has exactly one
+person who can delete it.
+
 ## `status` and `isLive` are two fields
 
 `status` says where the working version is in the approval process. `isLive`
@@ -187,8 +212,14 @@ read and comment without one.
 This is also what gives the User model its full CRUD, which the spec asks for on
 every model. `docs/API.md` has the coverage table.
 
-One thing to handle when building it: refuse to delete the last editor, or
-nobody can log in afterwards.
+Deleting the last editor is refused, or nobody could log in afterwards, and so
+is deleting your own account. A role is picked when the account is created and
+cannot be changed later.
+
+The session holds a copy of the account from login, so staff routes reload it
+from the database (`refreshSessionUser` in `middleware/auth.js`). A deleted
+account is logged out on its next request instead of working until the cookie
+expires.
 
 ## Search matches part of a word
 

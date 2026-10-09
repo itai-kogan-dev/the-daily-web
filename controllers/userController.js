@@ -2,6 +2,10 @@ const mongoose = require('mongoose')
 const User = require('../models/User')
 const { STORED_ROLES, ROLE_LABELS, ROLES } = User
 
+const USERNAME_PATTERN = /^[a-z0-9._-]{3,30}$/
+const MAX_NAME = 60
+const MIN_PASSWORD = 8
+
 function makeError(status, message) {
   const err = new Error(message)
   err.status = status
@@ -23,13 +27,14 @@ async function findUser(id) {
 async function showUsers(req, res) {
   const users = await User.find({}).sort({ role: 1, username: 1 }).lean()
 
-  res.render('editor/users', { users, ROLE_LABELS })
+  res.render('editor/users', { users, currentUserId: req.session.user.id, ROLE_LABELS })
 }
 
 // empty form. nothing is written until the create call below runs.
 function showNewUser(req, res) {
   res.render('editor/user-edit', {
     account: null,
+    isSelf: false,
     STORED_ROLES, ROLE_LABELS
   })
 }
@@ -44,6 +49,7 @@ async function showEditUser(req, res) {
   // every page gets for its header
   res.render('editor/user-edit', {
     account,
+    isSelf: String(account._id) === req.session.user.id,
     STORED_ROLES, ROLE_LABELS
   })
 }
@@ -62,26 +68,44 @@ function readUsername(body) {
   return readText(body.username ?? '').toLowerCase()
 }
 
+function assertUsername(username) {
+  if (!USERNAME_PATTERN.test(username)) {
+    throw makeError(400, 'Usernames are 3-30 characters: letters, numbers, dots, dashes and underscores')
+  }
+}
+
+function assertDisplayName(displayName) {
+  if (!displayName) throw makeError(400, 'Display name is required')
+  if (displayName.length > MAX_NAME) throw makeError(400, `Display names are up to ${MAX_NAME} characters`)
+}
+
+// never trimmed - spaces can be part of a password
+function assertPassword(password) {
+  if (typeof password !== 'string' || password.length < MIN_PASSWORD) {
+    throw makeError(400, `Passwords need at least ${MIN_PASSWORD} characters`)
+  }
+}
+
+async function assertUsernameFree(username) {
+  if (await User.exists({ username })) throw makeError(409, 'That username is taken')
+}
+
 async function createUser(req, res) {
   const body = req.body || {}
   const username = readUsername(body)
   const displayName = readText(body.displayName ?? '')
-  const password = typeof body.password === 'string' ? body.password : ''
-  const role = body.role
 
-  if (!username) throw makeError(400, 'Username is required')
-  if (!displayName) throw makeError(400, 'Display name is required')
-  if (!password) throw makeError(400, 'Password is required')
-  if (!STORED_ROLES.includes(role)) throw makeError(400, 'Role must be reporter or editor')
-
-  const taken = await User.findOne({ username }).lean()
-  if (taken) throw makeError(409, 'That username is taken')
+  assertUsername(username)
+  assertDisplayName(displayName)
+  assertPassword(body.password)
+  if (!STORED_ROLES.includes(body.role)) throw makeError(400, 'Role must be reporter or editor')
+  await assertUsernameFree(username)
 
   const user = await User.create({
     username,
     displayName,
-    role,
-    passwordHash: await User.hashPassword(password)
+    role: body.role,
+    passwordHash: await User.hashPassword(body.password)
   })
 
   res.status(201).json(user)
@@ -93,18 +117,14 @@ async function updateUser(req, res) {
 
   if (body.username !== undefined) {
     const username = readText(body.username).toLowerCase()
-    if (!username) throw makeError(400, 'Username is required')
-
-    const taken = await User.findOne({ username }).lean()
-    if (taken && String(taken._id) !== String(user._id)) {
-      throw makeError(409, 'That username is taken')
-    }
+    assertUsername(username)
+    if (username !== user.username) await assertUsernameFree(username)
     user.username = username
   }
 
   if (body.displayName !== undefined) {
     const displayName = readText(body.displayName)
-    if (!displayName) throw makeError(400, 'Display name is required')
+    assertDisplayName(displayName)
     user.displayName = displayName
   }
 
@@ -123,7 +143,8 @@ async function updateUser(req, res) {
 
   // a blank password means the edit form left it alone - only a real value
   // replaces the hash, so saving anything else never locks the account
-  if (typeof body.password === 'string' && body.password) {
+  if (body.password !== undefined && body.password !== '') {
+    assertPassword(body.password)
     user.passwordHash = await User.hashPassword(body.password)
   }
 
@@ -136,6 +157,9 @@ async function updateUser(req, res) {
 // accounts, so that one delete is refused instead
 async function deleteUser(req, res) {
   const user = await findUser(req.params.id)
+
+  // an editor deleting themselves would be locked out with nobody to undo it
+  if (String(user._id) === req.session.user.id) throw makeError(400, 'You cannot delete your own account')
 
   if (user.role === ROLES.EDITOR) {
     const editors = await User.countDocuments({ role: ROLES.EDITOR })

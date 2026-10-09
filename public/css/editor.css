@@ -166,10 +166,6 @@ button.danger {
   color: #fff;
 }
 
-.button-secondary.danger-text {
-  color: var(--accent);
-}
-
 .ed-thumb-preview {
   max-width: 240px;
   margin: .6rem 0 0;
@@ -179,6 +175,27 @@ button.danger {
   width: 100%;
   font: inherit;
   margin: .5rem 0;
+}
+
+/* staff accounts. the rows reuse the reporter list shape, these are the
+   only bits that shape is missing: actions pinned to the right of each
+   row, and the delete kept off the form itself */
+.user-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* same shape as the status badges: editors stand out, reporters stay quiet */
+.role-editor   { background: #fdeaea; color: #8f2020; border-color: #f2c4c4; }
+.role-reporter { background: #f3f3f3; color: #444; }
+
+.danger-zone {
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
 }
 
 @media (max-width: 800px) {

@@ -43,7 +43,7 @@
                 <% if (article.isLive) { %><span class="badge live">Live</span><% } %>
                 <span><%= article.author && article.author.displayName ? article.author.displayName : 'Staff' %></span>
                 <span><%= CATEGORY_LABELS[article.draftContent.category] %></span>
-                <span>updated <%= new Date(article.updatedAt).toLocaleDateString() %></span>
+                <span>updated <%= new Date(article.updatedAt).toLocaleDateString('en-GB') %></span>
               </div>
             </div>
           </li>

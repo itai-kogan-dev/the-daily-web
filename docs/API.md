@@ -41,6 +41,7 @@ their own articles - check `article.author` on every one of these.
 | PATCH | `/reporter/api/article/:id` | Autosave. Writes `draftContent` only. Called every couple of seconds while typing - there is no save button. |
 | POST | `/reporter/api/article/:id/submit` | To `pending_editor`. Goes through `articleWorkflow`. |
 | POST | `/reporter/api/image` | Picture upload. Raw image bytes as the body (`Content-Type` is the image type, name in `X-Image-Name`), max 2 MB. Returns `{ url }` (`/images/<id>`), which the next autosave carries like any other field. |
+| DELETE | `/reporter/api/article/:id` | Delete a draft. Only `in_progress` or `needs_revision`, and only if it was never published. |
 
 ## Editor - `routes/editor.js`
 
@@ -51,11 +52,11 @@ Whole file is behind `requireRole('editor')`.
 | GET | `/editor` | All articles, filterable by status. |
 | GET | `/editor/article/:id` | Review. Has to show what is live now next to what is waiting. |
 | GET | `/editor/analytics` | Impact analytics page. |
-| PATCH | `/editor/api/article/:id` | Editor autosave. Writes the editor's private `EditorDraft` only - the reporter's `draftContent` is untouched until publish or return folds it over. |
+| PATCH | `/editor/api/article/:id` | Editor autosave. Writes the editor's private `EditorDraft` only - the reporter's `draftContent` is untouched until publish or return folds it over. Only while `pending_editor`. |
 | POST | `/editor/api/article/:id/publish` | Approve. Folds the `EditorDraft` over the draft if there is one, copies draft over published, sets `isLive`, adds an `updateEvent`, deletes the `EditorDraft`. |
 | POST | `/editor/api/article/:id/return` | Body `{ note }`. Sends it back for revision, folding the `EditorDraft` over the draft first. |
 | POST | `/editor/api/image` | Picture upload, same shape as the reporter's. The picker puts the returned path in the form; the next autosave carries it. |
-| DELETE | `/editor/api/article/:id` | Delete. Removes the article with its comments, view buckets and editor draft. |
+| DELETE | `/editor/api/article/:id` | Delete. Removes the article with its comments, view buckets and editor draft. Only while `pending_editor`, or when the article is live. |
 | DELETE | `/editor/api/article/:id/views` | Clear the view stats for one article. Buckets go, `viewCount` returns to 0, the article stays. |
 
 ### Users
@@ -70,8 +71,10 @@ the seed script, otherwise nobody could log in to create anyone.
 | GET | `/editor/users/new` | Create form. |
 | GET | `/editor/users/:id` | Edit form. |
 | POST | `/editor/api/users` | Body `{ username, displayName, password, role }`. Password goes through `User.hashPassword`. |
-| PATCH | `/editor/api/users/:id` | Update. Only re-hash the password if a new one was sent. |
-| DELETE | `/editor/api/users/:id` | Delete. Refuse to delete the last editor, or nobody can log in. |
+| PATCH | `/editor/api/users/:id` | Update. Role can be changed, but demoting the last editor is refused. Only re-hash the password if a new one was sent. |
+| DELETE | `/editor/api/users/:id` | Delete. Refuse to delete the last editor, or nobody can log in, and refuse your own account. |
+
+Usernames are 3-30 letters, numbers, dots, dashes or underscores; passwords at least 8 characters. Staff routes reload the account behind the session on every request, so a deleted account is logged out straight away.
 
 ### Comment moderation
 
@@ -118,6 +121,7 @@ Behind `requireRole('editor')`.
 |---|---|---|
 | Not logged in | `302 -> /login` | `401 { error }` |
 | Wrong role | `403` page | `403 { error }` |
+| Correct role but article is with the other side | - | `403 { error }` |
 | No such route | `404` page | `404 { error }` |
 | Illegal state change | - | `400 { error }` |
 | Too many comments (`POST /api/articles/:id/comments`) | - | `429 { error }` with a `Retry-After` header |
@@ -131,6 +135,6 @@ The spec wants full CRUD on every model. Where each operation lives:
 | Model | Create | Read | Update | Delete |
 |---|---|---|---|---|
 | User | `POST /editor/api/users` | `GET /editor/users` | `PATCH /editor/api/users/:id` | `DELETE /editor/api/users/:id` |
-| Article | `POST /reporter/api/article` | `GET /api/articles` | `PATCH /reporter/api/article/:id` | `DELETE /editor/api/article/:id` |
+| Article | `POST /reporter/api/article` | `GET /api/articles` | `PATCH /reporter/api/article/:id` | `DELETE /editor/api/article/:id` and `DELETE /reporter/api/article/:id` (never-published drafts only) |
 | Comment | `POST /api/articles/:id/comments` | `GET /api/articles/:id/comments` | `PATCH /editor/api/comments/:id` | `DELETE /editor/api/comments/:id` |
 | ViewBucket | on every article view | `GET /api/analytics/article/:id` | the increment on each view | `DELETE /editor/api/article/:id/views` |

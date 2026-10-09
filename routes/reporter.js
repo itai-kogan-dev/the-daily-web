@@ -26,5 +26,6 @@ router.post(
 router.post('/api/article', reporter.createArticle)
 router.patch('/api/article/:id', reporter.saveDraft)
 router.post('/api/article/:id/submit', reporter.submitArticle)
+router.delete('/api/article/:id', reporter.deleteArticle)
 
 module.exports = router

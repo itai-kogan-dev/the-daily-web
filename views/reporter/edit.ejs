@@ -5,7 +5,7 @@
   <%# which article, and what state it is in - one line, one group %>
   <div class="editor-head">
     <nav class="breadcrumb" aria-label="Breadcrumb">
-      <a href="/reporter">My articles</a>
+      <a href="/reporter">Reporter Space</a>
       <span aria-hidden="true">&rsaquo;</span>
       <%# the page heading, sized like the rest of the breadcrumb. A page with
           no h1 leaves a screen reader nothing to navigate by. %>
@@ -89,6 +89,9 @@
 
     <div class="sticky-right">
       <p id="save-status" class="save-status"></p>
+      <% if (canDelete) { %>
+        <button id="delete-btn" type="button" class="button-secondary danger-text">Delete draft</button>
+      <% } %>
     </div>
   </div>
 </main>

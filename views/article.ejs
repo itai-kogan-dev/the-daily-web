@@ -1,4 +1,4 @@
-<%- include('partials/head', { title: 'Article', extraCss: '/css/weather.css' }) %>
+<%- include('partials/head', { title: content.title, extraCss: '/css/weather.css' }) %>
 <%- include('partials/header') %>
 
 <div class="layout">
@@ -21,7 +21,7 @@
       <div class="article-byline">
         <span>By <%= article.author ? article.author.displayName : 'The Daily Web' %></span>
         <time datetime="<%= new Date(article.publishedAt).toISOString() %>">
-          <%= new Date(article.publishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) %>
+          <%= new Date(article.publishedAt).toLocaleDateString('en-GB') %>
         </time>
         <%# the same number as the feed card, rolled up every 5 minutes %>
         <span><%= Number(article.viewCount || 0).toLocaleString('en-US') %> views</span>
@@ -29,7 +29,7 @@
           <!-- null until a second version is approved, so the date never moves
                on its own and this only appears after a real update -->
           <span class="article-updated">
-            Updated <time datetime="<%= new Date(updatedAt).toISOString() %>"><%= new Date(updatedAt).toLocaleDateString() %></time>
+            Updated <time datetime="<%= new Date(updatedAt).toISOString() %>"><%= new Date(updatedAt).toLocaleDateString('en-GB') %></time>
           </span>
         <% } %>
       </div>
@@ -75,7 +75,7 @@
             <div class="comment-head">
               <span class="comment-author"><%= comment.authorName %></span>
               <time datetime="<%= new Date(comment.createdAt).toISOString() %>">
-                <%= new Date(comment.createdAt).toLocaleString() %>
+                <%= new Date(comment.createdAt).toLocaleString('en-GB') %>
               </time>
             </div>
             <p class="comment-body"><%= comment.body %></p>
