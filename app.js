@@ -6,6 +6,7 @@ const { MongoStore } = require('connect-mongo')   // v6 renamed this from a defa
 const path = require('path')
 
 const { connectDb } = require('./config/db')
+const { requestLogger } = require('./middleware/requestLogger')
 const { attachViewData } = require('./middleware/auth')
 const { handleNotFound, errorHandler } = require('./middleware/errorHandler')
 const { startViewRollup } = require('./services/viewRollup')
@@ -16,6 +17,7 @@ app.set('view engine', 'ejs')
 app.set('views', path.join(__dirname, 'views'))
 
 // Order matters - Express runs middleware top to bottom.
+app.use(requestLogger)   // first, so it times and logs every request
 app.use(express.static(path.join(__dirname, 'public')))
 app.use(express.urlencoded({ extended: true }))   // reads HTML form posts into req.body
 app.use(express.json())                           // reads Ajax JSON posts into req.body
@@ -50,4 +52,20 @@ async function startServer() {
   app.listen(port, () => console.log(`[web] http://localhost:${port}`))
 }
 
-startServer()
+// Express catches errors inside requests. These catch the rest - a timer, a
+// promise nobody awaited. An uncaught exception leaves the process in an
+// unknown state, so we log it and exit for the process manager to restart;
+// a stray rejection is logged and the server keeps going. Only the ones
+// that exit say [fatal].
+process.on('unhandledRejection', err => {
+  console.error('[error] unhandled rejection, continuing -', err && err.stack ? err.stack : err)
+})
+process.on('uncaughtException', err => {
+  console.error('[fatal] uncaught exception -', err.stack)
+  process.exit(1)
+})
+
+startServer().catch(err => {
+  console.error('[fatal] could not start -', err.message)
+  process.exit(1)
+})
