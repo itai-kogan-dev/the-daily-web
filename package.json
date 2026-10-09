@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "The Daily Web - news publishing system",
   "main": "app.js",
+  "engines": {
+    "node": ">=20.19"
+  },
   "directories": {
     "doc": "docs"
   },

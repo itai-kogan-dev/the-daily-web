@@ -114,7 +114,9 @@ placed in the wrong city (many Israeli addresses resolve to Tel Aviv), and on
 a developer's laptop it finds nothing at all.
 
 Every page with a sidebar asks for the weather, so the server caches it per
-place for 15 minutes - the limit the spec allows. When the cache is cold and
+place for 15 minutes - the limit the spec allows. The browser is told to keep
+an answer only for what is left of those 15 minutes, not a fixed time on top
+of them: a flat 5 minutes let a reader see weather up to 20 minutes old. When the cache is cold and
 many readers of one place arrive at once, they share a single request. If the
 weather service is down the last answer is shown, labelled as such. Place
 names are kept for good, since towns don't move, and Nominatim is asked at
@@ -122,6 +124,23 @@ most once a second, as its rules require. Both caches hold at most 500 places,
 oldest out first. A 5 second timeout means a hung service cannot hang the
 sidebar, and the browser fills the widget after the page loads, so a slow
 weather service never delays an article.
+
+## Logs go to the terminal and to a file per day
+
+Every line the server logs is also appended to `logs/app-YYYY-MM-DD.log`, with
+a timestamp and a level, so it can be read after the terminal is closed or the
+server restarted. The whole app logs through `console`, so `config/logFile.js`
+wraps console once at startup instead of changing every call - nobody has to
+remember to use a special logger, and the terminal looks the same as before.
+
+One file per day keeps any one file small and a day easy to find; files older
+than 14 days are deleted (`LOG_KEEP_DAYS`). The folder is gitignored.
+
+Lines are written synchronously. After an uncaught exception the process logs
+and exits straight away, and a buffered write would lose exactly that line,
+the one we most need. At our traffic a synchronous append costs microseconds.
+If the file cannot be written - a full disk, say - the server keeps running and
+logs to the terminal only.
 
 ## Interface language is English
 
