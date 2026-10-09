@@ -93,10 +93,11 @@
             <span class="field-label">Image</span>
             <div id="image-drop" class="image-drop">
               <button type="button" id="image-pick-btn" class="button-secondary">Choose image</button>
+              <button type="button" id="image-remove-btn" class="button-secondary danger-text"<%= content.imagePath ? '' : ' hidden' %>>Remove</button>
               <span id="image-name" class="muted"><%= imageName || 'No image yet' %></span>
             </div>
             <input type="file" id="image-file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif" hidden>
-            <input name="imagePath" value="<%= content.imagePath %>" placeholder="/images/...">
+            <input type="hidden" name="imagePath" value="<%= content.imagePath %>">
             <img id="image-preview" class="article-hero ed-thumb-preview" src="<%= content.imagePath %>" alt="Draft image preview"<%= content.imagePath ? '' : ' hidden' %>>
             <p id="image-error" class="error" hidden></p>
           </div>
@@ -152,7 +153,6 @@
       <% } %>
     </section>
   </main>
-  <%- include('../partials/sidebar') %>
 </div>
 
 <script src="/js/review.js"></script>
