@@ -47,10 +47,9 @@ if (form && !form.dataset.readonly) {
   const isBlank = content => !content.title.trim() && !content.summary.trim() &&
                              !content.body.trim() && !content.imagePath.trim()
 
-  // A copy in this browser, under this article's key, written on every
-  // keystroke. The server is the truth - this only matters when a save never
-  // reached it: a keepalive that the browser drops (they are capped around
-  // 64KB, and a long body alone is bigger), or a tab killed mid-request.
+  // Local copy under this article's key, refreshed on every keystroke. The
+  // server is what counts - this is only for saves that never arrived
+  // (a keepalive the browser drops past ~64KB, or a tab killed mid-request).
   const backupKey = () => `the-daily-web:draft:${articleId || 'new'}`
 
   function writeBackup(dirty) {
@@ -77,9 +76,9 @@ if (form && !form.dataset.readonly) {
     }
   }
 
-  // A save that never reached the server leaves dirty:true behind. If the
-  // form still shows what the server rendered, the backup is newer - put it
-  // back and queue a save, so nothing is silently lost.
+  // A save that never arrived leaves dirty:true behind. If the form no longer
+  // matches what the server rendered, the backup is newer - restore it and
+  // queue a save so nothing disappears quietly.
   (function recoverBackup() {
     const saved = readBackup()
     if (!saved || !saved.dirty) return
@@ -87,8 +86,7 @@ if (form && !form.dataset.readonly) {
     const same = ['title', 'summary', 'body', 'category', 'imagePath']
       .every(name => (saved.content[name] || '') === (current[name] || ''))
     if (same) return
-    const fields = { title: 'title', summary: 'summary', body: 'body', category: 'category', imagePath: 'imagePath' }
-    for (const name of Object.keys(fields)) {
+    for (const name of ['title', 'summary', 'body', 'category', 'imagePath']) {
       if (typeof saved.content[name] === 'string') getField(name).value = saved.content[name]
     }
     hasUnsavedChanges = true
@@ -97,10 +95,9 @@ if (form && !form.dataset.readonly) {
     idleTimer = setTimeout(saveDraft, IDLE_MS)
   })()
 
-  // One request at a time. While a first POST is still in flight the id is
-  // unknown, so a second save would POST again and create the article twice.
-  // Instead it waits for the first one and then saves as a PATCH, or skips
-  // when there is nothing new left to send.
+  // One request at a time: while the first POST is still in flight the id is
+  // unknown, so a second save would POST again and duplicate the article.
+  // It waits for the first one, then saves as PATCH (or skips if covered).
   let inflight = null
 
   // Logged out mid-edit (or the article left the reporter's hands): saving
@@ -116,10 +113,10 @@ if (form && !form.dataset.readonly) {
     if (!statusEl) return
     statusEl.textContent = ''
     statusEl.className = 'save-status error'
-    statusEl.append('Session ended. ', Object.assign(document.createElement('a'), {
-      href: '/login',
-      textContent: 'Log in again'
-    }), ' - nothing will save until then.')
+    const loginLink = document.createElement('a')
+    loginLink.href = '/login'
+    loginLink.textContent = 'Log in again'
+    statusEl.append('Session ended. ', loginLink, ' - nothing will save until then.')
   }
 
   async function saveDraft() {

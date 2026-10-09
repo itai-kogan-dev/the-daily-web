@@ -1,6 +1,3 @@
-// Staff account management. The list page deletes rows in place; the form
-// page creates or updates one account. Both speak to /editor/api/users.
-
 (function () {
   async function readError(res) {
     try {
@@ -11,7 +8,6 @@
     }
   }
 
-  // --- list page: delete in place ---
   const list = document.getElementById('user-list')
   if (list) {
     list.addEventListener('click', async event => {
@@ -42,7 +38,6 @@
     })
   }
 
-  // --- form page: create / update ---
   const form = document.getElementById('user-form')
   if (form) {
     const errorEl = document.getElementById('user-error')

@@ -55,9 +55,6 @@
       </p>
     <% } %>
 
-    <%# the live version when there is one, beside whatever is in progress:
-        the editor's form while it waits for approval, the reporter's draft
-        while it is with them %>
     <div class="ed-review-grid<%= showLive && (canEdit || withReporter) ? ' ed-with-live' : '' %>">
       <% if (showLive) { %>
         <section class="ed-compare-pane" aria-label="Live now">
