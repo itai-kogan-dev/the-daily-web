@@ -26,4 +26,40 @@ function commentRateLimit(req, res, next) {
   next()
 }
 
-module.exports = { commentRateLimit }
+// Wrong-password guessing is capped per username and address: 20 failed tries
+// in 10 minutes, then the form answers 429 for a while. Only failures count,
+// so a correct password always works and one user cannot lock another out by
+// sharing an IP - the key is both. In memory, not in Mongo: a restart clears
+// the counts, which fails open rather than locking everyone out.
+const LOGIN_WINDOW_MS = 10 * 60 * 1000
+const LOGIN_MAX = 20
+const loginAttempts = new Map()
+
+function loginKey(req, username) {
+  return `${req.ip}|${username}`
+}
+
+function loginBlocked(req, username) {
+  const now = Date.now()
+  const seen = (loginAttempts.get(loginKey(req, username)) || [])
+    .filter(at => now - at < LOGIN_WINDOW_MS)
+  if (seen.length !== (loginAttempts.get(loginKey(req, username)) || []).length) {
+    if (seen.length) loginAttempts.set(loginKey(req, username), seen)
+    else loginAttempts.delete(loginKey(req, username))
+  }
+  return seen.length >= LOGIN_MAX
+}
+
+function noteFailedLogin(req, username) {
+  const key = loginKey(req, username)
+  const now = Date.now()
+  const seen = (loginAttempts.get(key) || []).filter(at => now - at < LOGIN_WINDOW_MS)
+  seen.push(now)
+  loginAttempts.set(key, seen)
+}
+
+function clearLogins(req, username) {
+  loginAttempts.delete(loginKey(req, username))
+}
+
+module.exports = { commentRateLimit, loginBlocked, noteFailedLogin, clearLogins }
