@@ -1,133 +1,39 @@
+// The editor's review page: autosave and the picture while the article waits
+// for approval, publish, send back, delete, and comment moderation.
 (function () {
   const page = document.querySelector('main[data-article]')
   if (!page) return
 
   const articleId = page.dataset.article
-  // only on the page while the article waits for approval
-  const form = document.getElementById('review-form')
-  const statusEl = document.getElementById('review-status')
   const errorEl = document.getElementById('review-error')
-  const badge = document.getElementById('status-badge')
-
-  function showStatus(text, state) {
-    if (!statusEl) return
-    statusEl.textContent = text
-    statusEl.className = 'save-status' + (state ? ' ' + state : '')
-  }
 
   function showError(text) {
-    if (!errorEl) return
     errorEl.textContent = text || ''
     errorEl.hidden = !text
   }
 
-  async function readError(res) {
-    try {
-      const data = await res.json()
-      return data.error || 'Something went wrong'
-    } catch (err) {
-      return 'Something went wrong'
-    }
-  }
-
-  // --- autosave ---
-  // The editor's typing goes to the server on its own, the same way the
-  // reporter's does, so an edit survives a refresh or another computer.
-  // Without a form there is nothing to save and this stays a no-op.
-  let saveDraft = async () => {}
+  // the form is only on the page while the article waits for approval
+  const form = document.getElementById('review-form')
+  let autosave = null
 
   if (form) {
-    const IDLE_MS = 1500     // save this long after typing stops
-    const CEILING_MS = 10000 // ...but never go longer than this while typing
-
-    let hasUnsavedChanges = false
-    let idleTimer = null
-    let ceilingTimer = null
-
-    // form.elements, not form.title - same shadowing problem as the reporter form
-    const getField = name => form.elements[name]
-
-    const readForm = () => ({
-      title: getField('title').value,
-      summary: getField('summary').value,
-      body: getField('body').value,
-      category: getField('category').value,
-      imagePath: getField('imagePath').value
-    })
-
-    async function save(keepalive) {
-      if (!hasUnsavedChanges) return
-      clearTimeout(idleTimer)
-      clearTimeout(ceilingTimer)
-      ceilingTimer = null
-
-      // clear the flag before the request, so anything typed while it is in
-      // flight is not swallowed
-      hasUnsavedChanges = false
-      showStatus('Saving...')
-
-      const res = await fetch(`/editor/api/article/${articleId}`, {
+    autosave = setUpAutosave({
+      form,
+      statusEl: document.getElementById('review-status'),
+      send: (content, keepalive) => fetch(`/editor/api/article/${articleId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(readForm()),
+        body: JSON.stringify(content),
         keepalive
-      }).catch(() => null)
-
-      if (!res) {
-        hasUnsavedChanges = true
-        showStatus('Could not save, retrying...', 'error')
-        setTimeout(saveDraft, 3000)
-        return
-      }
-
-      // the server said no (a bad image path and the like) - show it instead
-      // of retrying something that will fail the same way again
-      if (!res.ok) {
-        showStatus('')
-        showError(await readError(res))
-        return
-      }
-
-      const data = await res.json()
-      if (badge && data.statusLabel) {
-        badge.textContent = data.statusLabel
-        badge.className = 'badge status-' + data.status
-      }
-      showStatus('Saved ' + new Date(data.savedAt).toLocaleTimeString())
-    }
-
-    // one save at a time, so two upserts of the same draft never race
-    let saving = Promise.resolve()
-    saveDraft = ({ keepalive = false } = {}) => {
-      saving = saving.then(() => save(keepalive)).catch(() => showStatus('Could not save', 'error'))
-      return saving
-    }
-
-    function markChanged() {
-      hasUnsavedChanges = true
-      showError('')
-      showStatus('Unsaved changes', 'pending')
-
-      clearTimeout(idleTimer)
-      idleTimer = setTimeout(saveDraft, IDLE_MS)
-
-      // someone typing without pause would otherwise never trigger the idle save
-      if (!ceilingTimer) ceilingTimer = setTimeout(saveDraft, CEILING_MS)
-    }
-
-    form.addEventListener('input', markChanged)
-
-    // closing the tab or switching away
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') saveDraft({ keepalive: true })
+      })
     })
 
     // a new picture is saved straight away rather than after the idle wait
     setUpImageField({
       uploadUrl: '/editor/api/image',
       onChange: () => {
-        markChanged()
-        saveDraft()
+        autosave.changed()
+        autosave.save()
       }
     })
   }
@@ -137,12 +43,12 @@
   async function act(button, request) {
     showError('')
     button.disabled = true
-    await saveDraft()
+    if (autosave) await autosave.save()
 
     const res = await request().catch(() => null)
     if (!res || !res.ok) {
       button.disabled = false
-      showError(!res ? 'Could not reach the server' : await readError(res))
+      showError(await readError(res))
       return
     }
 
@@ -178,13 +84,10 @@
     showError('')
     deleteBtn.disabled = true
 
-    const res = await fetch(`/editor/api/article/${articleId}`, {
-      method: 'DELETE'
-    }).catch(() => null)
-
+    const res = await fetch(`/editor/api/article/${articleId}`, { method: 'DELETE' }).catch(() => null)
     if (!res || !res.ok) {
       deleteBtn.disabled = false
-      showError(!res ? 'Could not reach the server' : await readError(res))
+      showError(await readError(res))
       return
     }
 
@@ -194,7 +97,7 @@
   // --- comment moderation ---
   // comments are small enough to just reload after an edit
   document.querySelectorAll('[data-comment]').forEach(row => {
-    const commentId = row.getAttribute('data-comment')
+    const commentId = row.dataset.comment
     const bodyEl = row.querySelector('[data-body]')
     const rowError = row.querySelector('[data-error]')
     const editBtn = row.querySelector('[data-edit]')
@@ -229,11 +132,7 @@
       }).catch(() => null)
       editBtn.disabled = false
 
-      if (!res || !res.ok) {
-        showRowError(!res ? 'Could not reach the server' : await readError(res))
-        return
-      }
-
+      if (!res || !res.ok) return showRowError(await readError(res))
       location.reload()
     })
 
@@ -241,14 +140,8 @@
       if (!window.confirm('Delete this comment?')) return
       showRowError('')
 
-      const res = await fetch(`/editor/api/comments/${commentId}`, {
-        method: 'DELETE'
-      }).catch(() => null)
-
-      if (!res || !res.ok) {
-        showRowError(!res ? 'Could not reach the server' : await readError(res))
-        return
-      }
+      const res = await fetch(`/editor/api/comments/${commentId}`, { method: 'DELETE' }).catch(() => null)
+      if (!res || !res.ok) return showRowError(await readError(res))
 
       row.remove()
       const left = document.querySelectorAll('[data-comment]').length

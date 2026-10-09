@@ -37,43 +37,6 @@
   <% } %>
 </main>
 
-<script>
-(function () {
-  async function readError(res) {
-    try {
-      const data = await res.json()
-      return data.error || 'Something went wrong'
-    } catch (err) {
-      return 'Something went wrong'
-    }
-  }
-
-  document.querySelectorAll('[data-user]').forEach(row => {
-    const deleteBtn = row.querySelector('[data-delete]')
-    const errorEl = row.querySelector('[data-error]')
-    if (!deleteBtn) return
-
-    deleteBtn.addEventListener('click', async () => {
-      const name = (row.querySelector('.list-title') || {}).textContent || 'this account'
-      if (!window.confirm(`Delete ${name.trim()}? This cannot be undone.`)) return
-
-      errorEl.hidden = true
-      deleteBtn.disabled = true
-
-      const res = await fetch(`/editor/api/users/${row.getAttribute('data-user')}`, {
-        method: 'DELETE'
-      }).catch(() => null)
-
-      if (!res || !res.ok) {
-        deleteBtn.disabled = false
-        errorEl.textContent = !res ? 'Server unreachable, try again' : await readError(res)
-        errorEl.hidden = false
-        return
-      }
-
-      row.remove()
-    })
-  })
-})()
-</script>
+<script src="/js/read-error.js"></script>
+<script src="/js/users.js"></script>
 <%- include('../partials/footer') %>
