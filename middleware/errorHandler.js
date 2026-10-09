@@ -24,12 +24,16 @@ function resolveMessage(err, status) {
   return 'Something went wrong'
 }
 
-// Express only treats a function as an error handler if it takes 4 arguments,
-// so next has to stay even though we never call it.
+// Express only treats a function as an error handler if it takes 4 arguments.
 function errorHandler(err, req, res, next) {
-  // the response is already half sent (a stream broke mid-way, say), so there
-  // is no status left to set. Express's own handler closes the connection.
-  if (res.headersSent) return next(err)
+  // the response is already half sent (an image stream broke mid-way, say),
+  // so there is no status left to set and Express's own handler has to close
+  // the connection. Log it first - its log line has no request id, and the
+  // [http] line will only say "aborted"
+  if (res.headersSent) {
+    console.error('[error]', req.id || '-', 'after headers', req.method, req.originalUrl, '-', err.message)
+    return next(err)
+  }
 
   const status = resolveStatus(err)
   const message = resolveMessage(err, status)

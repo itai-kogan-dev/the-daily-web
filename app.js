@@ -53,9 +53,10 @@ async function startServer() {
 // Express catches errors inside requests. These catch the rest - a timer, a
 // promise nobody awaited. An uncaught exception leaves the process in an
 // unknown state, so we log it and exit for the process manager to restart;
-// a stray rejection is logged and the server keeps going.
+// a stray rejection is logged and the server keeps going. Only the ones
+// that exit say [fatal].
 process.on('unhandledRejection', err => {
-  console.error('[fatal] unhandled rejection -', err && err.stack ? err.stack : err)
+  console.error('[error] unhandled rejection, continuing -', err && err.stack ? err.stack : err)
 })
 process.on('uncaughtException', err => {
   console.error('[fatal] uncaught exception -', err.stack)
