@@ -429,11 +429,25 @@ if (form && results) {
 
     if (!append) {
       baseState = { q: state.q, category: state.category, sort: state.sort, page: 1 }
-      // The heading follows the sort, using the same words the server renders.
+      // The heading follows the filters, using the same words the server
+      // renders. The label comes from the matching category pill, so the two
+      // can never disagree. Compared via dataset, never interpolated into a
+      // selector, so a crafted query value cannot break the lookup.
       const heading = document.getElementById('feed-title')
       if (heading) {
-        heading.textContent = state.sort === 'popular' ? 'Most Read' : 'Latest News'
-        document.title = heading.textContent + ' — The Daily Web'
+        let title = 'Latest News'
+        if (state.sort === 'popular') {
+          title = 'Most Read'
+        } else if (state.category) {
+          for (const pill of document.querySelectorAll('.pills [data-category]')) {
+            if (pill.dataset.category === state.category) {
+              title = pill.textContent.trim()
+              break
+            }
+          }
+        }
+        heading.textContent = title
+        document.title = title + ' — The Daily Web'
       }
     }
     loadedPage = feed.page

@@ -7,7 +7,7 @@
   </nav>
   <h1><%= account ? account.displayName : 'New user' %></h1>
 
-  <form id="user-form" class="stack" data-id="<%= account ? account._id : '' %>" style="background:var(--card); border:1px solid var(--line); border-radius:var(--radius-box); padding:1.4rem; box-shadow:var(--shadow-sm);">
+  <form id="user-form" class="stack card-form" data-id="<%= account ? account._id : '' %>">
     <label>Username
       <input name="username" value="<%= account ? account.username : '' %>" autocomplete="username" required autofocus
              pattern="[A-Za-z0-9._\-]{3,30}" title="3-30 letters, numbers, dots, dashes or underscores">

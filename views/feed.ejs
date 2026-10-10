@@ -3,7 +3,7 @@
 
 <div class="layout">
   <main class="page">
-    <h1 id="feed-title"><%= sort === 'popular' ? 'Most Read' : 'Latest News' %></h1>
+    <h1 id="feed-title"><%= sort === 'popular' ? 'Most Read' : (category ? CATEGORY_LABELS[category] : 'Latest News') %></h1>
 
     <!-- Every control below is a real link or a real form, so the feed works
          with JavaScript turned off. feed.js reads the data- attributes and
