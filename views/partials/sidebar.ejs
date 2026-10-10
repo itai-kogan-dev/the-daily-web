@@ -1,10 +1,27 @@
 <aside class="sidebar">
   <%# filled by /js/weather.js from /api/weather %>
   <section class="box" id="weather-widget" aria-live="polite">
-    <h2 class="eyebrow">Weather</h2>
+    <h2 class="eyebrow muted-eyebrow">Weather</h2>
     <div class="weather-body">
       <p class="muted">Finding your location…</p>
       <noscript><p class="muted">Turn on JavaScript to see the weather.</p></noscript>
     </div>
   </section>
+  <%# Categories live here on pages that provide them (the feed). The links
+      are the same buildFeedLink() calls the toolbar used, so filtering works with
+      JavaScript off, and feed.js picks the data- attributes up as before. %>
+  <% if (locals.CATEGORIES && locals.CATEGORY_LABELS && locals.buildFeedLink) { %>
+    <% const activeCat = locals.category || ''; %>
+    <section class="box sidebar-cats">
+      <h2 class="eyebrow muted-eyebrow">Categories</h2>
+      <nav class="pills pills-vertical" aria-label="Filter by category">
+        <a class="pill<%= activeCat ? '' : ' active' %>" data-feed-nav data-category=""
+           href="<%= buildFeedLink({ category: '' }) %>">All</a>
+        <% CATEGORIES.forEach(name => { %>
+          <a class="pill<%= activeCat === name ? ' active' : '' %>" data-feed-nav data-category="<%= name %>"
+             href="<%= buildFeedLink({ category: name }) %>"><%= CATEGORY_LABELS[name] %></a>
+        <% }) %>
+      </nav>
+    </section>
+  <% } %>
 </aside>
