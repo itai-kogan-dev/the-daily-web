@@ -39,8 +39,8 @@ there and nothing else changes hands:
 Editing outside `pending_editor` is refused on the server too, not just hidden.
 The editor's edits go to a private copy, `editorContent`, that is only applied
 on publish or send back, and cleared in the same save. It can only be written
-while the article is `pending_editor`, so it never outlives the review and the
-editor always starts from what the reporter actually sent.
+while the article is `pending_editor`, and it is also cleared when the reporter
+sends a new version, so the editor always starts from what was actually sent.
 
 Delete follows whose hands the article is in. The reporter can delete a draft
 that never went live - autosave creates an article on the first keystroke, so a

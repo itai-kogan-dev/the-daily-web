@@ -149,6 +149,8 @@ async function submitArticle(req, res) {
   // the workflow checks both that the move is legal and that the article is
   // complete enough to leave the reporter
   workflow.submitForReview(article)
+  // the editor starts from what was just sent, never from an older copy
+  article.editorContent = null
   await article.save()
 
   res.json({ status: article.status, statusLabel: STATUS_LABELS[article.status] })
