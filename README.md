@@ -74,7 +74,7 @@ app.js            starts everything: middleware order, routers, background job
 config/           database connection, log file
 middleware/       auth + roles, request log, error handler, comment rate limit
 routes/           one file per area - maps URLs to handlers
-controllers/      request handlers for the public, reporter and editor sides
+controllers/      request handlers - every route calls one of these
 services/         logic: article workflow, view counting and rollup,
                   analytics, weather, image storage
 models/           Mongoose schemas: User, Article, Comment, ViewBucket,

@@ -4,6 +4,7 @@ const { ROLES } = require('../models/User')
 const editor = require('../controllers/editorController')
 const users = require('../controllers/userController')
 const images = require('../controllers/imageController')
+const analytics = require('../controllers/analyticsController')
 
 const router = express.Router()
 
@@ -13,7 +14,7 @@ router.use(requireRole(ROLES.EDITOR))
 // pages
 router.get('/', editor.showQueue)
 router.get('/article/:id', editor.showReview)
-router.get('/analytics', (req, res) => res.render('editor/analytics'))
+router.get('/analytics', analytics.showAnalytics)
 
 // article json, editor side
 router.post('/api/image', images.upload)
