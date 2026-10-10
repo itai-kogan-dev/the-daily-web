@@ -1,11 +1,13 @@
 <%- include('partials/head', { title: status }) %>
 <%- include('partials/header') %>
 
-<main class="page narrow">
-  <p class="eyebrow">Error <%= status %></p>
-  <h1><%= message %></h1>
-  <div class="actions">
-    <a class="btn" href="/">Back to the feed</a>
+<main class="auth-wrap">
+  <div class="auth-card error-hero">
+    <span class="error-code">Error <%= status %></span>
+    <h1 style="font-size:1.7rem;"><%= message %></h1>
+    <div class="actions">
+      <a class="btn btn-primary" href="/">Back to the feed</a>
+    </div>
   </div>
 </main>
 

@@ -395,7 +395,12 @@ if (form && results) {
     track.append(el('span', 'feed-toggle-thumb'))
     wrap.append(box, track, el('span', 'feed-toggle-label', 'Unread only'))
     box.addEventListener('change', () => setUnreadOnly(box.checked))
-    chips[0].parentNode.append(wrap)
+    // Categories live in the sidebar now, so the switch goes into the toolbar
+    // slot next to search and sort. The old home stays as the fallback.
+    const slot = document.getElementById('feed-unread-slot')
+    const home = slot || (chips.length && chips[0].parentNode)
+    if (!home) return null
+    home.append(wrap)
     unreadToggle = box
     return unreadToggle
   }
@@ -424,6 +429,12 @@ if (form && results) {
 
     if (!append) {
       baseState = { q: state.q, category: state.category, sort: state.sort, page: 1 }
+      // The heading follows the sort, using the same words the server renders.
+      const heading = document.getElementById('feed-title')
+      if (heading) {
+        heading.textContent = state.sort === 'popular' ? 'Most Read' : 'Latest News'
+        document.title = heading.textContent + ' — The Daily Web'
+      }
     }
     loadedPage = feed.page
     loadedPages = feed.pages

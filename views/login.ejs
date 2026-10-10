@@ -1,22 +1,24 @@
 <%- include('partials/head', { title: 'Log in' }) %>
 <%- include('partials/header') %>
 
-<main class="page narrow">
-  <h1>Log in</h1>
-  <p class="muted">For reporters and editors.</p>
+<main class="auth-wrap">
+  <div class="auth-card">
+    <h1 style="text-align:center; font-size:1.6rem;">Log in</h1>
+    <p class="muted auth-sub">For reporters and editors.</p>
 
-  <form method="post" action="/login" class="stack">
-    <label>Username
-      <input name="username" autocomplete="username" required autofocus>
-    </label>
-    <label>Password
-      <input name="password" type="password" autocomplete="current-password" required>
-    </label>
-    <% if (error) { %>
-      <p class="error"><%= error %></p>
-    <% } %>
-    <button type="submit" class="btn btn-primary">Log in</button>
-  </form>
+    <form method="post" action="/login" class="stack">
+      <label>Username
+        <input name="username" autocomplete="username" required autofocus>
+      </label>
+      <label>Password
+        <input name="password" type="password" autocomplete="current-password" required>
+      </label>
+      <% if (error) { %>
+        <p class="error"><%= error %></p>
+      <% } %>
+      <button type="submit" class="btn btn-primary">Log in</button>
+    </form>
+  </div>
 </main>
 
 <%- include('partials/footer') %>

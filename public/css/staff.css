@@ -1,73 +1,111 @@
-/* Staff pages: Reporter Space, the article editor, the editor's review and
-   the staff accounts. Layout only - every colour, button, badge and filter
-   comes from main.css. */
-
-/* --- article workspace: the reporter's editor and the editor's review ---
-   The article on the left, everything about it (status, notes, actions) in
-   a column on the right. On a narrow screen the column goes first, so the
-   status and the note from the editor are the first thing you see. */
+/* Staff pages: Reporter Space, article workspace, review, users.
+   Layout and workspace components only — tokens, buttons, badges,
+   filters come from main.css. All IDs / data-attributes are a JS
+   contract (autosave.js, reporter-edit.js, review.js, users.js). */
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: 2rem;
   align-items: start;
 }
 .workspace-main { grid-column: 1; grid-row: 1; min-width: 0; }
-.workspace-side { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; gap: 1rem; }
+.workspace-side { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; gap: 1rem; position: sticky; top: 1rem; }
 .workspace-side > p { margin: 0; }
 
-@media (max-width: 900px) {
-  .workspace { grid-template-columns: minmax(0, 1fr); }
-  .workspace-main,
-  .workspace-side { grid-column: 1; grid-row: auto; }
-  .workspace-side { order: -1; }
+.staff-panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-box);
+  padding: 1.1rem 1.15rem;
+  box-shadow: var(--shadow-sm);
 }
+.staff-panel .eyebrow { color: var(--muted); }
 
-/* the version tabs, when a live article has a change in progress */
 .version-changes { margin: -.25rem 0 1.25rem; }
 
-.pane h2 { margin: .25rem 0 .1rem; font-size: 1.25rem; }
+.pane { background: var(--card); border: 1px solid var(--line); }
+.pane h2 { margin: .25rem 0 .1rem; font-size: 1.3rem; }
 .pane .hint { margin: 0; }
 .pane .article-hero { margin-top: .85rem; }
-.pane .article-lead { font-size: 1.05rem; }
-.pane .article-body { font-size: .9375rem; }
+.pane .article-lead { font-size: 1.08rem; }
+.pane .article-body { font-size: .96rem; }
 
-.side-actions { display: flex; flex-direction: column; gap: .5rem; }
+.side-actions { display: flex; flex-direction: column; gap: .55rem; }
 .side-actions > p { margin: 0; }
+.side-actions .btn { width: 100%; }
 .side-section { padding-top: 1rem; border-top: 1px solid var(--line); }
 
-.save-status { min-height: 1.4rem; margin: .5rem 0 0; font-size: .875rem; color: var(--muted); }
+.save-status { min-height: 1.4rem; margin: .5rem 0 0; font-size: .85rem; color: var(--muted); }
 .save-status.pending { color: var(--warn-ink); }
 .save-status.error { color: var(--danger); font-weight: 600; }
 
-.history { margin: 0; padding-left: 1.1rem; font-size: .875rem; color: var(--muted); }
+.history { margin: 0; padding-left: 1.1rem; font-size: .87rem; color: var(--muted); display: grid; gap: .3rem; }
+
+/* --- desks --- */
+.desk-toolbar {
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-box);
+  padding: .9rem 1rem;
+  margin-bottom: 1rem;
+}
+.desk-toolbar .pills { margin: 0; }
+.desk-list { border-top: 1px solid var(--ink); }
+.desk-empty {
+  padding: 2.5rem 1rem; text-align: center;
+  border: 1px dashed var(--line-strong); border-radius: var(--radius-box);
+  background: var(--canvas);
+}
 
 /* --- image field --- */
-
 .image-drop {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: .75rem;
-  padding: .85rem;
+  gap: .7rem;
+  padding: .9rem;
   border: 1px dashed var(--line-strong);
   border-radius: var(--radius);
   font-weight: 400;
+  background: var(--canvas);
 }
-.image-drop.dragging { border-color: var(--primary); background: var(--selected-bg); }
-
+.image-drop.dragging { border-color: var(--ink); background: var(--selected-bg); }
 .image-preview {
   display: block;
   width: 100%;
-  max-width: 320px;
+  max-width: 100%;
   height: auto;
-  aspect-ratio: 3 / 2;
+  aspect-ratio: 16 / 9;
   object-fit: cover;
   border-radius: var(--radius);
   background: var(--tint);
+  border: 1px solid var(--line);
 }
 
-/* --- staff accounts --- */
+/* --- editor form --- */
+.workspace-main form.stack {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-box);
+  padding: 1.4rem;
+  box-shadow: var(--shadow-sm);
+}
+.workspace-main form.stack textarea[name="body"] { min-height: 320px; font-size: 1rem; line-height: 1.7; }
 
-.danger-zone { margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
+/* --- staff accounts --- */
+.user-card { align-items: center; }
+.user-card .list-actions { align-items: center; }
+.danger-zone {
+  margin-top: 1.5rem; padding: 1.1rem 1.2rem;
+  border: 1px solid var(--danger-line); border-radius: var(--radius-box);
+  background: var(--danger-bg);
+}
+.danger-zone .btn { width: 100%; }
+
+@media (max-width: 900px) {
+  .workspace { grid-template-columns: minmax(0, 1fr); }
+  .workspace-main, .workspace-side { grid-column: 1; grid-row: auto; }
+  .workspace-side { order: -1; position: static; }
+  .workspace-main form.stack { padding: 1rem; }
+}

@@ -1,8 +1,11 @@
-<%- include('../partials/head', { title: 'Analytics', extraCss: '/css/analytics.css' }) %>
+<%- include('../partials/head', { title: 'Impact analytics', extraCss: '/css/analytics.css' }) %>
 <%- include('../partials/header') %>
 
 <main class="page analytics">
-  <h1>Impact analytics</h1>
+  <div class="page-top">
+    <h1>Impact analytics</h1>
+    <a class="btn btn-ghost" href="/editor">Back to queue</a>
+  </div>
   <p class="muted">Views over time for one article. Each dashed line is an update an editor published.</p>
 
   <div class="an-layout">
@@ -22,7 +25,7 @@
       </div>
     </aside>
 
-    <section class="an-panel">
+    <section class="an-panel-card an-panel">
       <p class="muted" id="an-status">Loading…</p>
 
       <div id="an-content" hidden>

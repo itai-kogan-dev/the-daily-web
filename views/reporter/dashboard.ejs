@@ -7,23 +7,25 @@
     <a class="btn btn-primary" href="/reporter/article/new">New article</a>
   </div>
 
-  <nav class="pills" aria-label="Filter by status">
-    <a href="/reporter" class="pill<%= filter ? '' : ' active' %>">
-      All <span class="pill-count"><%= counts.all %></span>
-    </a>
-    <% statuses.forEach(status => { %>
-      <a href="/reporter?status=<%= status %>" class="pill<%= filter === status ? ' active' : '' %>">
-        <%= STATUS_LABELS[status] %> <span class="pill-count"><%= counts[status] %></span>
+  <div class="desk-toolbar">
+    <nav class="pills" aria-label="Filter by status">
+      <a href="/reporter" class="pill<%= filter ? '' : ' active' %>">
+        All <span class="pill-count"><%= counts.all %></span>
       </a>
-    <% }) %>
-  </nav>
+      <% statuses.forEach(status => { %>
+        <a href="/reporter?status=<%= status %>" class="pill<%= filter === status ? ' active' : '' %>">
+          <%= STATUS_LABELS[status] %> <span class="pill-count"><%= counts[status] %></span>
+        </a>
+      <% }) %>
+    </nav>
+  </div>
 
   <% if (articles.length === 0) { %>
-    <p class="feed-empty muted">
+    <p class="desk-empty muted">
       <%= filter ? 'No articles with this status.' : 'Nothing here yet. Start with a new article.' %>
     </p>
   <% } else { %>
-    <ul class="list">
+    <ul class="list desk-list">
       <% articles.forEach(article => { %>
         <li class="list-item">
           <% if (article.draftContent.imagePath) { %>

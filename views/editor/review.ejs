@@ -61,7 +61,7 @@
     </div>
 
     <aside class="workspace-side">
-      <section class="box">
+      <section class="staff-panel">
         <p class="eyebrow">Status</p>
         <div class="meta">
           <span id="status-badge" class="badge status-<%= article.status %>"><%= STATUS_LABELS[article.status] %></span>
@@ -73,7 +73,7 @@
           <% if (article.publishedAt) { %><span>Published <%= new Date(article.publishedAt).toLocaleDateString('en-GB') %></span><% } %>
           <span>Updated <%= new Date(article.updatedAt).toLocaleDateString('en-GB') %></span>
         </div>
-        <p id="review-status" class="save-status"></p>
+        <p id="review-status" class="save-status" role="status" aria-live="polite"></p>
       </section>
 
       <% if (hasDraft) { %>
@@ -88,7 +88,7 @@
         <p class="notice">This article is with the reporter. It can be edited, published or sent back once they send it for approval.</p>
       <% } %>
 
-      <div class="side-actions">
+      <div class="staff-panel side-actions">
         <% if (canEdit) { %>
           <button id="publish-btn" type="button" class="btn btn-primary">Publish</button>
         <% } %>
@@ -99,7 +99,7 @@
       </div>
 
       <% if (canEdit) { %>
-        <section class="stack side-section">
+        <section class="staff-panel stack side-section">
           <label>Send back to the reporter
             <textarea id="return-note" rows="3" maxlength="1000" placeholder="What should the reporter fix?"></textarea>
           </label>
@@ -108,7 +108,7 @@
       <% } %>
 
       <% if (article.updateEvents && article.updateEvents.length) { %>
-        <section class="side-section">
+        <section class="staff-panel side-section">
           <p class="eyebrow">Update history</p>
           <ul class="history">
             <% article.updateEvents.forEach(event => { %>

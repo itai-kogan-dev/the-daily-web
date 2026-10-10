@@ -1,20 +1,20 @@
-<%- include('../partials/head', { title: 'Manage users', extraCss: '/css/staff.css' }) %>
+<%- include('../partials/head', { title: 'Manage Users', extraCss: '/css/staff.css' }) %>
 <%- include('../partials/header') %>
 
 <main class="page">
   <div class="page-top">
-    <h1>Manage users</h1>
+    <h1>Manage Users</h1>
     <a class="btn btn-primary" href="/editor/users/new">New user</a>
   </div>
 
   <p class="muted">Reporters write articles. Editors review them and manage these accounts.</p>
 
   <% if (users.length === 0) { %>
-    <p class="feed-empty muted">No accounts yet.</p>
+    <p class="desk-empty muted">No accounts yet.</p>
   <% } else { %>
-    <ul class="list">
+    <ul class="list desk-list">
       <% users.forEach(account => { %>
-        <li class="list-item" data-user="<%= account._id %>">
+        <li class="list-item user-card" data-user="<%= account._id %>">
           <div class="list-body">
             <a class="list-title" href="/editor/users/<%= account._id %>"><%= account.displayName %></a>
             <% if (String(account._id) === currentUserId) { %><span class="muted">(you)</span><% } %>

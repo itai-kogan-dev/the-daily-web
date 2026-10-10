@@ -1,40 +1,35 @@
-<%- include('partials/head', { title: 'News' }) %>
+<%- include('partials/head', { title: sort === 'popular' ? 'Most Read' : (category ? CATEGORY_LABELS[category] : 'Latest News') }) %>
 <%- include('partials/header') %>
 
 <div class="layout">
   <main class="page">
-    <h1>Latest news</h1>
+    <h1 id="feed-title"><%= sort === 'popular' ? 'Most Read' : 'Latest News' %></h1>
 
     <!-- Every control below is a real link or a real form, so the feed works
          with JavaScript turned off. feed.js reads the data- attributes and
          takes over the same parameters without reloading the page. -->
-    <form class="feed-search" method="get" action="/" role="search">
-      <input type="search" name="q" value="<%= q %>" placeholder="Search headlines"
-             aria-label="Search headlines" maxlength="80">
-      <input type="hidden" name="category" value="<%= category || '' %>">
-      <input type="hidden" name="sort" value="<%= sort %>">
-    </form>
+    <div class="feed-toolbar">
+      <form class="feed-search" method="get" action="/" role="search">
+        <input type="search" name="q" value="<%= q %>" placeholder="Search headlines"
+               aria-label="Search headlines" maxlength="80">
+        <input type="hidden" name="category" value="<%= category || '' %>">
+        <input type="hidden" name="sort" value="<%= sort %>">
+      </form>
 
-    <nav class="pills" aria-label="Filter by category">
-      <span class="pills-title" aria-hidden="true">Category</span>
-      <a class="pill<%= category ? '' : ' active' %>" data-feed-nav data-category=""
-         href="<%= feedLink({ category: '' }) %>">All</a>
-      <% CATEGORIES.forEach(name => { %>
-        <a class="pill<%= category === name ? ' active' : '' %>" data-feed-nav data-category="<%= name %>"
-           href="<%= feedLink({ category: name }) %>"><%= CATEGORY_LABELS[name] %></a>
-      <% }) %>
-    </nav>
+      <nav class="pills feed-sort" aria-label="Sort order">
+        <a class="pill<%= sort === 'date' ? ' active' : '' %>" data-feed-nav data-sort="date"
+           href="<%= feedLink({ sort: 'date' }) %>">Newest</a>
+        <a class="pill<%= sort === 'popular' ? ' active' : '' %>" data-feed-nav data-sort="popular"
+           href="<%= feedLink({ sort: 'popular' }) %>">Most Read</a>
+      </nav>
 
-    <nav class="pills" aria-label="Sort order">
-      <span class="pills-title" aria-hidden="true">Sort</span>
-      <a class="pill<%= sort === 'date' ? ' active' : '' %>" data-feed-nav data-sort="date"
-         href="<%= feedLink({ sort: 'date' }) %>">Newest</a>
-      <a class="pill<%= sort === 'popular' ? ' active' : '' %>" data-feed-nav data-sort="popular"
-         href="<%= feedLink({ sort: 'popular' }) %>">Most read</a>
+      <%# feed.js renders the Unread only switch here, next to search and sort %>
+      <span id="feed-unread-slot"></span>
+
       <span class="feed-count" id="feed-count">
         <%= total %> <%= total === 1 ? 'article' : 'articles' %>
       </span>
-    </nav>
+    </div>
 
     <p class="feed-status muted" id="feed-status" role="status" aria-live="polite" hidden></p>
 
