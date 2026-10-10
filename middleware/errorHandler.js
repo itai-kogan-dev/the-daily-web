@@ -18,6 +18,8 @@ function resolveStatus(err) {
 // whoever is reading it. Without one the error came from Mongo, whose wording
 // names databases, collections, indexes and schema paths.
 function resolveMessage(err, status) {
+  // express.json sets a status too, but its message is the parser's own
+  if (err.type === 'entity.parse.failed') return 'The request body is not valid JSON'
   if (err.status) return err.message
   if (status === 400) return 'Some of the details are missing or invalid'
   if (status === 409) return 'That already exists'

@@ -7,11 +7,10 @@
 
   <div class="an-layout">
     <aside class="an-picker">
-      <label class="an-search">
-        <span>Find an article</span>
+      <label class="field">Find an article
         <input type="search" id="an-search" placeholder="Search titles" maxlength="100" autocomplete="off">
       </label>
-      <p class="muted an-hint" id="an-list-hint">Most read first</p>
+      <p class="hint an-hint" id="an-list-hint">Most read first</p>
       <!-- the box scrolls, not the page, so the graph stays in view while
            browsing. The sentinel is what loads the next page when it
            scrolls into sight; the button is the same thing for keyboards
@@ -19,7 +18,7 @@
       <div class="an-scroll" id="an-scroll">
         <ol class="an-list" id="an-list"></ol>
         <div id="an-sentinel" aria-hidden="true"></div>
-        <button type="button" class="an-more" id="an-more" hidden>Load more</button>
+        <button type="button" class="btn btn-sm an-more" id="an-more" hidden>Load more</button>
       </div>
     </aside>
 
@@ -29,20 +28,20 @@
       <div id="an-content" hidden>
         <div class="an-heading">
           <h2 id="an-title"></h2>
-          <a id="an-open" href="#">Open article</a>
+          <a class="btn btn-sm" id="an-open" href="#">Open article</a>
         </div>
 
         <div class="an-toolbar">
           <dl class="an-tiles">
-            <div><dt>Views in range</dt><dd id="an-total"></dd></div>
-            <div><dt>Updates</dt><dd id="an-updates"></dd></div>
-            <div><dt id="an-peak-label">Busiest</dt><dd id="an-peak"></dd></div>
+            <div class="box"><dt>Views in range</dt><dd id="an-total"></dd></div>
+            <div class="box"><dt>Updates</dt><dd id="an-updates"></dd></div>
+            <div class="box"><dt id="an-peak-label">Busiest</dt><dd id="an-peak"></dd></div>
           </dl>
-          <div class="an-ranges" role="group" aria-label="Time range">
-            <button type="button" data-range="24h">24h</button>
-            <button type="button" data-range="7d">7 days</button>
-            <button type="button" data-range="30d">30 days</button>
-            <button type="button" data-range="all">All</button>
+          <div class="pills" role="group" aria-label="Time range">
+            <button type="button" class="pill" data-range="24h">24h</button>
+            <button type="button" class="pill" data-range="7d">7 days</button>
+            <button type="button" class="pill" data-range="30d">30 days</button>
+            <button type="button" class="pill" data-range="all">All</button>
           </div>
         </div>
 
@@ -54,7 +53,7 @@
         </figure>
 
         <h3>Did the update bring readers back?</h3>
-        <p class="muted an-note">Views after each update against the same length of time before it - up to a day, less when another update is closer.</p>
+        <p class="hint an-note">Views after each update against the same length of time before it - up to a day, less when another update is closer.</p>
         <div class="an-table-wrap">
           <table class="an-impact">
             <thead>

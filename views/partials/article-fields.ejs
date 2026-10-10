@@ -1,0 +1,36 @@
+<%# The fields of one article, shared by the reporter's editor and the
+    editor's review. The form around them belongs to the page. %>
+<label>Title
+  <input name="title" value="<%= content.title %>">
+</label>
+
+<label>Category
+  <select name="category">
+    <% CATEGORIES.forEach(category => { %>
+      <option value="<%= category %>" <%= content.category === category ? 'selected' : '' %>><%= CATEGORY_LABELS[category] %></option>
+    <% }) %>
+  </select>
+</label>
+
+<label>Summary
+  <textarea name="summary" rows="3"><%= content.summary %></textarea>
+</label>
+
+<label>Body
+  <textarea name="body" rows="14"><%= content.body %></textarea>
+</label>
+
+<div class="field" data-image-field>
+  <span>Image</span>
+  <div class="image-drop">
+    <button type="button" class="btn btn-sm" data-image-pick>Choose image</button>
+    <button type="button" class="btn btn-sm btn-danger" data-image-remove<%= content.imagePath ? '' : ' hidden' %>>Remove</button>
+    <span class="image-name muted"><%= imageName || 'No image yet' %></span>
+    <span class="hint">or drop one here</span>
+  </div>
+  <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif" hidden>
+  <%# holds /images/<id> once the picture is in the database %>
+  <input type="hidden" name="imagePath" value="<%= content.imagePath %>">
+  <img class="image-preview" src="<%= content.imagePath %>" alt="Preview of the article image"<%= content.imagePath ? '' : ' hidden' %>>
+  <p class="error" hidden></p>
+</div>

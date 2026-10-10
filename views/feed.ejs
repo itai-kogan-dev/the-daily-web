@@ -1,4 +1,4 @@
-<%- include('partials/head', { title: 'News', extraCss: '/css/weather.css' }) %>
+<%- include('partials/head', { title: 'News' }) %>
 <%- include('partials/header') %>
 
 <div class="layout">
@@ -15,23 +15,23 @@
       <input type="hidden" name="sort" value="<%= sort %>">
     </form>
 
-    <nav class="feed-filters" aria-label="Filter by category">
-      <span class="feed-filters-title" aria-hidden="true">Filter by:</span>
-      <a class="chip<%= category ? '' : ' active' %>" data-feed-nav data-category=""
+    <nav class="pills" aria-label="Filter by category">
+      <span class="pills-title" aria-hidden="true">Category</span>
+      <a class="pill<%= category ? '' : ' active' %>" data-feed-nav data-category=""
          href="<%= feedLink({ category: '' }) %>">All</a>
       <% CATEGORIES.forEach(name => { %>
-        <a class="chip<%= category === name ? ' active' : '' %>" data-feed-nav data-category="<%= name %>"
+        <a class="pill<%= category === name ? ' active' : '' %>" data-feed-nav data-category="<%= name %>"
            href="<%= feedLink({ category: name }) %>"><%= CATEGORY_LABELS[name] %></a>
       <% }) %>
     </nav>
 
-    <nav class="feed-filters" aria-label="Sort order">
-      <span class="feed-filters-title" aria-hidden="true">Sort by:</span>
-      <a class="chip<%= sort === 'date' ? ' active' : '' %>" data-feed-nav data-sort="date"
+    <nav class="pills" aria-label="Sort order">
+      <span class="pills-title" aria-hidden="true">Sort</span>
+      <a class="pill<%= sort === 'date' ? ' active' : '' %>" data-feed-nav data-sort="date"
          href="<%= feedLink({ sort: 'date' }) %>">Newest</a>
-      <a class="chip<%= sort === 'popular' ? ' active' : '' %>" data-feed-nav data-sort="popular"
+      <a class="pill<%= sort === 'popular' ? ' active' : '' %>" data-feed-nav data-sort="popular"
          href="<%= feedLink({ sort: 'popular' }) %>">Most read</a>
-      <span class="feed-count muted" id="feed-count">
+      <span class="feed-count" id="feed-count">
         <%= total %> <%= total === 1 ? 'article' : 'articles' %>
       </span>
     </nav>
@@ -51,21 +51,21 @@
           <% } %>
         </p>
       <% } else { %>
-        <ul class="feed-list" id="feed-list">
+        <ul class="list feed-list" id="feed-list">
           <% items.forEach(article => { %>
-            <li class="feed-card" data-article-id="<%= article.id %>">
+            <li class="list-item" data-article-id="<%= article.id %>">
               <% if (article.imagePath) { %>
-                <a class="feed-thumb" href="/article/<%= article.id %>" tabindex="-1" aria-hidden="true">
+                <a class="list-thumb" href="/article/<%= article.id %>" tabindex="-1" aria-hidden="true">
                   <img src="<%= article.imagePath %>" alt="" loading="lazy" width="160" height="107">
                 </a>
               <% } %>
 
-              <div class="feed-card-body">
-                <a class="feed-card-title" href="/article/<%= article.id %>"><%= article.title %></a>
-                <% if (article.summary) { %><p class="feed-summary"><%= article.summary %></p><% } %>
+              <div class="list-body">
+                <a class="list-title" href="/article/<%= article.id %>"><%= article.title %></a>
+                <% if (article.summary) { %><p class="list-summary"><%= article.summary %></p><% } %>
 
-                <div class="feed-meta">
-                  <a class="feed-category" data-feed-nav data-category="<%= article.category %>"
+                <div class="meta">
+                  <a class="meta-category" data-feed-nav data-category="<%= article.category %>"
                      href="<%= feedLink({ category: article.category }) %>">
                     <%= article.categoryLabel %>
                   </a>
@@ -84,26 +84,26 @@
         <% if (pages > 1) { %>
           <nav class="feed-pager" aria-label="Pages">
             <% if (page > 1) { %>
-              <a class="feed-step" data-feed-nav data-page="<%= page - 1 %>"
+              <a class="btn btn-sm" data-feed-nav data-page="<%= page - 1 %>"
                  href="<%= feedLink({ page: page - 1 }) %>" rel="prev">Previous</a>
             <% } else { %><span></span><% } %>
 
             <div class="feed-pages">
               <% pageWindow(page, pages).forEach(entry => { %>
                 <% if (entry.gap) { %>
-                  <span class="feed-page-gap" aria-hidden="true">&hellip;</span>
+                  <span class="muted" aria-hidden="true">&hellip;</span>
                 <% } else if (entry.page === page) { %>
                   <%# not a link: the reader is already on this page %>
-                  <span class="feed-page current" aria-current="page"><%= entry.page %></span>
+                  <span class="pill active" aria-current="page"><%= entry.page %></span>
                 <% } else { %>
-                  <a class="feed-page" data-feed-nav data-page="<%= entry.page %>"
+                  <a class="pill" data-feed-nav data-page="<%= entry.page %>"
                      href="<%= feedLink({ page: entry.page }) %>"><%= entry.page %></a>
                 <% } %>
               <% }) %>
             </div>
 
             <% if (page < pages) { %>
-              <a class="feed-step" data-feed-nav data-page="<%= page + 1 %>"
+              <a class="btn btn-sm" data-feed-nav data-page="<%= page + 1 %>"
                  href="<%= feedLink({ page: page + 1 }) %>" rel="next">Next</a>
             <% } else { %><span></span><% } %>
           </nav>

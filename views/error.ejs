@@ -1,10 +1,12 @@
 <%- include('partials/head', { title: status }) %>
 <%- include('partials/header') %>
 
-<main class="page">
-  <h1><%= status %></h1>
-  <p><%= message %></p>
-  <p><a href="/">Back to the feed</a></p>
+<main class="page narrow">
+  <p class="eyebrow">Error <%= status %></p>
+  <h1><%= message %></h1>
+  <div class="actions">
+    <a class="btn" href="/">Back to the feed</a>
+  </div>
 </main>
 
 <%- include('partials/footer') %>

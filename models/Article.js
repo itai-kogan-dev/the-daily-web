@@ -12,9 +12,9 @@ const STATUS = {
 }
 
 const STATUS_LABELS = {
-  [STATUS.IN_PROGRESS]:    'In Progress',
-  [STATUS.PENDING_EDITOR]: 'Pending Editor Approval',
-  [STATUS.NEEDS_REVISION]: 'Needs Revision',
+  [STATUS.IN_PROGRESS]:    'In progress',
+  [STATUS.PENDING_EDITOR]: 'Pending approval',
+  [STATUS.NEEDS_REVISION]: 'Needs revision',
   [STATUS.PUBLISHED]:      'Published'
 }
 

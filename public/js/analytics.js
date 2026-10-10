@@ -1,10 +1,14 @@
 // Impact analytics: views over time for one article, with a marker at every
 // update. The page is a shell - everything comes from /api/analytics.
 
-const SERIES_COLOR = '#2a78d6'
-const SERIES_FILL = 'rgba(42, 120, 214, 0.08)'
-const INK = '#52514e'
-const GRID = '#ececec'
+// the chart's colours come from the tokens in main.css, so it matches the site
+const token = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+const SERIES_COLOR = token('--primary')
+const SERIES_FILL = token('--ring')
+const INK = token('--muted')
+const GRID = token('--line')
+const MARKER = token('--brand')
+if (window.Chart) Chart.defaults.font.family = token('--sans')
 
 const $ = id => document.getElementById(id)
 
@@ -256,7 +260,7 @@ const updateMarkers = {
       const px = x.getPixelForValue(marker.x)
       if (px < area.left || px > area.right) return
 
-      ctx.strokeStyle = INK
+      ctx.strokeStyle = MARKER
       ctx.lineWidth = 1
       ctx.setLineDash([4, 3])
       ctx.beginPath()
@@ -265,8 +269,8 @@ const updateMarkers = {
       ctx.stroke()
 
       ctx.setLineDash([])
-      ctx.fillStyle = INK
-      ctx.font = '600 11px system-ui, sans-serif'
+      ctx.fillStyle = MARKER
+      ctx.font = `600 11px ${token('--sans')}`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'bottom'
       ctx.fillText(marker.short, px, area.top - 3)

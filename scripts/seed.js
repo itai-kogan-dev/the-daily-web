@@ -191,10 +191,11 @@ async function seed() {
   // which is the case the spec cares most about. updates counts the approved
   // updates after the first publication.
   const plan = [
-    { n: 385, status: STATUS.PUBLISHED,      live: true,  updates: [0, 1] },
+    { n: 380, status: STATUS.PUBLISHED,      live: true,  updates: [0, 1] },
     { n:  15, status: STATUS.PUBLISHED,      live: true,  updates: [3, 5], featured: true },  // for the graph
     { n:  10, status: STATUS.PENDING_EDITOR, live: true,  updates: [0, 2] },  // live, update waiting
     { n:   5, status: STATUS.NEEDS_REVISION, live: true,  updates: [0, 2] },  // live, fix requested
+    { n:   5, status: STATUS.IN_PROGRESS,    live: true,  updates: [0, 2] },  // live, reporter reworking it
     { n:  40, status: STATUS.PENDING_EDITOR, live: false, updates: [0, 0] },
     { n:  30, status: STATUS.IN_PROGRESS,    live: false, updates: [0, 0] },
     { n:  15, status: STATUS.NEEDS_REVISION, live: false, updates: [0, 0] }
