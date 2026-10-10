@@ -1,4 +1,5 @@
 const User = require('../models/User')
+const { readString } = require('../utils/readString')
 const { ROLES } = User
 
 function showLogin(req, res) {
@@ -6,8 +7,9 @@ function showLogin(req, res) {
 }
 
 async function logIn(req, res) {
-  const username = (req.body.username || '').trim().toLowerCase()
-  const password = req.body.password || ''
+  const body = req.body || {}
+  const username = readString(body.username).trim().toLowerCase()
+  const password = readString(body.password)
 
   const user = await User.findOne({ username })
 

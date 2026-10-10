@@ -7,6 +7,7 @@ const EditorDraft = require('../models/EditorDraft')
 const workflow = require('../services/articleWorkflow')
 const imageStore = require('../services/imageStore')
 const { makeError } = require('../utils/makeError')
+const { readString } = require('../utils/readString')
 
 // bad id and missing article end up the same - 404 via the error handler
 async function findArticle(id) {
@@ -25,8 +26,7 @@ async function findArticle(id) {
 async function showQueue(req, res) {
   const statuses = Object.values(STATUS)
 
-  const raw = req.query.status
-  const filter = typeof raw === 'string' && statuses.includes(raw) ? raw : null
+  const filter = statuses.includes(req.query.status) ? req.query.status : null
 
   const query = {}
   if (filter) query.status = filter
@@ -132,8 +132,7 @@ async function publishArticle(req, res) {
 async function returnArticle(req, res) {
   const article = await findArticle(req.params.id)
 
-  const raw = req.body ? req.body.note : undefined
-  const note = typeof raw === 'string' ? raw.trim() : ''
+  const note = readString((req.body || {}).note).trim()
   if (!note) throw makeError(400, 'Write a note so the reporter knows what to fix')
   if (note.length > 1000) throw makeError(400, 'The note is too long')
 
@@ -202,8 +201,7 @@ async function findComment(id) {
 async function editComment(req, res) {
   const comment = await findComment(req.params.id)
 
-  const raw = req.body ? req.body.body : undefined
-  const text = typeof raw === 'string' ? raw.trim() : ''
+  const text = readString((req.body || {}).body).trim()
   if (!text) throw makeError(400, 'Comment text is required')
   if (text.length > 1000) throw makeError(400, 'Comment is too long')
 

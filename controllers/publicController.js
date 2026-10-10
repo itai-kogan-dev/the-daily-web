@@ -4,6 +4,7 @@ const Comment = require('../models/Comment')
 const viewCounter = require('../services/viewCounter')
 const { makeError } = require('../utils/makeError')
 const { escapeRegExp } = require('../utils/escapeRegExp')
+const { readString } = require('../utils/readString')
 const { CATEGORIES, CATEGORY_LABELS } = Article
 
 // Twenty at a time. The spec loads 20 more articles as the reader reaches the
@@ -314,8 +315,9 @@ async function addComment(req, res) {
 
   // Trimmed here as well as in the schema: a name of spaces would otherwise
   // satisfy the maxlength and leave a blank comment on the page.
-  const authorName = String(req.body.authorName || '').trim()
-  const body = String(req.body.body || '').trim()
+  const input = req.body || {}
+  const authorName = readString(input.authorName).trim()
+  const body = readString(input.body).trim()
 
   // The schema's own maxlength is the real check, but what it says is a Mongoose
   // message naming the field. The two mistakes anyone actually makes get a

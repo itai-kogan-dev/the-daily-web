@@ -140,9 +140,14 @@ async function findArticleViews(articleId, { range = 'all', interval, tz } = {})
     .lean()
   if (!article) return null
 
+  // hasOwn, not RANGES[range]: a query can ask for __proto__ or constructor,
+  // which every object has
+  if (!Object.hasOwn(RANGES, range)) range = 'all'
+  if (!Object.hasOwn(INTERVALS, interval)) interval = null
+
   const now = new Date()
   const timeZone = resolveTimeZone(tz)
-  const rangeMs = RANGES[range] ?? RANGES.all
+  const rangeMs = RANGES[range]
   const born = article.publishedAt || article.createdAt
   const start = new Date(Math.max(born.getTime(), now.getTime() - rangeMs))
   const fits = INTERVALS[interval] && (now - start) / INTERVALS[interval] <= MAX_POINTS
@@ -200,7 +205,7 @@ async function findArticleViews(articleId, { range = 'all', interval, tz } = {})
       publishedAt: article.publishedAt,
       viewCount: article.viewCount
     },
-    range: RANGES[range] ? range : 'all',
+    range,
     interval: chosen,
     intervalMs: step,
     timeZone,
