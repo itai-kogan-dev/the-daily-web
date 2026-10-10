@@ -1,16 +1,12 @@
 const mongoose = require('mongoose')
 const User = require('../models/User')
+const { makeError } = require('../utils/makeError')
+const { readString } = require('../utils/readString')
 const { STORED_ROLES, ROLE_LABELS, ROLES } = User
 
 const USERNAME_PATTERN = /^[a-z0-9._-]{3,30}$/
 const MAX_NAME = 60
 const MIN_PASSWORD = 8
-
-function makeError(status, message) {
-  const err = new Error(message)
-  err.status = status
-  return err
-}
 
 // bad id and missing user end up the same - 404 via the error handler
 async function findUser(id) {
@@ -30,7 +26,6 @@ async function showUsers(req, res) {
   res.render('editor/users', { users, currentUserId: req.session.user.id, ROLE_LABELS })
 }
 
-// empty form. nothing is written until the create call below runs.
 function showNewUser(req, res) {
   res.render('editor/user-edit', {
     account: null,
@@ -54,14 +49,10 @@ async function showEditUser(req, res) {
   })
 }
 
-// A JSON body can carry anything, so only strings are read - a number or an
-// object has to be a 400, not a crash or an account called "[object Object]".
-const readString = value => (typeof value === 'string' ? value.trim() : '')
-
 // the schema lowercases and trims the username on save, but lookups and
 // duplicate checks run before that, so the same normalising happens here first
 function readUsername(body) {
-  return readString(body.username).toLowerCase()
+  return readString(body.username).trim().toLowerCase()
 }
 
 function assertUsername(username) {
@@ -89,7 +80,7 @@ async function assertUsernameFree(username) {
 async function createUser(req, res) {
   const body = req.body || {}
   const username = readUsername(body)
-  const displayName = readString(body.displayName)
+  const displayName = readString(body.displayName).trim()
 
   assertUsername(username)
   assertDisplayName(displayName)
@@ -119,7 +110,7 @@ async function updateUser(req, res) {
   }
 
   if (body.displayName !== undefined) {
-    const displayName = readString(body.displayName)
+    const displayName = readString(body.displayName).trim()
     assertDisplayName(displayName)
     user.displayName = displayName
   }

@@ -1,12 +1,9 @@
-// Autosave for both article forms - the reporter's and the editor's. There
-// is no save button: the spec says work has to survive a refresh, a closed
-// browser, or moving to another machine, so drafts go to the server rather
-// than to localStorage.
-//
-// send(content, keepalive) makes the request and returns the fetch response.
-// onSaved(data) gets the server's answer. skip(content) can say there is
-// nothing worth saving yet. exists() says whether the article is already
-// on the server. Returns the controls the page's buttons need.
+// Autosave for both article forms. Drafts go to the server, not localStorage,
+// so work survives a refresh, a closed browser or another computer.
+//   send(content, keepalive) - makes the request, returns the fetch response
+//   onSaved(data)            - gets the server's answer
+//   skip(content)            - true when there is nothing worth saving yet
+//   exists()                 - whether the article is already on the server
 function setUpAutosave({ form, statusEl, send, onSaved = () => {}, skip = () => false, exists = () => true }) {
   const IDLE_MS = 1500     // save this long after typing stops
   const CEILING_MS = 10000 // ...but never go longer than this while typing
@@ -91,7 +88,7 @@ function setUpAutosave({ form, statusEl, send, onSaved = () => {}, skip = () => 
   }
   const save = () => enqueue(false)
 
-  function changed() {
+  function markChanged() {
     unsaved = true
     showStatus('Unsaved changes', 'pending')
 
@@ -102,7 +99,7 @@ function setUpAutosave({ form, statusEl, send, onSaved = () => {}, skip = () => 
     if (!ceilingTimer) ceilingTimer = setTimeout(save, CEILING_MS)
   }
 
-  form.addEventListener('input', changed)
+  form.addEventListener('input', markChanged)
 
   // Closing the tab or switching away. keepalive lets the request outlive the
   // page. An update goes straight out, because a save already in flight could
@@ -114,5 +111,5 @@ function setUpAutosave({ form, statusEl, send, onSaved = () => {}, skip = () => 
     else enqueue(true)
   })
 
-  return { save, changed, stop }
+  return { save, markChanged, stop }
 }

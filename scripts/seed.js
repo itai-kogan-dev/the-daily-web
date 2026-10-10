@@ -23,9 +23,9 @@ const HOUR = 60 * MINUTE
 const DAY = 24 * HOUR
 
 const pick = list => list[Math.floor(Math.random() * list.length)]
-const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min
-const hoursAgo = hours => new Date(Date.now() - hours * HOUR)
-const randomBetween = (from, to) => new Date(from.getTime() + Math.random() * (to - from))
+const pickRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min
+const subtractHours = hours => new Date(Date.now() - hours * HOUR)
+const pickDateBetween = (from, to) => new Date(from.getTime() + Math.random() * (to - from))
 // 2.4 views becomes 2 or 3, so quiet hours still add up to the right total
 const roundRandomly = value => Math.floor(value + Math.random())
 
@@ -70,7 +70,7 @@ function makeContent(category) {
   return {
     title,
     summary: `${title} - what it means and who it affects.`,
-    body: Array.from({ length: randInt(3, 6) }, () =>
+    body: Array.from({ length: pickRandomInt(3, 6) }, () =>
       `${pick(SUBJECTS)} has drawn attention this week. Officials said the decision follows months of review, ` +
       `and that further details will be published in the coming days. Critics argue the timing is questionable.`
     ).join('\n\n'),
@@ -84,15 +84,15 @@ function makeContent(category) {
 // and a tail back to a month.
 function pickPublishHours() {
   const roll = Math.random()
-  if (roll < 0.15) return randInt(1, 23)
-  if (roll < 0.55) return randInt(24, 24 * 7)
-  return randInt(24 * 7, 24 * 30)
+  if (roll < 0.15) return pickRandomInt(1, 23)
+  if (roll < 0.55) return pickRandomInt(24, 24 * 7)
+  return pickRandomInt(24 * 7, 24 * 30)
 }
 
 // The articles the analytics page is demoed on: a few days old, a week or
 // two, and most of a month, so every range on the graph has one that fills it.
 function pickFeaturedHours(index) {
-  return [randInt(36, 96), randInt(24 * 5, 24 * 12), randInt(24 * 14, 24 * 28)][index % 3]
+  return [pickRandomInt(36, 96), pickRandomInt(24 * 5, 24 * 12), pickRandomInt(24 * 14, 24 * 28)][index % 3]
 }
 
 // The first event is the publication itself, as publish() records it, then
@@ -101,7 +101,7 @@ function pickFeaturedHours(index) {
 function makeUpdateEvents(publishedAt, updates, editorId, { recentLast = false } = {}) {
   const events = [{ at: publishedAt, editor: editorId }]
   const first = publishedAt.getTime() + 6 * HOUR
-  const last = Date.now() - (recentLast ? randInt(3, 20) : randInt(2, 48)) * HOUR
+  const last = Date.now() - (recentLast ? pickRandomInt(3, 20) : pickRandomInt(2, 48)) * HOUR
   if (!updates || last <= first) return events
 
   const gap = (last - first) / updates
@@ -148,7 +148,7 @@ function makeBuckets(article, baseline) {
   const now = Date.now()
   const articleAge = now - article.publishedAt.getTime()
 
-  let at = ViewBucket.bucketFor(article.publishedAt).getTime()
+  let at = ViewBucket.getBucketStart(article.publishedAt).getTime()
   while (at < now) {
     const step = pickBucketStep(now - at, articleAge)
     const span = Math.min(step, now - at)
@@ -217,17 +217,17 @@ async function seed() {
       let createdAt, updatedAt
 
       if (group.live) {
-        publishedAt = hoursAgo(group.featured ? pickFeaturedHours(featuredIndex) : pickPublishHours())
-        updateEvents = makeUpdateEvents(publishedAt, randInt(...group.updates), editor._id, {
+        publishedAt = subtractHours(group.featured ? pickFeaturedHours(featuredIndex) : pickPublishHours())
+        updateEvents = makeUpdateEvents(publishedAt, pickRandomInt(...group.updates), editor._id, {
           recentLast: group.featured
         })
-        createdAt = new Date(publishedAt.getTime() - randInt(1, 12) * HOUR)
+        createdAt = new Date(publishedAt.getTime() - pickRandomInt(1, 12) * HOUR)
         const lastApproved = updateEvents[updateEvents.length - 1].at
         // a live article with an edit in progress was touched after its last approval
-        updatedAt = group.status === STATUS.PUBLISHED ? lastApproved : randomBetween(lastApproved, new Date())
+        updatedAt = group.status === STATUS.PUBLISHED ? lastApproved : pickDateBetween(lastApproved, new Date())
       } else {
-        createdAt = hoursAgo(randInt(2, 24 * 10))
-        updatedAt = randomBetween(createdAt, new Date())
+        createdAt = subtractHours(pickRandomInt(2, 24 * 10))
+        updatedAt = pickDateBetween(createdAt, new Date())
       }
 
       docs.push({
@@ -246,7 +246,7 @@ async function seed() {
         createdAt,
         updatedAt
       })
-      baselines.push(group.featured ? randInt(150, 400) : randInt(20, 200))
+      baselines.push(group.featured ? pickRandomInt(150, 400) : pickRandomInt(20, 200))
     }
   }
 
@@ -263,9 +263,9 @@ async function seed() {
   ]
   const comments = []
   for (const article of articles.filter(one => one.isLive).slice(0, 180)) {
-    for (let i = 0; i < randInt(0, 7); i++) {
+    for (let i = 0; i < pickRandomInt(0, 7); i++) {
       // never before the article went live
-      const at = randomBetween(article.publishedAt, new Date())
+      const at = pickDateBetween(article.publishedAt, new Date())
       comments.push({
         article: article._id,
         authorName: pick(NAMES),

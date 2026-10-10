@@ -2,7 +2,7 @@ const express = require('express')
 const { requireRole } = require('../middleware/auth')
 const { ROLES } = require('../models/User')
 const reporter = require('../controllers/reporterController')
-const imageStore = require('../services/imageStore')
+const images = require('../controllers/imageController')
 
 const router = express.Router()
 
@@ -16,13 +16,7 @@ router.get('/article/new', reporter.showNewEditor)
 router.get('/article/:id', reporter.showEditor)
 
 // --- json ---
-// The picture arrives as the raw body rather than a form upload, so express
-// parses it on its own and we need no multipart library.
-router.post(
-  '/api/image',
-  express.raw({ type: imageStore.ALLOWED_TYPES, limit: imageStore.MAX_BYTES }),
-  reporter.uploadImage
-)
+router.post('/api/image', images.upload)
 router.post('/api/article', reporter.createArticle)
 router.patch('/api/article/:id', reporter.saveDraft)
 router.post('/api/article/:id/submit', reporter.submitArticle)

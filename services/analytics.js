@@ -1,6 +1,7 @@
 const Article = require('../models/Article')
 const ViewBucket = require('../models/ViewBucket')
 require('../models/User')   // registers the model the update events populate from
+const { escapeRegExp } = require('../utils/escapeRegExp')
 
 const MINUTE = 60 * 1000
 const HOUR = 60 * MINUTE
@@ -48,7 +49,7 @@ function resolveTimeZone(tz) {
 }
 
 // how far ahead of UTC a time zone is at a given moment, DST included
-function zoneOffset(date, timeZone) {
+function getZoneOffset(date, timeZone) {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone, hourCycle: 'h23',
     year: 'numeric', month: 'numeric', day: 'numeric',
@@ -60,22 +61,22 @@ function zoneOffset(date, timeZone) {
 }
 
 // rounds down to the start of the point the time falls in, in local time
-function binStart(date, step, timeZone) {
-  const offset = zoneOffset(date, timeZone)
+function getBinStart(date, step, timeZone) {
+  const offset = getZoneOffset(date, timeZone)
   const local = Math.floor((date.getTime() + offset) / step) * step
-  return local - zoneOffset(new Date(local - offset), timeZone)
+  return local - getZoneOffset(new Date(local - offset), timeZone)
 }
 
 // Buckets only exist where there were views. Without the empty points the
 // line would be drawn straight across a quiet night as if it were busy.
-function emptySeries(from, to, step, timeZone) {
+function buildEmptySeries(from, to, step, timeZone) {
   const series = new Map()
-  let at = binStart(from, step, timeZone)
+  let at = getBinStart(from, step, timeZone)
   while (at <= to.getTime()) {
     series.set(at, 0)
     // a step and a half always lands inside the next point, even on the
     // 23 and 25 hour days that DST makes
-    at = binStart(new Date(at + step * 1.5), step, timeZone)
+    at = getBinStart(new Date(at + step * 1.5), step, timeZone)
   }
   return series
 }
@@ -133,15 +134,20 @@ function measureImpact(events, buckets, publishedAt, now) {
 
 // Everything the graph needs for one article, shaped for Chart.js: points are
 // { x, y } with x in ms, so the client hands them straight to a dataset.
-async function articleViews(articleId, { range = 'all', interval, tz } = {}) {
+async function findArticleViews(articleId, { range = 'all', interval, tz } = {}) {
   const article = await Article.findById(articleId)
     .populate('updateEvents.editor', 'displayName')
     .lean()
   if (!article) return null
 
+  // hasOwn, not RANGES[range]: a query can ask for __proto__ or constructor,
+  // which every object has
+  if (!Object.hasOwn(RANGES, range)) range = 'all'
+  if (!Object.hasOwn(INTERVALS, interval)) interval = null
+
   const now = new Date()
   const timeZone = resolveTimeZone(tz)
-  const rangeMs = RANGES[range] ?? RANGES.all
+  const rangeMs = RANGES[range]
   const born = article.publishedAt || article.createdAt
   const start = new Date(Math.max(born.getTime(), now.getTime() - rangeMs))
   const fits = INTERVALS[interval] && (now - start) / INTERVALS[interval] <= MAX_POINTS
@@ -150,11 +156,11 @@ async function articleViews(articleId, { range = 'all', interval, tz } = {}) {
 
   // from the start of the first point, not the exact moment: the bucket a
   // publication falls in started a few minutes before it
-  const from = new Date(binStart(start, step, timeZone))
+  const from = new Date(getBinStart(start, step, timeZone))
 
-  const series = emptySeries(from, now, step, timeZone)
+  const series = buildEmptySeries(from, now, step, timeZone)
   for (const row of await loadViews(article._id, from, now, chosen)) {
-    const key = binStart(row.at, step, timeZone)
+    const key = getBinStart(row.at, step, timeZone)
     if (series.has(key)) series.set(key, series.get(key) + row.views)
   }
   const points = [...series].map(([x, y]) => ({ x, y }))
@@ -199,7 +205,7 @@ async function articleViews(articleId, { range = 'all', interval, tz } = {}) {
       publishedAt: article.publishedAt,
       viewCount: article.viewCount
     },
-    range: RANGES[range] ? range : 'all',
+    range,
     interval: chosen,
     intervalMs: step,
     timeZone,
@@ -211,23 +217,14 @@ async function articleViews(articleId, { range = 'all', interval, tz } = {}) {
   }
 }
 
-// a regex built from user input has to be escaped, or "(" is a crash and
-// ".*" matches everything
-const escapeRegex = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-
 const PICKER_PAGE = 20
 
-// The picker on the analytics page: live articles, most read first, a page
-// at a time - the client asks for the next one as the list scrolls.
-//
-// _id is the last tiebreaker so equal view counts always come back in the
-// same order; without it two articles on 0 views can swap between pages.
-// The rollup can still move an article up between two page loads, so the
-// client also skips ids it already has.
+// Live articles for the analytics picker, most read first, a page at a time.
+// _id breaks ties, so articles with equal views never swap between pages.
 async function listArticles({ q = '', skip = 0, limit = PICKER_PAGE } = {}) {
   const filter = { isLive: true }
   const search = String(q).trim().slice(0, 100)
-  if (search) filter['publishedContent.title'] = { $regex: escapeRegex(search), $options: 'i' }
+  if (search) filter['publishedContent.title'] = { $regex: escapeRegExp(search), $options: 'i' }
 
   const size = Math.min(Math.max(parseInt(limit, 10) || PICKER_PAGE, 1), 50)
   const from = Math.max(parseInt(skip, 10) || 0, 0)
@@ -257,4 +254,4 @@ async function listArticles({ q = '', skip = 0, limit = PICKER_PAGE } = {}) {
   }
 }
 
-module.exports = { articleViews, listArticles }
+module.exports = { findArticleViews, listArticles }

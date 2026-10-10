@@ -1,4 +1,5 @@
-const { STATUS } = require('../models/Article')
+const { STATUS, CATEGORIES } = require('../models/Article')
+const { makeError } = require('../utils/makeError')
 
 // The only moves the spec allows. Anything not listed here is rejected.
 // published -> in_progress is not in the spec's list, but the spec does say
@@ -17,6 +18,33 @@ function isValidImageSource(value) {
   return /^\/images\/[a-f0-9]{24}$/i.test(value)
 }
 
+// A field that was not sent keeps its current value. One that was sent must
+// be text - a JSON body can carry anything, and silently ignoring a number
+// while answering "saved" would hide the mistake.
+function readText(value, current) {
+  if (value === undefined) return current || ''
+  if (typeof value !== 'string') throw makeError(400, 'Article fields must be text')
+  return value
+}
+
+// The article fields from a request body, for both the reporter's and the
+// editor's form. A draft can be half written, so nothing is rejected for being
+// empty - losing work to a validation error is what the spec says must not
+// happen. Completeness is checked when the article is sent or published.
+function readContent(body = {}, current = {}) {
+  const imagePath = readText(body.imagePath, current.imagePath).trim()
+  if (imagePath && !isValidImageSource(imagePath)) throw makeError(400, 'The image is not a valid picture')
+  if (body.category !== undefined && !CATEGORIES.includes(body.category)) throw makeError(400, 'Unknown category')
+
+  return {
+    title: readText(body.title, current.title).trim() || 'Untitled',
+    summary: readText(body.summary, current.summary).trim(),
+    body: readText(body.body, current.body),
+    category: body.category ?? current.category ?? CATEGORIES[0],
+    imagePath
+  }
+}
+
 // A draft can be half written, but anything leaving the reporter has to be
 // complete - all of it ends up on the public page. Checked on the way in and
 // again on the way out, so an editor cannot publish a broken article either.
@@ -28,10 +56,10 @@ function assertPublishable(article) {
   if (!content.summary.trim()) missing.push('summary')
   if (!content.body.trim()) missing.push('body')
   if (!content.imagePath.trim()) missing.push('image')
-  if (missing.length) throw httpError(400, 'Still missing: ' + missing.join(', '))
+  if (missing.length) throw makeError(400, 'Still missing: ' + missing.join(', '))
 
   if (!isValidImageSource(content.imagePath)) {
-    throw httpError(400, 'The image is not a valid picture')
+    throw makeError(400, 'The image is not a valid picture')
   }
 }
 
@@ -39,21 +67,14 @@ function canTransition(from, to) {
   return (LEGAL_TRANSITIONS[from] || []).includes(to)
 }
 
-function httpError(status, message) {
-  const err = new Error(message)
-  err.status = status
-  return err
-}
-
 // the check has to happen on the server because anyone can send a request
 // without going through our UI
 function assertTransition(from, to) {
   if (!canTransition(from, to)) {
-    throw httpError(400, `Illegal transition: ${from} -> ${to}`)
+    throw makeError(400, `Illegal transition: ${from} -> ${to}`)
   }
 }
 
-// reporter sends their work to the editor
 function submitForReview(article) {
   assertTransition(article.status, STATUS.PENDING_EDITOR)
   assertPublishable(article)
@@ -98,10 +119,9 @@ function returnForRevision(article, note) {
   return article
 }
 
-// Who may change or remove an article depends on whose hands it is in. The
-// editor acts on what was sent for approval; an article still with the
-// reporter is theirs until they send it. Between the two rules below every
-// article always has exactly one person who can delete it.
+// Who may change or remove an article depends on whose hands it is in: the
+// editor edits what was sent for approval and deletes that or anything live;
+// the reporter deletes their own unpublished drafts.
 function canEditorEdit(article) {
   return article.status === STATUS.PENDING_EDITOR
 }
@@ -120,7 +140,7 @@ function canReporterDelete(article) {
 const CONTENT_FIELDS = { title: 'title', category: 'category', summary: 'summary', body: 'body', imagePath: 'image' }
 
 // which parts of a draft differ from the live version, for the review pages
-function changedFields(live, draft) {
+function listChangedFields(live, draft) {
   if (!live || !draft) return []
   return Object.entries(CONTENT_FIELDS)
     .filter(([key]) => (live[key] || '') !== (draft[key] || ''))
@@ -128,7 +148,8 @@ function changedFields(live, draft) {
 }
 
 module.exports = {
-  changedFields,
+  readContent,
+  listChangedFields,
   canEditorEdit,
   canEditorDelete,
   canReporterDelete,

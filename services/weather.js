@@ -1,11 +1,8 @@
-// The sidebar weather widget: the weather where the reader is, and the name
-// of the place so they can see it is theirs. Every page with a sidebar asks
-// for it, so the answer is cached here and the weather service hears from us
-// at most once per CACHE_MS per place, however many readers there are.
-//
-// Open-Meteo rather than OpenWeather: it needs no API key, so there is no
-// secret to share between four laptops and nothing to leak into the repo.
-// It has no place names, so those come from OpenStreetMap's Nominatim.
+// The weather for the sidebar, from Open-Meteo (free, no API key) with the
+// place name from OpenStreetMap's Nominatim. Cached per place, so the services
+// hear from us at most once per CACHE_MS per place, however many readers.
+
+const { makeError } = require('../utils/makeError')
 
 const CACHE_MS = 15 * 60 * 1000   // the spec allows up to 15 minutes old
 const TIMEOUT_MS = 5000
@@ -43,23 +40,19 @@ function describe(code, isDay) {
   return { text: condition.text, icon: !isDay && condition.night ? condition.night : condition.icon }
 }
 
-function httpError(status, message) {
-  return Object.assign(new Error(message), { status })
-}
-
 const round = value => Math.round(value * PRECISION) / PRECISION
 
 // There is no default place: weather for somewhere the reader is not would
 // look like theirs. Without a location the widget says so instead.
 function resolvePlace(lat, lon) {
   const given = [lat, lon].filter(value => value !== undefined && value !== '')
-  if (given.length < 2) throw httpError(400, 'Send lat and lon')
+  if (given.length < 2) throw makeError(400, 'Send lat and lon')
 
   const latitude = Number(lat)
   const longitude = Number(lon)
   if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
       !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
-    throw httpError(400, 'lat and lon must be a real place')
+    throw makeError(400, 'lat and lon must be a real place')
   }
   return { lat: round(latitude), lon: round(longitude) }
 }
@@ -70,7 +63,7 @@ let nextNameAt = 0        // when Nominatim may next be asked
 // The city, town or village a place is in, or null if Nominatim cannot say.
 // A missing name never costs the reader their weather - the widget falls
 // back to "near you".
-async function placeName(place, key) {
+async function findPlaceName(place, key) {
   if (names.has(key)) return names.get(key)
 
   // queue behind the previous lookup, so a burst of new places still asks
@@ -153,27 +146,24 @@ function remember(key, entry) {
   if (cache.size > MAX_PLACES) cache.delete(cache.keys().next().value)
 }
 
-function answer(entry, stale) {
+function formatAnswer(entry, stale) {
   return { ...entry.data, fetchedAt: new Date(entry.fetchedAt), stale }
 }
 
-// Fresh cache -> the cache. Otherwise one request goes out per place, and
-// anyone who asks for that place while it is on its way waits for that same
-// one instead of sending their own - a cold cache under load would otherwise
-// mean a request per reader.
-//
-// If the weather service is down we keep serving the last answer, marked
-// stale, rather than an error: an hour old temperature beats an empty box.
+// Served from the cache while it is under 15 minutes old. Otherwise one request
+// goes out per place, and readers asking for that place meanwhile wait for it
+// instead of sending their own. If the weather service is down, the last
+// answer is served marked stale - it can then be older than 15 minutes.
 async function getWeather({ lat, lon } = {}) {
   const place = resolvePlace(lat, lon)
   const key = `${place.lat},${place.lon}`
 
   const cached = cache.get(key)
-  if (cached && Date.now() - cached.fetchedAt < CACHE_MS) return answer(cached, false)
+  if (cached && Date.now() - cached.fetchedAt < CACHE_MS) return formatAnswer(cached, false)
 
   let pending = inFlight.get(key)
   if (!pending) {
-    pending = Promise.all([fetchWeather(place), placeName(place, key)])
+    pending = Promise.all([fetchWeather(place), findPlaceName(place, key)])
       .then(([data, city]) => remember(key, { data: { city, ...data }, fetchedAt: Date.now() }))
       .catch(err => {
         // logged here, once per failed refresh, not once per waiting reader
@@ -188,11 +178,11 @@ async function getWeather({ lat, lon } = {}) {
     await pending
   } catch {
     const last = cache.get(key)
-    if (!last) throw httpError(503, 'Weather is not available right now')
-    return answer(last, true)
+    if (!last) throw makeError(503, 'Weather is not available right now')
+    return formatAnswer(last, true)
   }
 
-  return answer(cache.get(key), false)
+  return formatAnswer(cache.get(key), false)
 }
 
 module.exports = { getWeather, CACHE_MS }

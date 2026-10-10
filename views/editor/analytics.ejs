@@ -14,10 +14,9 @@
         <input type="search" id="an-search" placeholder="Search titles" maxlength="100" autocomplete="off">
       </label>
       <p class="hint an-hint" id="an-list-hint">Most read first</p>
-      <!-- the box scrolls, not the page, so the graph stays in view while
-           browsing. The sentinel is what loads the next page when it
-           scrolls into sight; the button is the same thing for keyboards
-           and browsers without IntersectionObserver -->
+      <%# the list scrolls inside its box, so the graph stays in view. The
+          sentinel loads the next page as it scrolls into sight; the button
+          does the same for keyboards and older browsers %>
       <div class="an-scroll" id="an-scroll">
         <ol class="an-list" id="an-list"></ol>
         <div id="an-sentinel" aria-hidden="true"></div>

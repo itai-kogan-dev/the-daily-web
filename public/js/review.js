@@ -32,7 +32,7 @@
     setUpImageField({
       uploadUrl: '/editor/api/image',
       onChange: () => {
-        autosave.changed()
+        autosave.markChanged()
         autosave.save()
       }
     })

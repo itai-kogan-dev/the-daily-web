@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 // Values are what we store and compare in code, labels are what gets shown.
 // Split like this so changing the wording on screen never touches the DB.
 // Listed in workflow order - write it, send it, maybe get it back, it goes
-// live. The dashboard tabs follow this order.
+// live. The filter pills follow this order.
 const STATUS = {
   IN_PROGRESS:    'in_progress',     // בהכנה
   PENDING_EDITOR: 'pending_editor',  // ממתינה לאישור עורך
@@ -79,6 +79,21 @@ articleSchema.index({ isLive: 1, publishedAt: -1 })                 // feed, new
 articleSchema.index({ isLive: 1, viewCount: -1 })                   // feed, most popular
 articleSchema.index({ isLive: 1, 'publishedContent.category': 1 })  // category filter
 articleSchema.index({ author: 1, status: 1 })                       // reporter's own list
+
+// How many articles are in each status, plus all of them, for the filter
+// pills. match narrows it, e.g. to one reporter. aggregate() does not cast
+// like find() does, so an author id in match has to be an ObjectId.
+articleSchema.statics.countByStatus = async function (match = {}) {
+  const counts = { all: 0 }
+  for (const status of Object.values(STATUS)) counts[status] = 0
+
+  const grouped = await this.aggregate([{ $match: match }, { $group: { _id: '$status', count: { $sum: 1 } } }])
+  for (const row of grouped) {
+    counts[row._id] = row.count
+    counts.all += row.count
+  }
+  return counts
+}
 
 module.exports = mongoose.model('Article', articleSchema)
 module.exports.STATUS = STATUS

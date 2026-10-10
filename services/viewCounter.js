@@ -1,23 +1,15 @@
 const ViewBucket = require('../models/ViewBucket')
 
-// One request, one increment, into the 5 minute window it falls in. Not one
-// document per pageview: docs/DECISIONS.md explains why that would be millions
-// of documents and a very slow analytics graph.
-//
-// Article.viewCount is deliberately not touched here. It is a rollup of these
-// buckets and has to be aggregated on a cadence, because that document stays
-// hot for the life of the article while a bucket is replaced every 5 minutes.
-// services/viewRollup.js does that.
+// One increment per view into the article's 5-minute bucket, not a document
+// per view (see docs/DECISIONS.md). viewRollup.js keeps Article.viewCount in step.
 async function increment(articleId) {
-  const bucket = { article: articleId, bucketStart: ViewBucket.bucketFor() }
+  const bucket = { article: articleId, bucketStart: ViewBucket.getBucketStart() }
 
   try {
     await ViewBucket.updateOne(bucket, { $inc: { count: 1 } }, { upsert: true })
   } catch (err) {
-    // The unique index on article + bucketStart is what makes the upsert safe,
-    // but two requests arriving together can both miss and both try to create
-    // the bucket. The loser gets a duplicate key error, and the fix is simply
-    // to increment the document the winner just wrote.
+    // two views at once can both try to create the bucket - the loser hits the
+    // unique index, and simply increments the bucket the winner created
     if (err.code !== 11000) throw err
     await ViewBucket.updateOne(bucket, { $inc: { count: 1 } })
   }

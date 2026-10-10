@@ -3,7 +3,8 @@ const { requireRole } = require('../middleware/auth')
 const { ROLES } = require('../models/User')
 const editor = require('../controllers/editorController')
 const users = require('../controllers/userController')
-const imageStore = require('../services/imageStore')
+const images = require('../controllers/imageController')
+const analytics = require('../controllers/analyticsController')
 
 const router = express.Router()
 
@@ -13,16 +14,10 @@ router.use(requireRole(ROLES.EDITOR))
 // pages
 router.get('/', editor.showQueue)
 router.get('/article/:id', editor.showReview)
-router.get('/analytics', (req, res) => res.render('editor/analytics'))
+router.get('/analytics', analytics.showAnalytics)
 
 // article json, editor side
-// The picture arrives as the raw body rather than a form upload, so express
-// parses it on its own and we need no multipart library.
-router.post(
-  '/api/image',
-  express.raw({ type: imageStore.ALLOWED_TYPES, limit: imageStore.MAX_BYTES }),
-  editor.uploadImage
-)
+router.post('/api/image', images.upload)
 router.patch('/api/article/:id', editor.editDraft)
 router.post('/api/article/:id/publish', editor.publishArticle)
 router.post('/api/article/:id/return', editor.returnArticle)

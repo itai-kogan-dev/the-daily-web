@@ -1,25 +1,15 @@
 const crypto = require('crypto')
 
-// Assets are most of the requests and almost never the interesting ones, so
-// they are only logged when they fail or are slow. /images is on the list on
-// purpose even though it is not a file on disk - it is a Mongo read per
-// picture, but a feed page asks for ~20 of them and they would bury the page
-// requests. A slow one is still logged, which is when a Mongo read matters.
+// Assets, pictures included, are only logged when they fail or are slow -
+// a feed page alone asks for ~20 pictures and they would bury everything else.
 const QUIET = /^\/(css|js|images|favicon)/
 const SLOW_MS = 1000
 
-// One line per request, written when the response is over so it carries the
-// status and the time it took:
-//
-//   [http] a1b2c3 GET /article/66f… 200 34ms editor
-//
-// A request the client gave up on (closed the tab, lost the connection) shows
-// "aborted" in place of a status - otherwise it would not be logged at all.
-//
-// Every request gets a short id, sent back in X-Request-Id. The error handler
-// prints the same id, so a crash in the log can be matched to the request
-// that caused it even when many requests are interleaved.
-function requestLogger(req, res, next) {
+// One line per request once it is over: id, method, url, status, time, user.
+// The id is also sent in X-Request-Id and printed by the error handler, so an
+// error in the log can be matched to its request. A request the client gave
+// up on shows "aborted" in place of a status.
+function logRequest(req, res, next) {
   const started = process.hrtime.bigint()
   req.id = crypto.randomBytes(3).toString('hex')
   res.set('X-Request-Id', req.id)
@@ -42,4 +32,4 @@ function requestLogger(req, res, next) {
   next()
 }
 
-module.exports = { requestLogger }
+module.exports = { logRequest }

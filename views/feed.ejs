@@ -5,9 +5,8 @@
   <main class="page">
     <h1 id="feed-title"><%= sort === 'popular' ? 'Most Read' : (category ? CATEGORY_LABELS[category] : 'Latest News') %></h1>
 
-    <!-- Every control below is a real link or a real form, so the feed works
-         with JavaScript turned off. feed.js reads the data- attributes and
-         takes over the same parameters without reloading the page. -->
+    <%# real links and a real form, so the feed works without JavaScript.
+        feed.js takes them over through the data- attributes %>
     <div class="feed-toolbar">
       <form class="feed-search" method="get" action="/" role="search">
         <input type="search" name="q" value="<%= q %>" placeholder="Search headlines"
@@ -18,9 +17,9 @@
 
       <nav class="pills feed-sort" aria-label="Sort order">
         <a class="pill<%= sort === 'date' ? ' active' : '' %>" data-feed-nav data-sort="date"
-           href="<%= feedLink({ sort: 'date' }) %>">Newest</a>
+           href="<%= buildFeedLink({ sort: 'date' }) %>">Newest</a>
         <a class="pill<%= sort === 'popular' ? ' active' : '' %>" data-feed-nav data-sort="popular"
-           href="<%= feedLink({ sort: 'popular' }) %>">Most Read</a>
+           href="<%= buildFeedLink({ sort: 'popular' }) %>">Most Read</a>
       </nav>
 
       <%# feed.js renders the Unread only switch here, next to search and sort %>
@@ -33,9 +32,8 @@
 
     <p class="feed-status muted" id="feed-status" role="status" aria-live="polite" hidden></p>
 
-    <!-- One container for the results, so the browser can replace the lot of it
-         without having to work out which parts were on the page. The numbers let
-         the script continue from the server-rendered page without refetching it. -->
+    <%# feed.js replaces everything inside, and starts from these numbers
+        instead of fetching the first page again %>
     <div id="feed-results" data-page="<%= page %>" data-pages="<%= pages %>" data-total="<%= total %>" data-page-size="<%= pageSize %>">
       <% if (!items.length) { %>
         <p class="feed-empty muted">
@@ -61,7 +59,7 @@
 
                 <div class="meta">
                   <a class="meta-category" data-feed-nav data-category="<%= article.category %>"
-                     href="<%= feedLink({ category: article.category }) %>">
+                     href="<%= buildFeedLink({ category: article.category }) %>">
                     <%= article.categoryLabel %>
                   </a>
                   <span><%= article.authorName %></span>
@@ -80,11 +78,11 @@
           <nav class="feed-pager" aria-label="Pages">
             <% if (page > 1) { %>
               <a class="btn btn-sm" data-feed-nav data-page="<%= page - 1 %>"
-                 href="<%= feedLink({ page: page - 1 }) %>" rel="prev">Previous</a>
+                 href="<%= buildFeedLink({ page: page - 1 }) %>" rel="prev">Previous</a>
             <% } else { %><span></span><% } %>
 
             <div class="feed-pages">
-              <% pageWindow(page, pages).forEach(entry => { %>
+              <% listPageNumbers(page, pages).forEach(entry => { %>
                 <% if (entry.gap) { %>
                   <span class="muted" aria-hidden="true">&hellip;</span>
                 <% } else if (entry.page === page) { %>
@@ -92,14 +90,14 @@
                   <span class="pill active" aria-current="page"><%= entry.page %></span>
                 <% } else { %>
                   <a class="pill" data-feed-nav data-page="<%= entry.page %>"
-                     href="<%= feedLink({ page: entry.page }) %>"><%= entry.page %></a>
+                     href="<%= buildFeedLink({ page: entry.page }) %>"><%= entry.page %></a>
                 <% } %>
               <% }) %>
             </div>
 
             <% if (page < pages) { %>
               <a class="btn btn-sm" data-feed-nav data-page="<%= page + 1 %>"
-                 href="<%= feedLink({ page: page + 1 }) %>" rel="next">Next</a>
+                 href="<%= buildFeedLink({ page: page + 1 }) %>" rel="next">Next</a>
             <% } else { %><span></span><% } %>
           </nav>
         <% } %>

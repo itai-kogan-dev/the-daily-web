@@ -95,7 +95,7 @@ is nothing to put in the database - anyone without a session is treated as a
 guest. All three are named in `ROLES`; only reporter and editor are in the
 schema's enum.
 
-`currentUser()` returns a guest object rather than `null` so every request has a
+`getCurrentUser()` returns a guest object rather than `null` so every request has a
 user and permission checks look the same everywhere.
 
 ## Comment rate limiting counts in the session, not by IP

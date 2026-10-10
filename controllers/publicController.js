@@ -2,6 +2,9 @@ const mongoose = require('mongoose')
 const Article = require('../models/Article')
 const Comment = require('../models/Comment')
 const viewCounter = require('../services/viewCounter')
+const { makeError } = require('../utils/makeError')
+const { escapeRegExp } = require('../utils/escapeRegExp')
+const { readString } = require('../utils/readString')
 const { CATEGORIES, CATEGORY_LABELS } = Article
 
 // Twenty at a time. The spec loads 20 more articles as the reader reaches the
@@ -19,12 +22,6 @@ const SEARCH_MAX = 80
 // rather than the oldest, because the earliest 100 of 5000 is no use to anyone.
 const COMMENTS_LIMIT = 100
 
-function makeError(status, message) {
-  const err = new Error(message)
-  err.status = status
-  return err
-}
-
 // Anything we do not recognise is dropped rather than rejected, so an old link
 // or a hand typed query still lands on a working page.
 function readQuery(query = {}) {
@@ -39,40 +36,23 @@ function readQuery(query = {}) {
   }
 }
 
-// A regex treats every one of these as syntax. The search used to be a $text
-// search, where a query was a list of words and nothing had to be escaped - so
-// a bare "(" would either throw or match far more than anyone meant by it.
-function escapeRegExp(text) {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-// A regex matches one contiguous run of text, so a whole query as a single
-// pattern would mean searching for "old port" only finds an article with those
-// two words next to each other, and typing two words finds nothing at all.
-// $text did not have that problem - it matched each word separately - so the
-// query is split up and every term has to turn up somewhere on its own.
-function searchTerms(q) {
+// each word is matched on its own, so "old port" also finds "the port is old"
+function splitSearchTerms(q) {
   return q.split(/\s+/).filter(Boolean)
 }
 
 // isLive, never status. docs/DECISIONS.md has the reasoning: an article that is
 // live with an update waiting for approval has to stay in the feed, and status
 // would have hidden exactly that case.
-function feedMatch({ category, q }) {
+function buildFeedMatch({ category, q }) {
   const match = { isLive: true }
   if (category) match['publishedContent.category'] = category
 
-  // Part of a word has to match, so "por" finds "port", "sport" and "airport".
-  // $text only ever matched whole words, and the only way to get a substring is
-  // a regex - which no index can serve, so this reads every live article.
-  // At that size it is instant. If it ever is not, the fix is a wildcard text
-  // index or a generated n-gram field, not a larger regex. See docs/DECISIONS.md.
-  //
-  // Each term is one pattern, reused for both fields and matched twice per
-  // request (once for the page, once for the count). No /g flag: a global regex
-  // carries lastIndex between uses and would quietly skip matches.
+  // Part of a word matches too, so "por" finds "sport". No index can serve a
+  // regex, so this reads every live article - see docs/DECISIONS.md. No /g
+  // flag: a global regex keeps lastIndex between uses and skips matches.
   if (q) {
-    match.$and = searchTerms(q).map(term => {
+    match.$and = splitSearchTerms(q).map(term => {
       const pattern = new RegExp(escapeRegExp(term), 'i')
       return { $or: [{ 'publishedContent.title': pattern }, { 'publishedContent.summary': pattern }] }
     })
@@ -81,19 +61,18 @@ function feedMatch({ category, q }) {
   return match
 }
 
-// A regex gives no score to sort by, so the chosen order is the whole story:
-// searching narrows the feed, and sort decides where the results land. There
-// used to be a relevance field here, fed by $meta: 'textScore'.
-function sortFor(sort) {
+// a search only narrows the feed - results come in the chosen sort order
+function pickSort(sort) {
   return sort === 'popular' ? { viewCount: -1, publishedAt: -1 } : { publishedAt: -1 }
 }
 
-function rowsPipeline(options) {
+// One page of the feed: filter, sort, skip to the page, then add the byline.
+function buildRowsPipeline(options) {
   const { page, sort } = options
 
   return [
-    { $match: feedMatch(options) },
-    { $sort: sortFor(sort) },
+    { $match: buildFeedMatch(options) },
+    { $sort: pickSort(sort) },
     { $skip: (page - 1) * PAGE_SIZE },
     { $limit: PAGE_SIZE },
 
@@ -120,14 +99,14 @@ function rowsPipeline(options) {
 // from the same filter.
 async function runFeed(options) {
   const [rows, counted] = await Promise.all([
-    Article.aggregate(rowsPipeline(options)),
-    Article.aggregate([{ $match: feedMatch(options) }, { $count: 'n' }])
+    Article.aggregate(buildRowsPipeline(options)),
+    Article.aggregate([{ $match: buildFeedMatch(options) }, { $count: 'n' }])
   ])
 
   const total = counted.length ? counted[0].n : 0
 
   return {
-    items: rows.map(toCard),
+    items: rows.map(formatCard),
     total,
     pages: Math.max(1, Math.ceil(total / PAGE_SIZE))
   }
@@ -135,7 +114,7 @@ async function runFeed(options) {
 
 // The published version, flattened. The API has no business handing out
 // anything shaped like the database - and the cards never need the body.
-function toCard(row) {
+function formatCard(row) {
   const content = row.publishedContent
 
   return {
@@ -171,13 +150,11 @@ async function listArticles(req, res) {
   res.json(await findFeed(req.query))
 }
 
-// Every id the current filters match, nothing else. The unread filter lives
-// in the browser and needs the full set to count honestly - paging through 21
-// pages of cards just to count them would be 21 requests for one number. One
-// small response of ids instead; 415 of them is about 10KB.
-async function articleIds(req, res) {
+// Every id the current filters match. The unread filter lives in the browser
+// and counts the whole feed from these, instead of loading every page of cards.
+async function listArticleIds(req, res) {
   const options = readQuery(req.query)
-  const ids = await Article.distinct('_id', feedMatch(options))
+  const ids = await Article.distinct('_id', buildFeedMatch(options))
   res.json({ ids: ids.map(String), total: ids.length })
 }
 
@@ -185,7 +162,7 @@ async function articleIds(req, res) {
 // purpose: changing the sort must not throw away the search. Any change starts
 // again at page one, and only the pager asks for a specific page. Empty values
 // are left out, so a default feed is just "/" rather than a string of no-ops.
-function feedLink(query, overrides = {}) {
+function buildFeedLink(query, overrides = {}) {
   const next = { q: '', category: '', sort: DEFAULT_SORT, ...readQuery(query), ...overrides }
   const page = overrides.page ?? 1
   const params = new URLSearchParams()
@@ -199,14 +176,10 @@ function feedLink(query, overrides = {}) {
   return qs ? `/?${qs}` : '/'
 }
 
-// The numbers a pager shows: the first page, the last page, and up to five
-// around wherever the reader is standing. A gap is reported as { gap: true } and
-// rendered as an ellipsis that is not a link.
-//
-// Rendering every number would mean 42 buttons on this feed, and a reader on
-// page 1 would have to scroll past all of them. public/js/feed.js has a copy of
-// this, because a template cannot be required from the browser.
-function pageWindow(current, pages, span = 2) {
+// The page numbers the no-JavaScript pager shows: the first, the last, and two
+// either side of the current one. A gap comes back as { gap: true } and is
+// rendered as an ellipsis.
+function listPageNumbers(current, pages, span = 2) {
   const wanted = new Set([1, pages])
   for (let page = current - span; page <= current + span; page++) {
     if (page >= 1 && page <= pages) wanted.add(page)
@@ -244,37 +217,37 @@ async function findLiveArticle(id) {
 // The body is one string with blank lines between paragraphs. Splitting it here
 // keeps the markup out of the data, and each paragraph is still escaped by the
 // template on the way out - the field is plain text, not HTML.
-function toParagraphs(body) {
+function splitParagraphs(body) {
   return String(body || '')
     .split(/\n\s*\n/)
     .map(part => part.trim())
     .filter(Boolean)
 }
 
-function lastUpdateAt(article) {
+function getLastUpdate(article) {
   const events = article.updateEvents || []
   // publish() records an event on the first publication too, so one event
   // means "published once", not "published and then updated".
   return events.length > 1 ? events[events.length - 1].at : null
 }
 
-async function feedPage(req, res) {
+async function showFeed(req, res) {
   const feed = await findFeed(req.query)
 
   res.render('feed', {
     ...feed,
     CATEGORIES,
     CATEGORY_LABELS,
-    feedLink: (overrides) => feedLink(req.query, overrides),
+    buildFeedLink: (overrides) => buildFeedLink(req.query, overrides),
     // the template cannot require the controller, so the pager gets it here
-    pageWindow
+    listPageNumbers
   })
 }
 
 // The whole article has to be in the HTML, not fetched afterwards: the spec
 // wants the text there with JavaScript turned off, and it is what the article
 // page is for.
-async function articlePage(req, res) {
+async function showArticle(req, res) {
   const article = await findLiveArticle(req.params.id)
   const content = article.publishedContent
 
@@ -285,14 +258,14 @@ async function articlePage(req, res) {
   res.render('article', {
     article,
     content,
-    paragraphs: toParagraphs(content.body),
+    paragraphs: splitParagraphs(content.body),
     // null until an editor has approved a second version, so the page can say
     // "first published" instead of claiming it was never updated
-    updatedAt: lastUpdateAt(article),
+    updatedAt: getLastUpdate(article),
     comments: await findComments(article._id),
     CATEGORY_LABELS,
     // the category link back to the feed, filtered
-    feedLink: (overrides) => feedLink({}, overrides)
+    buildFeedLink: (overrides) => buildFeedLink({}, overrides)
   })
 }
 
@@ -308,13 +281,13 @@ async function findComments(articleId) {
   ])
 
   return {
-    items: recent.reverse().map(toComment),
+    items: recent.reverse().map(formatComment),
     total,
     limit: COMMENTS_LIMIT
   }
 }
 
-function toComment(comment) {
+function formatComment(comment) {
   return {
     id: String(comment._id),
     authorName: comment.authorName,
@@ -342,8 +315,9 @@ async function addComment(req, res) {
 
   // Trimmed here as well as in the schema: a name of spaces would otherwise
   // satisfy the maxlength and leave a blank comment on the page.
-  const authorName = String(req.body.authorName || '').trim()
-  const body = String(req.body.body || '').trim()
+  const input = req.body || {}
+  const authorName = readString(input.authorName).trim()
+  const body = readString(input.body).trim()
 
   // The schema's own maxlength is the real check, but what it says is a Mongoose
   // message naming the field. The two mistakes anyone actually makes get a
@@ -358,7 +332,7 @@ async function addComment(req, res) {
     body
   })
 
-  res.status(201).json(toComment(comment))
+  res.status(201).json(formatComment(comment))
 }
 
-module.exports = { feedPage, articlePage, listArticles, articleIds, listComments, addComment }
+module.exports = { showFeed, showArticle, listArticles, listArticleIds, listComments, addComment }

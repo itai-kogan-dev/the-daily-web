@@ -1,14 +1,10 @@
 const WINDOW_MS = 60 * 1000
 const MAX_COMMENTS = 3
 
-// The spec allows 3 comments a minute from the same device. We count in the
-// session rather than by IP: an IP is a whole network, so a dorm or an office
-// would share the three between them, while a session cookie is per browser.
-//
-// A guest has no session until this writes to one, so reading the site still
-// creates nothing. The count sits in MongoDB with the other sessions, so it
-// also survives a restart.
-function commentRateLimit(req, res, next) {
+// At most 3 comments a minute per device. Counted in the session, not by IP -
+// one IP can be a whole dorm (see docs/DECISIONS.md). Sessions live in
+// MongoDB, so the count survives a restart.
+function limitComments(req, res, next) {
   const now = Date.now()
 
   // a sliding window, not a counter per clock minute - that would allow three
@@ -26,4 +22,4 @@ function commentRateLimit(req, res, next) {
   next()
 }
 
-module.exports = { commentRateLimit }
+module.exports = { limitComments }
