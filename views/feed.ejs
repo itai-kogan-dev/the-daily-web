@@ -5,9 +5,8 @@
   <main class="page">
     <h1>Latest news</h1>
 
-    <!-- Every control below is a real link or a real form, so the feed works
-         with JavaScript turned off. feed.js reads the data- attributes and
-         takes over the same parameters without reloading the page. -->
+    <%# real links and a real form, so the feed works without JavaScript.
+        feed.js takes them over through the data- attributes %>
     <form class="feed-search" method="get" action="/" role="search">
       <input type="search" name="q" value="<%= q %>" placeholder="Search headlines"
              aria-label="Search headlines" maxlength="80">
@@ -38,9 +37,8 @@
 
     <p class="feed-status muted" id="feed-status" role="status" aria-live="polite" hidden></p>
 
-    <!-- One container for the results, so the browser can replace the lot of it
-         without having to work out which parts were on the page. The numbers let
-         the script continue from the server-rendered page without refetching it. -->
+    <%# feed.js replaces everything inside, and starts from these numbers
+        instead of fetching the first page again %>
     <div id="feed-results" data-page="<%= page %>" data-pages="<%= pages %>" data-total="<%= total %>" data-page-size="<%= pageSize %>">
       <% if (!items.length) { %>
         <p class="feed-empty muted">

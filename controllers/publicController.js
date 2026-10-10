@@ -39,18 +39,12 @@ function readQuery(query = {}) {
   }
 }
 
-// A regex treats every one of these as syntax. The search used to be a $text
-// search, where a query was a list of words and nothing had to be escaped - so
-// a bare "(" would either throw or match far more than anyone meant by it.
+// so "(" or "." in a search is matched as typed, not read as regex syntax
 function escapeRegExp(text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-// A regex matches one contiguous run of text, so a whole query as a single
-// pattern would mean searching for "old port" only finds an article with those
-// two words next to each other, and typing two words finds nothing at all.
-// $text did not have that problem - it matched each word separately - so the
-// query is split up and every term has to turn up somewhere on its own.
+// each word is matched on its own, so "old port" also finds "the port is old"
 function searchTerms(q) {
   return q.split(/\s+/).filter(Boolean)
 }
@@ -62,15 +56,9 @@ function feedMatch({ category, q }) {
   const match = { isLive: true }
   if (category) match['publishedContent.category'] = category
 
-  // Part of a word has to match, so "por" finds "port", "sport" and "airport".
-  // $text only ever matched whole words, and the only way to get a substring is
-  // a regex - which no index can serve, so this reads every live article.
-  // At that size it is instant. If it ever is not, the fix is a wildcard text
-  // index or a generated n-gram field, not a larger regex. See docs/DECISIONS.md.
-  //
-  // Each term is one pattern, reused for both fields and matched twice per
-  // request (once for the page, once for the count). No /g flag: a global regex
-  // carries lastIndex between uses and would quietly skip matches.
+  // Part of a word matches too, so "por" finds "sport". No index can serve a
+  // regex, so this reads every live article - see docs/DECISIONS.md. No /g
+  // flag: a global regex keeps lastIndex between uses and skips matches.
   if (q) {
     match.$and = searchTerms(q).map(term => {
       const pattern = new RegExp(escapeRegExp(term), 'i')
@@ -81,9 +69,7 @@ function feedMatch({ category, q }) {
   return match
 }
 
-// A regex gives no score to sort by, so the chosen order is the whole story:
-// searching narrows the feed, and sort decides where the results land. There
-// used to be a relevance field here, fed by $meta: 'textScore'.
+// a search only narrows the feed - results come in the chosen sort order
 function sortFor(sort) {
   return sort === 'popular' ? { viewCount: -1, publishedAt: -1 } : { publishedAt: -1 }
 }
@@ -171,10 +157,8 @@ async function listArticles(req, res) {
   res.json(await findFeed(req.query))
 }
 
-// Every id the current filters match, nothing else. The unread filter lives
-// in the browser and needs the full set to count honestly - paging through 21
-// pages of cards just to count them would be 21 requests for one number. One
-// small response of ids instead; 415 of them is about 10KB.
+// Every id the current filters match. The unread filter lives in the browser
+// and counts the whole feed from these, instead of loading every page of cards.
 async function articleIds(req, res) {
   const options = readQuery(req.query)
   const ids = await Article.distinct('_id', feedMatch(options))
@@ -199,13 +183,9 @@ function feedLink(query, overrides = {}) {
   return qs ? `/?${qs}` : '/'
 }
 
-// The numbers a pager shows: the first page, the last page, and up to five
-// around wherever the reader is standing. A gap is reported as { gap: true } and
-// rendered as an ellipsis that is not a link.
-//
-// Rendering every number would mean 42 buttons on this feed, and a reader on
-// page 1 would have to scroll past all of them. public/js/feed.js has a copy of
-// this, because a template cannot be required from the browser.
+// The page numbers the no-JavaScript pager shows: the first, the last, and two
+// either side of the current one. A gap comes back as { gap: true } and is
+// rendered as an ellipsis.
 function pageWindow(current, pages, span = 2) {
   const wanted = new Set([1, pages])
   for (let page = current - span; page <= current + span; page++) {

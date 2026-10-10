@@ -3,8 +3,8 @@
 
 <div class="layout">
   <main class="page">
-    <!-- The whole article is in the HTML. The spec needs the text to be there
-         with JavaScript turned off, so nothing below waits for a request. -->
+    <%# the whole article is in the HTML, so it reads with JavaScript off -
+        the spec asks for this, for search engines %>
     <article class="article">
       <nav class="breadcrumb" aria-label="Breadcrumb">
         <a href="/">The Daily Web</a>
@@ -24,8 +24,7 @@
         <%# the same number as the feed card, rolled up every 5 minutes %>
         <span><%= Number(article.viewCount || 0).toLocaleString('en-US') %> views</span>
         <% if (updatedAt) { %>
-          <!-- null until a second version is approved, so the date never moves
-               on its own and this only appears after a real update -->
+          <%# only after a second version is approved %>
           <span>
             Updated <time datetime="<%= new Date(updatedAt).toISOString() %>"><%= new Date(updatedAt).toLocaleDateString('en-GB') %></time>
           </span>
@@ -47,8 +46,7 @@
       </div>
     </article>
 
-    <!-- Comments are on the page too, not fetched after it. A reader with
-         JavaScript off still sees the discussion. -->
+    <%# rendered here too, so comments show without JavaScript %>
     <section class="comments" id="comments">
       <h2>
         Comments
@@ -81,9 +79,7 @@
         <% }) %>
       </ul>
 
-      <!-- Commenting needs JavaScript. The endpoint is the JSON one the spec
-           lists, so a form post that was not intercepted has nowhere to go -
-           unlike reading, which is all in the page already. -->
+      <%# posting needs JavaScript: article.js sends the form to the JSON endpoint %>
       <form class="comment-form stack" id="comment-form" method="post"
             action="/api/articles/<%= article._id %>/comments"
             data-article="<%= article._id %>">
