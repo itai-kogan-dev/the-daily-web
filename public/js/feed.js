@@ -408,9 +408,16 @@ if (form && results) {
   function render(feed, state, { append = false } = {}) {
     // Appending is only for the next page of the same feed. Anything else -
     // a new search, a chip, back/forward - starts from a clean list.
+    // Already-shown ids are skipped: equal sort keys can otherwise show the
+    // same article twice across pages.
     const list = append ? document.getElementById('feed-list') : null
     if (append && list) {
-      for (const article of feed.items) list.append(buildCard(article))
+      const seen = new Set([...list.querySelectorAll('[data-article-id]')].map(node => node.dataset.articleId))
+      for (const article of feed.items) {
+        if (seen.has(String(article.id))) continue
+        seen.add(String(article.id))
+        list.append(buildCard(article))
+      }
     } else {
       stopObserving()
       results.replaceChildren()

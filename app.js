@@ -22,16 +22,24 @@ app.set('views', path.join(__dirname, 'views'))
 app.use(requestLogger)   // first, so it times and logs every request
 app.use(express.static(path.join(__dirname, 'public')))
 app.use(express.urlencoded({ extended: true }))   // reads HTML form posts into req.body
-app.use(express.json())                           // reads Ajax JSON posts into req.body
+// 5mb, not the 100kb default: a long article body is legitimate content and
+// must save, not die with a 413.
+app.use(express.json({ limit: '5mb' }))             // reads Ajax JSON posts into req.body
 
 // Sessions live in Mongo, not in memory, so a server restart doesn't log
 // everyone out. saveUninitialized false means guests never create a row.
+// httpOnly keeps scripts from reading the cookie; SameSite=lax means the
+// browser only sends it from our own site.
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
-  cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 }   // a week
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 24 * 7,   // a week
+    httpOnly: true,
+    sameSite: 'lax'
+  }
 }))
 
 app.use(attachViewData)

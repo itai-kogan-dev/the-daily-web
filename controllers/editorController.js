@@ -128,11 +128,24 @@ async function editDraft(req, res) {
   const seed = existing ? existing.content : article.draftContent
   const content = readDraftContent(req.body, seed)
 
-  const draft = await EditorDraft.findOneAndUpdate(
-    { article: article._id },
-    { article: article._id, editor: req.session.user.id, content },
-    { upsert: true, returnDocument: 'after', runValidators: true }
-  )
+  // Two autosaves racing each other can both miss and both try to create the
+  // row; the loser gets a duplicate key error and simply writes over what the
+  // winner just created. The unique index stays - it is what makes this safe.
+  let draft
+  try {
+    draft = await EditorDraft.findOneAndUpdate(
+      { article: article._id },
+      { article: article._id, editor: req.session.user.id, content },
+      { upsert: true, returnDocument: 'after', runValidators: true }
+    )
+  } catch (err) {
+    if (err.code !== 11000) throw err
+    draft = await EditorDraft.findOneAndUpdate(
+      { article: article._id },
+      { editor: req.session.user.id, content },
+      { returnDocument: 'after', runValidators: true }
+    )
+  }
 
   res.json({
     savedAt: draft.updatedAt,
@@ -159,12 +172,14 @@ async function uploadImage(req, res) {
 
 // approval. the workflow owns the transition, this just carries the article
 // there and back. what the editor saw is what goes live, so their copy is
-// folded over the submitted draft first. a failed publish keeps the copy
+// folded over the submitted draft first. a failed publish keeps the copy.
+// a draft older than the reporter's last save is stale - the reporter sent a
+// newer version after the editor typed - so it is dropped, not folded.
 async function publishArticle(req, res) {
   const article = await findArticle(req.params.id)
 
   const draft = await EditorDraft.findOne({ article: article._id })
-  if (draft) article.draftContent = draft.content.toObject()
+  if (draft && draft.updatedAt >= article.updatedAt) article.draftContent = draft.content.toObject()
 
   workflow.publish(article, req.session.user.id)
   await article.save()
@@ -173,9 +188,10 @@ async function publishArticle(req, res) {
   res.json({ status: article.status, isLive: article.isLive, publishedAt: article.publishedAt })
 }
 
-// sends the draft back with a note. this is the only moment the editor's
-// copy overwrites the reporter's version. what is already live stays as it
-// is - the workflow never touches the live copy on this path
+// sends the draft back with a note. the editor's copy overwrites the
+// reporter's version, unless it is stale (see publishArticle) - then the
+// newer reporter text stands. what is already live stays as it is - the
+// workflow never touches the live copy on this path
 async function returnArticle(req, res) {
   const article = await findArticle(req.params.id)
 
@@ -185,7 +201,7 @@ async function returnArticle(req, res) {
   if (note.length > 1000) throw makeError(400, 'The note is too long')
 
   const draft = await EditorDraft.findOne({ article: article._id })
-  if (draft) article.draftContent = draft.content.toObject()
+  if (draft && draft.updatedAt >= article.updatedAt) article.draftContent = draft.content.toObject()
 
   workflow.returnForRevision(article, note)
   await article.save()
@@ -229,7 +245,9 @@ async function clearViews(req, res) {
     return
   } catch (err) {
     // standalone MongoDB has no transaction support, so fall back
-    // to the plain non-atomic clear below
+    // to the plain non-atomic clear below. Logged, not swallowed: if the
+    // fallback fails too, that error still reaches the error handler.
+    console.error('[views] transaction clear failed, using plain clear -', err.message)
   }
 
   const result = await ViewBucket.deleteMany({ article: article._id })

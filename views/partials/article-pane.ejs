@@ -8,5 +8,5 @@
     <img class="article-hero" src="<%= content.imagePath %>" alt="">
   <% } %>
   <% if (content.summary) { %><p class="article-lead"><%= content.summary %></p><% } %>
-  <div class="article-body"><p><%= content.body %></p></div>
+  <div class="article-body"><% String(content.body || '').split(/\n\s*\n/).map(part => part.trim()).filter(Boolean).forEach(paragraph => { %><p><%= paragraph %></p><% }) %></div>
 </section>

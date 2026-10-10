@@ -15,6 +15,24 @@ function setUpAutosave({ form, statusEl, send, onSaved = () => {}, skip = () => 
   let idleTimer = null
   let ceilingTimer = null
 
+  // Logged out mid-edit (or the article left our hands): saving again would
+  // fail the same way forever, so stop and say so instead of retrying.
+  let stopped = false
+
+  function showLoggedOut() {
+    stopped = true
+    unsaved = false
+    clearTimeout(idleTimer)
+    clearTimeout(ceilingTimer)
+    ceilingTimer = null
+    statusEl.textContent = ''
+    statusEl.className = 'save-status error'
+    const loginLink = document.createElement('a')
+    loginLink.href = '/login'
+    loginLink.textContent = 'Log in again'
+    statusEl.append('Session ended. ', loginLink, ' - nothing will save until then.')
+  }
+
   // form.elements, not form.title - every element has a .title property
   // (the tooltip) and it would shadow the input named "title"
   const readForm = () => ({
@@ -39,7 +57,7 @@ function setUpAutosave({ form, statusEl, send, onSaved = () => {}, skip = () => 
 
   // true when everything typed so far is on the server
   async function run(keepalive) {
-    if (!unsaved) return true
+    if (!unsaved || stopped) return !stopped
     const content = readForm()
     // cleared before the request, so anything typed while it is in flight
     // is not swallowed
@@ -58,6 +76,12 @@ function setUpAutosave({ form, statusEl, send, onSaved = () => {}, skip = () => 
       unsaved = true
       showStatus('Could not save, retrying...', 'error')
       setTimeout(save, 3000)
+      return false
+    }
+    // the session is gone or the article is not ours to save - retrying
+    // would loop forever on the same answer
+    if (res.status === 401 || res.status === 403) {
+      showLoggedOut()
       return false
     }
     if (!res.ok) {
@@ -92,6 +116,7 @@ function setUpAutosave({ form, statusEl, send, onSaved = () => {}, skip = () => 
   const save = () => enqueue(false)
 
   function changed() {
+    if (stopped) return
     unsaved = true
     showStatus('Unsaved changes', 'pending')
 

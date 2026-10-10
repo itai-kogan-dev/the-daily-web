@@ -54,14 +54,18 @@ async function showEditUser(req, res) {
   })
 }
 
-// A JSON body can carry anything, so only strings are read - a number or an
-// object has to be a 400, not a crash or an account called "[object Object]".
-const readString = value => (typeof value === 'string' ? value.trim() : '')
+// picks the account fields out of a request body. the schema lowercases and
+// trims the username on save, but lookups and duplicate checks run before
+// that, so the same normalising happens here first. Anything that is not a
+// string is rejected outright - String() would silently turn 123 into a
+// username instead of telling the caller it sent the wrong shape.
+function readText(value) {
+  if (typeof value !== 'string') throw makeError(400, 'Some of the details are not text')
+  return value.trim()
+}
 
-// the schema lowercases and trims the username on save, but lookups and
-// duplicate checks run before that, so the same normalising happens here first
 function readUsername(body) {
-  return readString(body.username).toLowerCase()
+  return readText(body.username ?? '').toLowerCase()
 }
 
 function assertUsername(username) {
@@ -89,7 +93,7 @@ async function assertUsernameFree(username) {
 async function createUser(req, res) {
   const body = req.body || {}
   const username = readUsername(body)
-  const displayName = readString(body.displayName)
+  const displayName = readText(body.displayName ?? '')
 
   assertUsername(username)
   assertDisplayName(displayName)
@@ -112,20 +116,30 @@ async function updateUser(req, res) {
   const body = req.body || {}
 
   if (body.username !== undefined) {
-    const username = readUsername(body)
+    const username = readText(body.username).toLowerCase()
     assertUsername(username)
     if (username !== user.username) await assertUsernameFree(username)
     user.username = username
   }
 
   if (body.displayName !== undefined) {
-    const displayName = readString(body.displayName)
+    const displayName = readText(body.displayName)
     assertDisplayName(displayName)
     user.displayName = displayName
   }
 
-  // role is deliberately not editable - an editor can pick the role when
-  // creating an account, but cannot change it afterwards
+  if (body.role !== undefined) {
+    if (typeof body.role !== 'string' || !STORED_ROLES.includes(body.role)) {
+      throw makeError(400, 'Role must be reporter or editor')
+    }
+    // demoting the last editor locks everyone out the same way deleting them
+    // does, so that change is refused instead
+    if (user.role === ROLES.EDITOR && body.role !== ROLES.EDITOR) {
+      const editors = await User.countDocuments({ role: ROLES.EDITOR })
+      if (editors <= 1) throw makeError(400, 'Cannot demote the last editor')
+    }
+    user.role = body.role
+  }
 
   // a blank password means the edit form left it alone - only a real value
   // replaces the hash, so saving anything else never locks the account

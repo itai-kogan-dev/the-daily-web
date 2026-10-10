@@ -44,10 +44,9 @@
 
     const payload = {
       username: form.elements.username.value,
-      displayName: form.elements.displayName.value
+      displayName: form.elements.displayName.value,
+      role: form.elements.role.value
     }
-    // the role is only chosen when the account is created
-    if (!accountId) payload.role = form.elements.role.value
     // a blank password on the edit form means keep the current one
     const password = form.elements.password.value
     if (!accountId || password) payload.password = password

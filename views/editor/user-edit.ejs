@@ -17,17 +17,13 @@
       <input name="displayName" value="<%= account ? account.displayName : '' %>" maxlength="60" required>
     </label>
 
-    <% if (account) { %>
-      <p class="hint">Role: <span class="badge role-<%= account.role %>"><%= ROLE_LABELS[account.role] %></span></p>
-    <% } else { %>
-      <label>Role
-        <select name="role">
-          <% STORED_ROLES.forEach(role => { %>
-            <option value="<%= role %>"><%= ROLE_LABELS[role] %></option>
-          <% }) %>
-        </select>
-      </label>
-    <% } %>
+    <label>Role
+      <select name="role">
+        <% STORED_ROLES.forEach(role => { %>
+          <option value="<%= role %>" <%= account && account.role === role ? 'selected' : '' %>><%= ROLE_LABELS[role] %></option>
+        <% }) %>
+      </select>
+    </label>
 
     <label>Password
       <input name="password" type="password" autocomplete="new-password" minlength="8" <%= account ? '' : 'required' %>>
