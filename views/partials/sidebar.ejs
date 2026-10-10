@@ -12,7 +12,7 @@
       JavaScript off, and feed.js picks the data- attributes up as before. %>
   <% if (locals.CATEGORIES && locals.CATEGORY_LABELS && locals.feedLink) { %>
     <% const activeCat = locals.category || ''; %>
-    <section class="box">
+    <section class="box sidebar-cats">
       <h2 class="eyebrow muted-eyebrow">Categories</h2>
       <nav class="pills pills-vertical" aria-label="Filter by category">
         <a class="pill<%= activeCat ? '' : ' active' %>" data-feed-nav data-category=""

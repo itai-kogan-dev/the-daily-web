@@ -483,9 +483,11 @@ input[type="search"] { background: var(--canvas); }
 
 @media (max-width: 800px) {
   .layout { grid-template-columns: minmax(0, 1fr); gap: 2rem; }
-  /* the sidebar holds the category filter: above the feed on phones, where it
-     stays reachable instead of sinking below an infinitely scrolling list */
-  .layout > aside { order: -1; }
+  /* phones: the aside dissolves so only the categories move above the feed,
+     as a horizontal row; the weather box stays below the articles */
+  .layout > aside.sidebar { display: contents; }
+  .sidebar-cats { order: -1; }
+  .sidebar-cats .pills-vertical { flex-direction: row; flex-wrap: wrap; align-items: center; }
   .article h1 { font-size: 2.1rem; }
 }
 @media (max-width: 640px) {
