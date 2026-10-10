@@ -77,8 +77,7 @@ routes/           one file per area - maps URLs to handlers
 controllers/      request handlers - every route calls one of these
 services/         logic: article workflow, view counting and rollup,
                   analytics, weather, image storage
-models/           Mongoose schemas: User, Article, Comment, ViewBucket,
-                  EditorDraft
+models/           Mongoose schemas: User, Article, Comment, ViewBucket
 utils/            small helpers shared by controllers and services
 views/            EJS pages and partials
 public/           browser JS and CSS
