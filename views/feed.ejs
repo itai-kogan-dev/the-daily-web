@@ -75,7 +75,7 @@
         </ul>
 
         <% if (pages > 1) { %>
-          <nav class="feed-pager" aria-label="Pages">
+          <nav class="pager" aria-label="Pages">
             <% if (page > 1) { %>
               <a class="btn btn-sm" data-feed-nav data-page="<%= page - 1 %>"
                  href="<%= buildFeedLink({ page: page - 1 }) %>" rel="prev">Previous</a>

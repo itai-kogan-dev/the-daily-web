@@ -8,6 +8,7 @@ const workflow = require('../services/articleWorkflow')
 const imageStore = require('../services/imageStore')
 const { makeError } = require('../utils/makeError')
 const { readString } = require('../utils/readString')
+const { PAGE_SIZE, buildPager } = require('../utils/paging')
 
 // bad id and missing article end up the same - 404 via the error handler
 async function findArticle(id) {
@@ -31,23 +32,35 @@ async function showQueue(req, res) {
   const query = {}
   if (filter) query.status = filter
 
-  const articles = await Article.find(query)
-    .populate('author', 'displayName')
-    .sort({ updatedAt: -1 })
-    .lean()
-
   // counted over everything, so the pills stay right while filtered
   const counts = await Article.countByStatus()
+  const pager = buildPager('/editor', filter, req.query.page, filter ? counts[filter] : counts.all)
 
-  // pending first - it is the only thing actually waiting on the editor
-  const waiting = articles.filter(a => a.status === STATUS.PENDING_EDITOR)
-  const rest = articles.filter(a => a.status !== STATUS.PENDING_EDITOR)
+  // pending first - it is the only thing actually waiting on the editor. The
+  // order is decided in the database, so it holds across pages, not just
+  // within one
+  const articles = await Article.aggregate([
+    { $match: query },
+    // only what a queue row shows, so the sort does not carry whole articles
+    { $project: {
+      status: 1, isLive: 1, author: 1, updatedAt: 1,
+      'draftContent.title': 1, 'draftContent.summary': 1, 'draftContent.imagePath': 1, 'draftContent.category': 1,
+      waiting: { $eq: ['$status', STATUS.PENDING_EDITOR] }
+    }},
+    { $sort: { waiting: -1, updatedAt: -1, _id: -1 } },
+    { $skip: pager.skip },
+    { $limit: PAGE_SIZE },
+    // the byline, looked up for these rows only - same as the public feed
+    { $lookup: { from: 'users', localField: 'author', foreignField: '_id', as: 'author', pipeline: [{ $project: { displayName: 1 } }] } },
+    { $unwind: { path: '$author', preserveNullAndEmptyArrays: true } }
+  ])
 
   res.render('editor/queue', {
-    articles: [...waiting, ...rest],
+    articles,
     counts,
     filter,
     statuses,
+    pager,
     STATUS, STATUS_LABELS, CATEGORY_LABELS
   })
 }
@@ -178,8 +191,10 @@ async function clearViews(req, res) {
     res.json({ cleared })
     return
   } catch (err) {
-    // standalone MongoDB has no transaction support, so fall back
-    // to the plain non-atomic clear below
+    // standalone MongoDB has no transaction support, so fall back to the plain
+    // non-atomic clear below. Anything else is a real failure and is reported
+    const unsupported = err.code === 20 || /replica set|Transaction numbers/i.test(err.message)
+    if (!unsupported) throw err
   }
 
   const result = await ViewBucket.deleteMany({ article: article._id })

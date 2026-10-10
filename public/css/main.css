@@ -403,7 +403,7 @@ input[type="search"] { background: var(--canvas); }
 .feed-toggle input:checked + .feed-toggle-track .feed-toggle-thumb { transform: translateX(.9rem); }
 .feed-toggle input:focus-visible + .feed-toggle-track { outline: 2px solid var(--primary); outline-offset: 2px; }
 
-.feed-pager { display: flex; align-items: center; justify-content: space-between; gap: var(--gap); margin-top: 1.25rem; }
+.pager { display: flex; align-items: center; justify-content: space-between; gap: var(--gap); margin-top: 1.25rem; }
 .feed-pages { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .25rem; }
 .feed-sentinel { height: 1px; }
 .feed-more { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .75rem; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }

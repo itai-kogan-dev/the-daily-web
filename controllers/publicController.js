@@ -5,6 +5,8 @@ const viewCounter = require('../services/viewCounter')
 const { makeError } = require('../utils/makeError')
 const { escapeRegExp } = require('../utils/escapeRegExp')
 const { readString } = require('../utils/readString')
+const { readPage } = require('../utils/paging')
+const { recordComment } = require('../middleware/rateLimit')
 const { CATEGORIES, CATEGORY_LABELS } = Article
 
 // Twenty at a time. The spec loads 20 more articles as the reader reaches the
@@ -16,6 +18,10 @@ const DEFAULT_SORT = 'date'
 // Matches the maxlength on the search box in views/feed.ejs.
 const SEARCH_MAX = 80
 
+// Past the last page the feed falls back to the last page anyway; the cap only
+// keeps a typed ?page=99999999999999999999 from overflowing the database's skip.
+const PAGE_MAX = 10000
+
 // The most recent hundred comments of one article. There is no paging on this
 // endpoint - the spec does not ask for one - so the cap is what stops a heavily
 // commented article from handing a guest an unbounded list. The newest are kept
@@ -26,7 +32,7 @@ const COMMENTS_LIMIT = 100
 // or a hand typed query still lands on a working page.
 function readQuery(query = {}) {
   return {
-    page: Math.max(1, parseInt(query.page, 10) || 1),
+    page: readPage(query.page, PAGE_MAX),
     sort: SORTS.includes(query.sort) ? query.sort : DEFAULT_SORT,
     category: CATEGORIES.includes(query.category) ? query.category : null,
     // capped to the length of the search box. A hand typed URL is the only way
@@ -331,6 +337,7 @@ async function addComment(req, res) {
     authorName,
     body
   })
+  recordComment(req)
 
   res.status(201).json(formatComment(comment))
 }

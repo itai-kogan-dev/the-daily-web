@@ -31,7 +31,8 @@
   }
 
   function render(w) {
-    const time = new Date(w.fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    // the time of the reading itself, which is what "how old is this" means
+    const time = new Date(w.observedAt || w.fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
     const now = document.createElement('p')
     now.className = 'weather-now'
@@ -63,7 +64,7 @@
 
     const updated = document.createElement('p')
     updated.className = 'muted weather-updated'
-    updated.textContent = w.stale ? `Last known, from ${time}` : `Updated ${time}`
+    updated.textContent = w.stale ? `Last known, from ${time}` : `As of ${time}`
 
     body.replaceChildren(place, now, details, updated)
   }
