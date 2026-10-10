@@ -18,9 +18,14 @@ function isValidImageSource(value) {
   return /^\/images\/[a-f0-9]{24}$/i.test(value)
 }
 
-// A JSON body can carry anything, so a field that is not text keeps its
-// current value. Unlike utils/readString, which turns it into ''.
-const readText = (value, current) => (typeof value === 'string' ? value : current || '')
+// A field that was not sent keeps its current value. One that was sent must
+// be text - a JSON body can carry anything, and silently ignoring a number
+// while answering "saved" would hide the mistake.
+function readText(value, current) {
+  if (value === undefined) return current || ''
+  if (typeof value !== 'string') throw makeError(400, 'Article fields must be text')
+  return value
+}
 
 // The article fields from a request body, for both the reporter's and the
 // editor's form. A draft can be half written, so nothing is rejected for being
@@ -29,12 +34,13 @@ const readText = (value, current) => (typeof value === 'string' ? value : curren
 function readContent(body = {}, current = {}) {
   const imagePath = readText(body.imagePath, current.imagePath).trim()
   if (imagePath && !isValidImageSource(imagePath)) throw makeError(400, 'The image is not a valid picture')
+  if (body.category !== undefined && !CATEGORIES.includes(body.category)) throw makeError(400, 'Unknown category')
 
   return {
     title: readText(body.title, current.title).trim() || 'Untitled',
     summary: readText(body.summary, current.summary).trim(),
     body: readText(body.body, current.body),
-    category: CATEGORIES.includes(body.category) ? body.category : (current.category || CATEGORIES[0]),
+    category: body.category ?? current.category ?? CATEGORIES[0],
     imagePath
   }
 }
