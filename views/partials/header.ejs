@@ -18,7 +18,7 @@
         <% if (viewer.role === 'reporter') { %><a href="/reporter" <%- here('/reporter') %>>Reporter Space</a><% } %>
         <% if (viewer.role === 'editor') { %>
           <a href="/editor" <%- here('/editor') %>>Editor Space</a>
-          <a href="/editor/users" <%- here('/editor/users') %>>Manage users</a>
+          <a href="/editor/users" <%- here('/editor/users') %>>Manage Users</a>
         <% } %>
         <span class="who"><%= viewer.displayName %></span>
         <form method="post" action="/logout"><button type="submit">Log out</button></form>

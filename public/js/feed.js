@@ -395,7 +395,12 @@ if (form && results) {
     track.append(el('span', 'feed-toggle-thumb'))
     wrap.append(box, track, el('span', 'feed-toggle-label', 'Unread only'))
     box.addEventListener('change', () => setUnreadOnly(box.checked))
-    chips[0].parentNode.append(wrap)
+    // Categories live in the sidebar now, so the switch goes into the toolbar
+    // slot next to search and sort. The old home stays as the fallback.
+    const slot = document.getElementById('feed-unread-slot')
+    const home = slot || (chips.length && chips[0].parentNode)
+    if (!home) return null
+    home.append(wrap)
     unreadToggle = box
     return unreadToggle
   }
@@ -424,6 +429,26 @@ if (form && results) {
 
     if (!append) {
       baseState = { q: state.q, category: state.category, sort: state.sort, page: 1 }
+      // The heading follows the filters, using the same words the server
+      // renders. The label comes from the matching category pill, so the two
+      // can never disagree. Compared via dataset, never interpolated into a
+      // selector, so a crafted query value cannot break the lookup.
+      const heading = document.getElementById('feed-title')
+      if (heading) {
+        let title = 'Latest News'
+        if (state.sort === 'popular') {
+          title = 'Most Read'
+        } else if (state.category) {
+          for (const pill of document.querySelectorAll('.pills [data-category]')) {
+            if (pill.dataset.category === state.category) {
+              title = pill.textContent.trim()
+              break
+            }
+          }
+        }
+        heading.textContent = title
+        document.title = title + ' — The Daily Web'
+      }
     }
     loadedPage = feed.page
     loadedPages = feed.pages

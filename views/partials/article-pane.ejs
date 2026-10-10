@@ -1,7 +1,7 @@
 <%# One version of an article, read only: what is live, or a draft that is
     with someone else. label says which. %>
 <section class="box pane" aria-label="<%= label %>">
-  <p class="eyebrow"><%= label %></p>
+  <p class="eyebrow muted-eyebrow"><%= label %></p>
   <h2><%= content.title %></h2>
   <p class="hint"><%= CATEGORY_LABELS[content.category] %></p>
   <% if (content.imagePath) { %>
