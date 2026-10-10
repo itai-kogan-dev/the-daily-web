@@ -5,6 +5,11 @@
 const { makeError } = require('../utils/makeError')
 
 const CACHE_MS = 15 * 60 * 1000   // the spec allows up to 15 minutes old
+// Open-Meteo's "current" is itself a reading taken up to 15 minutes before we
+// ask. The cache runs out 15 minutes after that reading, not after our fetch,
+// so what readers see is never more than 15 minutes behind it. When the
+// reading is already old, a fresh one is fetched at most once a minute.
+const MIN_REFRESH_MS = 60 * 1000
 const TIMEOUT_MS = 5000
 
 // Readers send where they are, rounded to a tenth of a degree (about 11 km).
@@ -123,8 +128,12 @@ async function fetchWeather(place) {
     throw new Error('weather service sent an answer we do not understand')
   }
 
+  // the reading's time comes as local time plus the place's UTC offset
+  const observed = Date.parse(now.time + 'Z') - (body.utc_offset_seconds || 0) * 1000
+
   const { text, icon } = describe(now.weather_code, now.is_day)
   return {
+    observedAt: Number.isFinite(observed) ? new Date(observed).toISOString() : null,
     temperature: Math.round(now.temperature_2m),
     feelsLike: Math.round(now.apparent_temperature),
     high: Math.round(daily.temperature_2m_max[0]),
@@ -146,8 +155,15 @@ function remember(key, entry) {
   if (cache.size > MAX_PLACES) cache.delete(cache.keys().next().value)
 }
 
+// 15 minutes after the reading, never longer than 15 minutes after our fetch,
+// and at least a minute so an old reading does not mean a fetch per reader
+function computeExpiry(data, fetchedAt) {
+  const observed = data.observedAt ? Date.parse(data.observedAt) : fetchedAt
+  return Math.min(fetchedAt + CACHE_MS, Math.max(fetchedAt + MIN_REFRESH_MS, observed + CACHE_MS))
+}
+
 function formatAnswer(entry, stale) {
-  return { ...entry.data, fetchedAt: new Date(entry.fetchedAt), stale }
+  return { ...entry.data, fetchedAt: new Date(entry.fetchedAt), expiresAt: new Date(entry.expiresAt), stale }
 }
 
 // Served from the cache while it is under 15 minutes old. Otherwise one request
@@ -159,12 +175,15 @@ async function getWeather({ lat, lon } = {}) {
   const key = `${place.lat},${place.lon}`
 
   const cached = cache.get(key)
-  if (cached && Date.now() - cached.fetchedAt < CACHE_MS) return formatAnswer(cached, false)
+  if (cached && Date.now() < cached.expiresAt) return formatAnswer(cached, false)
 
   let pending = inFlight.get(key)
   if (!pending) {
     pending = Promise.all([fetchWeather(place), findPlaceName(place, key)])
-      .then(([data, city]) => remember(key, { data: { city, ...data }, fetchedAt: Date.now() }))
+      .then(([data, city]) => {
+        const fetchedAt = Date.now()
+        remember(key, { data: { city, ...data }, fetchedAt, expiresAt: computeExpiry(data, fetchedAt) })
+      })
       .catch(err => {
         // logged here, once per failed refresh, not once per waiting reader
         console.error('[weather] could not refresh', key, '-', err.message)
@@ -185,4 +204,4 @@ async function getWeather({ lat, lon } = {}) {
   return formatAnswer(cache.get(key), false)
 }
 
-module.exports = { getWeather, CACHE_MS }
+module.exports = { getWeather }

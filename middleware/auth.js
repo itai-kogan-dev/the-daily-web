@@ -8,9 +8,10 @@ function getCurrentUser(req) {
 }
 
 // API routes get JSON errors, page routes get a redirect. originalUrl and
-// not path, because path is relative to where the router is mounted.
+// not path, because path is relative to where the router is mounted - but
+// without the query string, or a search for "/api/" would turn a page into JSON.
 function isApiRequest(req) {
-  return req.originalUrl.includes('/api/')
+  return req.originalUrl.split('?')[0].includes('/api/')
 }
 
 // what every rendered page gets for free: who is looking, and where they are
@@ -63,4 +64,4 @@ function requireRole(...roles) {
   }
 }
 
-module.exports = { attachViewData, requireRole }
+module.exports = { attachViewData, requireRole, isApiRequest }

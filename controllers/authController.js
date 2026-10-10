@@ -19,6 +19,10 @@ async function logIn(req, res) {
     return res.status(401).render('login', { error: 'Wrong username or password' })
   }
 
+  // A new session id at login, so an id someone planted before login (a
+  // guest's comment session, say) is worthless afterwards.
+  await new Promise((resolve, reject) => req.session.regenerate(err => (err ? reject(err) : resolve())))
+
   // Only what we actually need later. The hash never goes in the session.
   req.session.user = {
     id: user._id.toString(),
@@ -26,6 +30,11 @@ async function logIn(req, res) {
     displayName: user.displayName,
     role: user.role
   }
+
+  // Saved before redirecting: the browser follows the redirect at once, and
+  // if the session were still being written to Mongo, that next page would
+  // see a guest and send them back to the login form.
+  await new Promise((resolve, reject) => req.session.save(err => (err ? reject(err) : resolve())))
 
   res.redirect(user.role === ROLES.EDITOR ? '/editor' : '/reporter')
 }

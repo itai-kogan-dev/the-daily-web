@@ -1,6 +1,8 @@
+const { isApiRequest } = require('./auth')
+
 // nothing matched any route
 function handleNotFound(req, res) {
-  if (req.originalUrl.includes('/api/')) return res.status(404).json({ error: 'Not found' })
+  if (isApiRequest(req)) return res.status(404).json({ error: 'Not found' })
   res.status(404).render('error', { status: 404, message: 'Page not found' })
 }
 
@@ -46,7 +48,7 @@ function handleError(err, req, res, next) {
   console.error('[error]', req.id || '-', status, req.method, req.originalUrl, '-', err.message)
   if (status >= 500) console.error(err.stack)
 
-  if (req.originalUrl.includes('/api/')) return res.status(status).json({ error: message })
+  if (isApiRequest(req)) return res.status(status).json({ error: message })
   res.status(status).render('error', { status, message })
 }
 

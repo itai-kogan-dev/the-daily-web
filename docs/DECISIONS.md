@@ -108,6 +108,10 @@ browser, which is closer to a device.
 `saveUninitialized` is false, so a guest browsing creates no session. Writing the
 count is what creates one, so only people who comment cost us a row.
 
+Only comments that were actually posted count. The limiter checks before the
+comment is handled and the time is recorded after it is saved, so a reader who
+sends three empty forms is not locked out of their first real comment.
+
 See `middleware/rateLimit.js`.
 
 ## Weather is the reader's own, from Open-Meteo
@@ -136,9 +140,14 @@ placed in the wrong city (many Israeli addresses resolve to Tel Aviv), and on
 a developer's laptop it finds nothing at all.
 
 Every page with a sidebar asks for the weather, so the server caches it per
-place for 15 minutes - the limit the spec allows. The browser is told to keep
-an answer only for what is left of those 15 minutes, not a fixed time on top
-of them: a flat 5 minutes let a reader see weather up to 20 minutes old. When the cache is cold and
+place - and the 15 minutes the spec allows are counted from Open-Meteo's
+reading, not from our fetch. Its "current" weather is itself a reading taken up
+to 15 minutes before we ask, so a cache timed from the fetch could show a
+reading 30 minutes old. Ours runs out 15 minutes after the reading (and at the
+latest 15 after the fetch); when the reading is already old we ask again at
+most once a minute. The browser keeps an answer only until the server's copy
+runs out, so the two caches never add up, and the widget shows the reading's
+own time ("As of 14:15"). When the cache is cold and
 many readers of one place arrive at once, they share a single request. If the
 weather service is down the last answer is shown, labelled as such. Place
 names are kept for good, since towns don't move, and Nominatim is asked at
@@ -164,6 +173,13 @@ the one we most need. At our traffic a synchronous append costs microseconds.
 If the file cannot be written - a full disk, say - the server keeps running and
 logs to the terminal only.
 
+## The editor queue is paged
+
+The queue shows 50 articles a page, pending ones first. The order is worked out
+in the database, so "pending first" holds across pages and not just within one.
+With 5,000 articles the unpaged queue was a 4 MB page that took 2-4 seconds;
+paged it is about 46 KB and under half a second.
+
 ## Interface language is English
 
 The spec never asks for Hebrew - its only mention of "languages" is about
@@ -181,6 +197,17 @@ default in-memory store would lose every login on restart, which is exactly what
 that requirement is testing. JWT would also survive a restart, but logging out
 does not really work with it - a token stays valid until it expires unless you
 keep a blocklist on the server, which makes it stateful anyway.
+
+Login does two things before redirecting. It gives the session a new id, so an
+id someone planted before login is worthless afterwards (session fixation). And
+it waits for the session to be written to Mongo: the browser follows the
+redirect at once, and with a remote database the next page sometimes arrived
+first, saw a guest and bounced back to the login form - 2 logins in 10 did.
+
+Against cross-site requests (CSRF), two walls. The cookie is `SameSite=Lax`, so
+the browser leaves it off posts coming from other sites. And only the login
+form reads form bodies - every API takes JSON, which a form on another site
+cannot send.
 
 ## No sign up page - editors create accounts
 

@@ -21,6 +21,10 @@ async function findArticle(id) {
   return article
 }
 
+// A page of the queue at a time. With thousands of articles, one page of all
+// of them was several megabytes of HTML and seconds to build.
+const QUEUE_PAGE = 50
+
 // whole queue, not just one reporter's share. a made up ?status= shows
 // everything, same as the reporter dashboard does
 async function showQueue(req, res) {
@@ -31,23 +35,31 @@ async function showQueue(req, res) {
   const query = {}
   if (filter) query.status = filter
 
-  const articles = await Article.find(query)
-    .populate('author', 'displayName')
-    .sort({ updatedAt: -1 })
-    .lean()
-
   // counted over everything, so the pills stay right while filtered
   const counts = await Article.countByStatus()
+  const total = filter ? counts[filter] : counts.all
+  const pages = Math.max(1, Math.ceil(total / QUEUE_PAGE))
+  const page = Math.min(pages, Math.max(1, parseInt(req.query.page, 10) || 1))
 
-  // pending first - it is the only thing actually waiting on the editor
-  const waiting = articles.filter(a => a.status === STATUS.PENDING_EDITOR)
-  const rest = articles.filter(a => a.status !== STATUS.PENDING_EDITOR)
+  // pending first - it is the only thing actually waiting on the editor. The
+  // order is decided in the database, so it holds across pages, not just
+  // within one
+  const rows = await Article.aggregate([
+    { $match: query },
+    { $addFields: { waiting: { $eq: ['$status', STATUS.PENDING_EDITOR] } } },
+    { $sort: { waiting: -1, updatedAt: -1, _id: -1 } },
+    { $skip: (page - 1) * QUEUE_PAGE },
+    { $limit: QUEUE_PAGE }
+  ])
+  const articles = await Article.populate(rows, { path: 'author', select: 'displayName' })
 
   res.render('editor/queue', {
-    articles: [...waiting, ...rest],
+    articles,
     counts,
     filter,
     statuses,
+    page,
+    pages,
     STATUS, STATUS_LABELS, CATEGORY_LABELS
   })
 }
@@ -178,8 +190,10 @@ async function clearViews(req, res) {
     res.json({ cleared })
     return
   } catch (err) {
-    // standalone MongoDB has no transaction support, so fall back
-    // to the plain non-atomic clear below
+    // standalone MongoDB has no transaction support, so fall back to the plain
+    // non-atomic clear below. Anything else is a real failure and is reported
+    const unsupported = err.code === 20 || /replica set|Transaction numbers/i.test(err.message)
+    if (!unsupported) throw err
   }
 
   const result = await ViewBucket.deleteMany({ article: article._id })

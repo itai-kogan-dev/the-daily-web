@@ -21,7 +21,6 @@ app.set('views', path.join(__dirname, 'views'))
 // Order matters - Express runs middleware top to bottom.
 app.use(logRequest)   // first, so it times and logs every request
 app.use(express.static(path.join(__dirname, 'public')))
-app.use(express.urlencoded({ extended: true }))   // reads HTML form posts into req.body
 app.use(express.json())                           // reads Ajax JSON posts into req.body
 
 // Sessions live in Mongo, not in memory, so a server restart doesn't log
@@ -31,7 +30,12 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
-  cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 }   // a week
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 24 * 7,   // a week
+    // the browser leaves the cookie off posts coming from other sites, so a
+    // page elsewhere cannot act as a logged in editor (CSRF)
+    sameSite: 'lax'
+  }
 }))
 
 app.use(attachViewData)
