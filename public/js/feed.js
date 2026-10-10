@@ -1,6 +1,5 @@
-// The feed without a page reload. The page is already a working feed before
-// this file runs - a real form, real links, real results - so the only job here
-// is to take over those same controls and keep the address bar in step.
+// The feed without page reloads. The server-rendered page already works on its
+// own; this takes over its form and links and keeps the address bar in step.
 
 const form = document.querySelector('.feed-search')
 const searchInput = form && form.querySelector('input[name="q"]')
@@ -12,8 +11,7 @@ if (form && results) {
   // Typing a search fires one request instead of one per keystroke.
   const TYPING_MS = 350
 
-  // The address bar is the only state. A reload, a bookmark and the back button
-  // then all mean the same thing without any of it being kept twice.
+  // the address bar is the only state, so a reload, a bookmark and Back agree
   function readState() {
     const params = new URLSearchParams(location.search)
     return {
@@ -24,8 +22,8 @@ if (form && results) {
     }
   }
 
-  // Defaults are left out so the address stays short and copyable. Mirrors
-  // buildFeedLink() in controllers/publicController.js.
+  // defaults are left out so the address stays short - mirrors buildFeedLink()
+  // in controllers/publicController.js
   function buildQuery(state) {
     const params = new URLSearchParams()
     if (state.q) params.set('q', state.q)
@@ -43,8 +41,7 @@ if (form && results) {
   function createEl(tag, className, text) {
     const node = document.createElement(tag)
     if (className) node.className = className
-    // textContent, never innerHTML: a headline is a reporter's text and must
-    // not be able to bring markup along with it
+    // textContent, never innerHTML: a headline must not be able to bring markup
     if (text !== undefined) node.textContent = text
     return node
   }
@@ -54,18 +51,9 @@ if (form && results) {
     item.dataset.articleId = article.id
 
     if (article.imagePath) {
-      const link = createEl('a', 'list-thumb')
-      link.href = `/article/${article.id}`
-      link.tabIndex = -1
+      const link = Object.assign(createEl('a', 'list-thumb'), { href: `/article/${article.id}`, tabIndex: -1 })
       link.setAttribute('aria-hidden', 'true')
-
-      const img = createEl('img')
-      img.src = article.imagePath
-      img.alt = ''
-      img.loading = 'lazy'
-      img.width = 160
-      img.height = 107
-      link.append(img)
+      link.append(Object.assign(createEl('img'), { src: article.imagePath, alt: '', loading: 'lazy', width: 160, height: 107 }))
       item.append(link)
     }
 
@@ -91,9 +79,7 @@ if (form && results) {
     time.dateTime = article.publishedAt
     meta.append(time)
 
-    // en-US on purpose, and the same choice the template makes: a de-DE browser
-    // would otherwise write 8.264 where the server wrote 8,264, and the number
-    // would change shape the moment a card is redrawn.
+    // en-US like the template, or a German browser would redraw 8,264 as 8.264
     meta.append(createEl('span', null, `${Number(article.viewCount || 0).toLocaleString('en-US')} views`))
 
     body.append(meta)
@@ -101,9 +87,8 @@ if (form && results) {
     return item
   }
 
-  // Infinite scroll owns everything below the cards. The server-rendered pager
-  // stays in the HTML for readers without JavaScript and is removed once this
-  // script runs, so the same feed never has two navigations on screen.
+  // Infinite scroll owns everything below the cards. The no-JavaScript pager is
+  // removed at start-up (end of this file).
   let baseState = null
   let loadedPage = 1
   let loadedPages = 1
@@ -114,25 +99,28 @@ if (form && results) {
   let moreWrap = null
   let moreLink = null
   let moreNote = null
-  // Client-only: not in the URL, because a bookmarked unread filter would do
-  // nothing without JavaScript. No-JS readers never see the toggle.
+  // kept out of the URL - a bookmarked unread filter would do nothing without JS
   let unreadOnly = false
   let pageSize = 20
   let unreadToggle = null
-  // The full id set for the current filters, so the unread count is the whole
-  // feed and not just the loaded cards. Cached per filter; a failed fetch
-  // leaves countIds null and the count falls back to the loaded cards.
+  // every id under the current filters, so the unread count covers the whole
+  // feed, not just the loaded cards - null until fetched, or if that failed
   let countIds = null
   let countSig = null
   let countToken = 0
 
+  // where the server-rendered page left off, from the data- attributes the
+  // template puts on #feed-results
   function readInitialState() {
-    const state = readState()
-    const page = Math.max(1, parseInt((results.dataset && results.dataset.page) || state.page, 10) || 1)
-    const pages = Math.max(page, parseInt((results.dataset && results.dataset.pages) || page, 10) || page)
-    const total = Math.max(0, parseInt((results.dataset && results.dataset.total) || '0', 10) || 0)
-    const size = Math.max(1, parseInt((results.dataset && results.dataset.pageSize) || '20', 10) || 20)
-    return { state, page, pages, total, size }
+    const data = results.dataset
+    const page = Number(data.page) || 1
+    return {
+      state: readState(),
+      page,
+      pages: Math.max(page, Number(data.pages) || 1),
+      total: Number(data.total) || 0,
+      size: Number(data.pageSize) || 20
+    }
   }
 
   function ensureMoreUI() {
@@ -149,10 +137,8 @@ if (form && results) {
       moreNote.setAttribute('role', 'status')
       moreWrap.append(moreLink, moreNote)
     }
-    // A fresh render replaces the #feed-results children, which detaches these
-    // nodes while the variables still hold them. Re-attach whenever they are
-    // not in the page, or the Load more link vanishes and the observer watches
-    // a node that can never intersect again.
+    // a fresh render empties #feed-results, so put these back whenever they are
+    // missing - otherwise Load more vanishes and the observer watches nothing
     if (!sentinel.isConnected) results.append(sentinel)
     if (!moreWrap.isConnected) results.append(moreWrap)
   }
@@ -164,8 +150,7 @@ if (form && results) {
 
   function observeSentinel() {
     ensureMoreUI()
-    // Without IntersectionObserver the Load more link below still works, so an
-    // older browser gets a button instead of an automatic load.
+    // without IntersectionObserver the Load more link still works
     if (!('IntersectionObserver' in window) || !sentinel) return
     stopObserving()
     observer = new IntersectionObserver(entries => {
@@ -193,25 +178,13 @@ if (form && results) {
   }
 
   function countUnread() {
-    // No id set yet, or its fetch failed: count the loaded cards rather than
-    // showing nothing.
+    // no id set yet, or it failed to load: count the loaded cards instead
     if (!countIds) return getVisibleCards().length
-    let read = null
-    try {
-      read = new Set(window.DailyWebRead ? window.DailyWebRead.list() : [])
-    } catch {
-      read = new Set()
-    }
-    let n = 0
-    for (const id of countIds) {
-      if (!read.has(id)) n++
-    }
-    return n
+    const read = new Set(DailyWebRead.list())
+    return countIds.filter(id => !read.has(id)).length
   }
 
-  // The full unread count for the current filters. Cached per filter, so
-  // toggling twice or coming back to the page recomputes against the fresh
-  // read list without another request; a new filter refetches.
+  // the ids are fetched once per filter; the read list is checked fresh each time
   async function refreshUnreadCount() {
     if (!unreadOnly || !baseState) {
       updateCount()
@@ -297,27 +270,14 @@ if (form && results) {
     return note
   }
 
-  // The pills sit outside #feed-results, so they are marked rather than
-  // rebuilt. Only the filter row - the ones on the cards are rebuilt anyway.
+  // the filter pills sit outside #feed-results, so they are marked, not rebuilt
   function markActive(feed) {
     for (const chip of document.querySelectorAll('[data-sort]')) {
       chip.classList.toggle('active', chip.dataset.sort === feed.sort)
     }
     for (const chip of document.querySelectorAll('.pills [data-category]')) {
-      // The API answers with null when no category is selected, while the All
-      // pill carries an empty string. Without the fallback All never matches.
+      // the API sends null for no category, while the All pill carries ''
       chip.classList.toggle('active', chip.dataset.category === (feed.category || ''))
-    }
-  }
-
-  // Unread means "not opened in this browser". The server never sees the list,
-  // so the toggle only hides cards that are already on the page - it cannot
-  // change the total, and it stays out of the URL.
-  function isRead(id) {
-    try {
-      return Boolean(window.DailyWebRead && window.DailyWebRead.has(id))
-    } catch {
-      return false
     }
   }
 
@@ -327,22 +287,20 @@ if (form && results) {
     return Array.from(list.children).filter(card => !card.hidden)
   }
 
+  // Unread means "not opened in this browser" - read.js keeps that list on the
+  // device. The read list is only asked while the filter is on, and the filter
+  // can only be on when read.js has loaded (see ensureUnreadToggle).
   function applyUnread() {
     const list = document.getElementById('feed-list')
-    if (!list) return 0
-    let visible = 0
+    if (!list) return
     for (const card of list.children) {
-      const read = isRead(card.dataset && card.dataset.articleId)
-      card.hidden = unreadOnly && read
-      if (!card.hidden) visible++
+      card.hidden = unreadOnly && DailyWebRead.has(card.dataset.articleId)
     }
-    return visible
   }
 
   function fillUnread() {
     if (!unreadOnly) return
-    // A filtered page can render short, so keep loading until a full page of
-    // unread cards is on screen or the feed itself runs out.
+    // keep loading until a page's worth of unread cards shows, or the feed ends
     if (getVisibleCards().length < pageSize) loadMore()
   }
 
@@ -355,26 +313,20 @@ if (form && results) {
     fillUnread()
   }
 
-  // The browser restores the checkbox when the reader comes back from an
-  // article, so the toggle can already be on before any of this runs. The
-  // script is the source of truth going forward, but it has to pick up the
-  // restored control first or the two disagree and the filter looks on while
-  // off.
+  // the browser restores the checkbox on Back, so it can already be on before
+  // this script runs - read it rather than assume it is off
   function syncUnreadFromToggle() {
     unreadOnly = Boolean(unreadToggle && unreadToggle.checked)
   }
 
   function ensureUnreadToggle() {
     if (unreadToggle) return unreadToggle
-    // Without the shared read list there is nothing truthful to filter on, so
-    // no-JS readers and blocked scripts never see a dead control.
+    // without read.js there is nothing to filter on, so no switch at all
     if (!window.DailyWebRead) return null
-    // It lives with the filters, not the sorters: it narrows which articles
-    // show, it never orders them.
+    // only on the feed, which has the category pills
     const chips = document.querySelectorAll('.pills [data-category]')
-    if (!chips.length || !chips[0].parentNode) return null
-    // History navigation can restore the toggle node itself while this script
-    // starts over, so reuse it instead of adding a second toggle beside it.
+    if (!chips.length) return null
+    // Back can restore the switch itself - reuse it rather than add a second
     const existing = document.querySelector('.feed-toggle input[type="checkbox"]')
     if (existing) {
       unreadToggle = existing
@@ -384,8 +336,7 @@ if (form && results) {
       }
       return unreadToggle
     }
-    // A checkbox, not a button: the on/off state lives in the control itself,
-    // so it needs no aria-pressed and announces as a switch would.
+    // a checkbox, not a button: it holds its own on/off state
     const wrap = createEl('label', 'feed-toggle')
     const box = createEl('input')
     box.type = 'checkbox'
@@ -406,8 +357,8 @@ if (form && results) {
   }
 
   function render(feed, state, { append = false } = {}) {
-    // Appending is only for the next page of the same feed. Anything else -
-    // a new search, a pill, back/forward - starts from a clean list.
+    // appending is only for the next page of the same feed - anything else
+    // (a search, a pill, Back) starts a clean list
     const list = append ? document.getElementById('feed-list') : null
     if (append && list) {
       for (const article of feed.items) list.append(buildCard(article))
@@ -454,8 +405,7 @@ if (form && results) {
     loadedPages = feed.pages
     loadedTotal = feed.total
     if (Number(feed.pageSize) > 0) pageSize = Number(feed.pageSize)
-    // The Load more path appends to the same list, so it needs the same
-    // reconciliation as the initial paint and the return-from-article path.
+    // the same unread handling as on start-up and on coming back
     syncUnreadFromToggle()
     applyUnread()
     refreshUnreadCount()
@@ -469,21 +419,16 @@ if (form && results) {
     statusEl.hidden = !text
   }
 
-  // Guards against a slow earlier request landing after a faster later one and
-  // painting the wrong articles. inflight is separate: an automatic append must
-  // never start while a fresh feed is on its way, or it would supersede it and
-  // append to the page the reader just left.
+  // latest drops an older answer that lands after a newer one. inflight stops
+  // Load more from starting while a fresh feed is on its way.
   let latest = 0
   let inflight = 0
 
   async function load(state, { push = true, syncInput = true, append = false } = {}) {
-    // The input is the one place the address bar cannot speak for itself. It is
-    // synced on every route through here except typing and submitting, where the
-    // reader's unfinished text - including a trailing space - has to be left alone.
+    // synced from the URL, except while the reader is typing in it
     if (syncInput && searchInput && searchInput.value !== state.q) searchInput.value = state.q
 
-    // Appended pages are never a new address. Pushing ?page=2..20 would bury the
-    // back button under every scrolled page, so only fresh feeds move the URL.
+    // only a fresh feed changes the address - every scrolled page would bury Back
     if (append) {
       if (loadingMore) return
       loadingMore = true
@@ -547,10 +492,8 @@ if (form && results) {
     load({ ...readState(), q: searchInput.value.trim(), page: 1 }, { syncInput: false })
   })
 
-  // One handler for every link the feed owns. The href is deliberately ignored
-  // and the data- attributes are the instruction instead: a rendered href is a
-  // snapshot from the moment the page loaded, so it goes stale as soon as the
-  // URL moves on without a reload.
+  // One handler for every feed link. It reads the data- attributes, not the
+  // href: an href is a snapshot from page load and goes stale as the URL moves.
   document.addEventListener('click', event => {
     const link = event.target.closest('a[data-feed-nav]')
     if (!link) return
@@ -562,9 +505,7 @@ if (form && results) {
     event.preventDefault()
 
     const data = link.dataset
-    // The Load more link asks for the next page of the feed already on screen.
-    // The href is ignored like every other feed link, because it goes stale as
-    // soon as the filters move on without a reload.
+    // Load more asks for the next page of the feed already on screen
     if (data.more !== undefined) {
       loadMore()
       return
@@ -580,18 +521,13 @@ if (form && results) {
     load(next)
   })
 
-  // Back and forward have to work too, and they arrive with the URL already
-  // changed - so no push this time, just pick the new state up. The input sync
-  // happens inside load().
+  // Back and Forward arrive with the URL already changed, so load without a push
   window.addEventListener('popstate', () => {
     load(readState(), { push: false })
   })
 
-  // Coming back from an article - back button, tab switch, another tab - can
-  // leave a just-read card on screen, because recording happens on the article
-  // page while this page sits untouched. Re-apply the filter whenever the page
-  // becomes visible again. Cheap and idempotent, so all three ways back share
-  // the one handler.
+  // Coming back from an article (Back, a tab switch, another tab) can leave a
+  // just-read card on screen, so the unread filter is applied again.
   async function refreshOnReturn() {
     syncUnreadFromToggle()
     if (!unreadOnly) return
@@ -606,13 +542,11 @@ if (form && results) {
     if (!document.hidden) refreshOnReturn()
   })
   window.addEventListener('storage', event => {
-    const key = window.DailyWebRead && window.DailyWebRead.KEY
-    if (event.key === key) refreshOnReturn()
+    if (event.key === window.DailyWebRead?.KEY) refreshOnReturn()
   })
 
-  // Start from the server-rendered page instead of fetching it again. The pager
-  // is removed here rather than hidden, because leaving a second navigation in
-  // the page would give keyboard and screen-reader users two ways to move.
+  // Start from the server-rendered page rather than fetching it again, and remove
+  // its pager - one way through the feed is enough.
   const serverPager = results.querySelector('.feed-pager')
   if (serverPager) serverPager.remove()
   const initial = readInitialState()
@@ -625,7 +559,6 @@ if (form && results) {
   syncUnreadFromToggle()
   applyUnread()
   refreshUnreadCount()
-  // Quiet at the end on first paint: the server already showed this page, so
-  // there is nothing new to announce until the next client load.
+  // quiet on first paint - the server already showed this page
   if (initial.total) setMore({ announceEnd: false })
 }
