@@ -80,6 +80,21 @@ articleSchema.index({ isLive: 1, viewCount: -1 })                   // feed, mos
 articleSchema.index({ isLive: 1, 'publishedContent.category': 1 })  // category filter
 articleSchema.index({ author: 1, status: 1 })                       // reporter's own list
 
+// How many articles are in each status, plus all of them, for the filter
+// pills. match narrows it, e.g. to one reporter. aggregate() does not cast
+// like find() does, so an author id in match has to be an ObjectId.
+articleSchema.statics.countByStatus = async function (match = {}) {
+  const counts = { all: 0 }
+  for (const status of Object.values(STATUS)) counts[status] = 0
+
+  const grouped = await this.aggregate([{ $match: match }, { $group: { _id: '$status', count: { $sum: 1 } } }])
+  for (const row of grouped) {
+    counts[row._id] = row.count
+    counts.all += row.count
+  }
+  return counts
+}
+
 module.exports = mongoose.model('Article', articleSchema)
 module.exports.STATUS = STATUS
 module.exports.STATUS_LABELS = STATUS_LABELS

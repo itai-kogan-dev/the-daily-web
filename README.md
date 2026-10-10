@@ -79,6 +79,7 @@ services/         logic: article workflow, view counting and rollup,
                   analytics, weather, image storage
 models/           Mongoose schemas: User, Article, Comment, ViewBucket,
                   EditorDraft
+utils/            small helpers shared by controllers and services
 views/            EJS pages and partials
 public/           browser JS and CSS
 scripts/seed.js   demo data

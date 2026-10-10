@@ -7,6 +7,8 @@
 // secret to share between four laptops and nothing to leak into the repo.
 // It has no place names, so those come from OpenStreetMap's Nominatim.
 
+const { makeError } = require('../utils/makeError')
+
 const CACHE_MS = 15 * 60 * 1000   // the spec allows up to 15 minutes old
 const TIMEOUT_MS = 5000
 
@@ -43,23 +45,19 @@ function describe(code, isDay) {
   return { text: condition.text, icon: !isDay && condition.night ? condition.night : condition.icon }
 }
 
-function httpError(status, message) {
-  return Object.assign(new Error(message), { status })
-}
-
 const round = value => Math.round(value * PRECISION) / PRECISION
 
 // There is no default place: weather for somewhere the reader is not would
 // look like theirs. Without a location the widget says so instead.
 function resolvePlace(lat, lon) {
   const given = [lat, lon].filter(value => value !== undefined && value !== '')
-  if (given.length < 2) throw httpError(400, 'Send lat and lon')
+  if (given.length < 2) throw makeError(400, 'Send lat and lon')
 
   const latitude = Number(lat)
   const longitude = Number(lon)
   if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
       !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
-    throw httpError(400, 'lat and lon must be a real place')
+    throw makeError(400, 'lat and lon must be a real place')
   }
   return { lat: round(latitude), lon: round(longitude) }
 }
@@ -188,7 +186,7 @@ async function getWeather({ lat, lon } = {}) {
     await pending
   } catch {
     const last = cache.get(key)
-    if (!last) throw httpError(503, 'Weather is not available right now')
+    if (!last) throw makeError(503, 'Weather is not available right now')
     return answer(last, true)
   }
 

@@ -4,17 +4,12 @@ const { STATUS, STATUS_LABELS, CATEGORIES, CATEGORY_LABELS } = Article
 const EditorDraft = require('../models/EditorDraft')
 const workflow = require('../services/articleWorkflow')
 const imageStore = require('../services/imageStore')
+const { makeError } = require('../utils/makeError')
 
 // A reporter can work on an article in these states. pending_editor is missing
 // on purpose - it is with the editor, and the spec has no transition out of it
 // back to the reporter.
 const EDITABLE = [STATUS.IN_PROGRESS, STATUS.NEEDS_REVISION, STATUS.PUBLISHED]
-
-function makeError(status, message) {
-  const err = new Error(message)
-  err.status = status
-  return err
-}
 
 // Loads an article and checks it belongs to this reporter. Ownership is
 // compared against the session, never against anything the request sent.
@@ -44,17 +39,8 @@ async function showDashboard(req, res) {
 
   const articles = await Article.find(query).sort({ updatedAt: -1 }).lean()
 
-  // one pass over the whole set for the tab counts, filtered or not
-  const grouped = await Article.aggregate([
-    { $match: { author: new mongoose.Types.ObjectId(author) } },
-    { $group: { _id: '$status', count: { $sum: 1 } } }
-  ])
-  const counts = { all: 0 }
-  for (const status of statuses) counts[status] = 0
-  for (const row of grouped) {
-    counts[row._id] = row.count
-    counts.all += row.count
-  }
+  // counted over all of their articles, so the pills stay right while filtered
+  const counts = await Article.countByStatus({ author: new mongoose.Types.ObjectId(author) })
 
   // Anything the editor sent back goes to the top - it is the only thing on
   // this page that is actually waiting on the reporter.
@@ -99,40 +85,11 @@ async function showEditor(req, res) {
   })
 }
 
-// Pulls the content fields out of a request body. A draft is allowed to be
-// half written, so nothing here is rejected for being empty - losing work to a
-// validation error is exactly what the spec says must not happen.
-function readContent(body, current = {}) {
-  return {
-    title:    (body.title    ?? current.title    ?? '').trim() || 'Untitled',
-    summary:  (body.summary  ?? current.summary  ?? '').trim(),
-    body:      body.body     ?? current.body     ?? '',
-    category: CATEGORIES.includes(body.category) ? body.category : (current.category || CATEGORIES[0]),
-    imagePath: (body.imagePath ?? current.imagePath ?? '').trim()
-  }
-}
-
-// Stores the picture and hands back the path to it. The article is not touched
-// here - the client puts the path in the form and the next autosave carries it
-// like any other field.
-async function uploadImage(req, res) {
-  if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
-    throw makeError(400, 'No picture received')
-  }
-
-  const url = await imageStore.saveImage(req.body, {
-    filename: (req.get('X-Image-Name') || 'image').slice(0, 120),
-    contentType: req.get('Content-Type')
-  })
-
-  res.status(201).json({ url })
-}
-
 // First save of a new article - nothing exists until this runs.
 // Creating is the one place we refuse empty content, otherwise the API could be
 // used to fill the database. Updating stays permissive so no work is lost.
 async function createArticle(req, res) {
-  const content = readContent(req.body)
+  const content = workflow.readContent(req.body)
   const isEmpty = content.title === 'Untitled' && !content.summary && !content.body.trim() && !content.imagePath
   if (isEmpty) throw makeError(400, 'Write something before the article is created')
 
@@ -160,7 +117,7 @@ async function saveDraft(req, res) {
 
   // publishedContent is never touched here. That is what keeps readers on the
   // approved version while this is being written.
-  article.draftContent = readContent(req.body, article.draftContent.toObject())
+  article.draftContent = workflow.readContent(req.body, article.draftContent)
   await article.save()
 
   res.json({
@@ -202,4 +159,4 @@ async function deleteArticle(req, res) {
   res.json({ deleted: true })
 }
 
-module.exports = { showDashboard, showNewEditor, showEditor, createArticle, saveDraft, submitArticle, deleteArticle, uploadImage }
+module.exports = { showDashboard, showNewEditor, showEditor, createArticle, saveDraft, submitArticle, deleteArticle }

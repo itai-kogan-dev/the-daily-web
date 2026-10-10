@@ -6,12 +6,7 @@ const ViewBucket = require('../models/ViewBucket')
 const EditorDraft = require('../models/EditorDraft')
 const workflow = require('../services/articleWorkflow')
 const imageStore = require('../services/imageStore')
-
-function makeError(status, message) {
-  const err = new Error(message)
-  err.status = status
-  return err
-}
+const { makeError } = require('../utils/makeError')
 
 // bad id and missing article end up the same - 404 via the error handler
 async function findArticle(id) {
@@ -41,17 +36,8 @@ async function showQueue(req, res) {
     .sort({ updatedAt: -1 })
     .lean()
 
-  // counted over everything so the tabs stay right while filtered
-  const grouped = await Article.aggregate([
-    { $group: { _id: '$status', count: { $sum: 1 } } }
-  ])
-  const counts = { all: 0 }
-  for (const status of statuses) counts[status] = 0
-  for (const row of grouped) {
-    if (counts[row._id] === undefined) continue
-    counts[row._id] = row.count
-    counts.all += row.count
-  }
+  // counted over everything, so the pills stay right while filtered
+  const counts = await Article.countByStatus()
 
   // pending first - it is the only thing actually waiting on the editor
   const waiting = articles.filter(a => a.status === STATUS.PENDING_EDITOR)
@@ -95,27 +81,6 @@ async function showReview(req, res) {
   })
 }
 
-// picks the editable fields out of the body. drafts can be half written so
-// nothing is rejected for being empty here - publish is where completeness
-// is checked. losing work to a validation error is what this avoids
-function readDraftContent(body, current) {
-  const src = current && typeof current.toObject === 'function' ? current.toObject() : (current || {})
-  const data = body || {}
-
-  const imagePath = String(data.imagePath ?? src.imagePath ?? '').trim()
-  if (imagePath && !workflow.isValidImageSource(imagePath)) {
-    throw makeError(400, 'The image is not a valid picture')
-  }
-
-  return {
-    title: String(data.title ?? src.title ?? 'Untitled').trim() || 'Untitled',
-    summary: String(data.summary ?? src.summary ?? '').trim(),
-    body: data.body ?? src.body ?? '',
-    category: CATEGORIES.includes(data.category) ? data.category : (src.category || CATEGORIES[0]),
-    imagePath
-  }
-}
-
 // the editor's typing lands in their private copy only. the reporter's
 // draftContent, the live page and the status are never touched here
 async function editDraft(req, res) {
@@ -126,7 +91,7 @@ async function editDraft(req, res) {
 
   const existing = await EditorDraft.findOne({ article: article._id })
   const seed = existing ? existing.content : article.draftContent
-  const content = readDraftContent(req.body, seed)
+  const content = workflow.readContent(req.body, seed)
 
   const draft = await EditorDraft.findOneAndUpdate(
     { article: article._id },
@@ -141,31 +106,19 @@ async function editDraft(req, res) {
   })
 }
 
-// the picture goes to the store on its own and comes back as a path. the
-// article is not touched here - the picker puts the path in the form and
-// the next autosave carries it like any other field
-async function uploadImage(req, res) {
-  if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
-    throw makeError(400, 'No picture received')
-  }
-
-  const url = await imageStore.saveImage(req.body, {
-    filename: (req.get('X-Image-Name') || 'image').slice(0, 120),
-    contentType: req.get('Content-Type')
-  })
-
-  res.status(201).json({ url })
+// What the editor saw is what goes out, so their own copy, when there is one,
+// replaces the submitted draft before publishing or sending back.
+async function applyEditorDraft(article) {
+  const draft = await EditorDraft.findOne({ article: article._id })
+  if (draft) article.draftContent = draft.content.toObject()
 }
 
 // approval. the workflow owns the transition, this just carries the article
-// there and back. what the editor saw is what goes live, so their copy is
-// folded over the submitted draft first. a failed publish keeps the copy
+// there and back. a failed publish keeps the editor's copy
 async function publishArticle(req, res) {
   const article = await findArticle(req.params.id)
 
-  const draft = await EditorDraft.findOne({ article: article._id })
-  if (draft) article.draftContent = draft.content.toObject()
-
+  await applyEditorDraft(article)
   workflow.publish(article, req.session.user.id)
   await article.save()
   await EditorDraft.deleteMany({ article: article._id })
@@ -184,9 +137,7 @@ async function returnArticle(req, res) {
   if (!note) throw makeError(400, 'Write a note so the reporter knows what to fix')
   if (note.length > 1000) throw makeError(400, 'The note is too long')
 
-  const draft = await EditorDraft.findOne({ article: article._id })
-  if (draft) article.draftContent = draft.content.toObject()
-
+  await applyEditorDraft(article)
   workflow.returnForRevision(article, note)
   await article.save()
   await EditorDraft.deleteMany({ article: article._id })
@@ -279,7 +230,6 @@ module.exports = {
   showQueue,
   showReview,
   editDraft,
-  uploadImage,
   publishArticle,
   returnArticle,
   deleteArticle,

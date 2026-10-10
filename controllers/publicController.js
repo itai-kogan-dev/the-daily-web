@@ -2,6 +2,8 @@ const mongoose = require('mongoose')
 const Article = require('../models/Article')
 const Comment = require('../models/Comment')
 const viewCounter = require('../services/viewCounter')
+const { makeError } = require('../utils/makeError')
+const { escapeRegExp } = require('../utils/escapeRegExp')
 const { CATEGORIES, CATEGORY_LABELS } = Article
 
 // Twenty at a time. The spec loads 20 more articles as the reader reaches the
@@ -19,12 +21,6 @@ const SEARCH_MAX = 80
 // rather than the oldest, because the earliest 100 of 5000 is no use to anyone.
 const COMMENTS_LIMIT = 100
 
-function makeError(status, message) {
-  const err = new Error(message)
-  err.status = status
-  return err
-}
-
 // Anything we do not recognise is dropped rather than rejected, so an old link
 // or a hand typed query still lands on a working page.
 function readQuery(query = {}) {
@@ -37,11 +33,6 @@ function readQuery(query = {}) {
     // the database because someone was feeling curious.
     q: String(query.q || '').trim().slice(0, SEARCH_MAX)
   }
-}
-
-// so "(" or "." in a search is matched as typed, not read as regex syntax
-function escapeRegExp(text) {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 // each word is matched on its own, so "old port" also finds "the port is old"

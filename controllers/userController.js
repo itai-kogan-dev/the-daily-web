@@ -1,16 +1,11 @@
 const mongoose = require('mongoose')
 const User = require('../models/User')
+const { makeError } = require('../utils/makeError')
 const { STORED_ROLES, ROLE_LABELS, ROLES } = User
 
 const USERNAME_PATTERN = /^[a-z0-9._-]{3,30}$/
 const MAX_NAME = 60
 const MIN_PASSWORD = 8
-
-function makeError(status, message) {
-  const err = new Error(message)
-  err.status = status
-  return err
-}
 
 // bad id and missing user end up the same - 404 via the error handler
 async function findUser(id) {

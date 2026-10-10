@@ -1,6 +1,7 @@
 const Article = require('../models/Article')
 const ViewBucket = require('../models/ViewBucket')
 require('../models/User')   // registers the model the update events populate from
+const { escapeRegExp } = require('../utils/escapeRegExp')
 
 const MINUTE = 60 * 1000
 const HOUR = 60 * MINUTE
@@ -211,9 +212,6 @@ async function articleViews(articleId, { range = 'all', interval, tz } = {}) {
   }
 }
 
-// a regex built from user input has to be escaped, or "(" is a crash and
-// ".*" matches everything
-const escapeRegex = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 const PICKER_PAGE = 20
 
@@ -227,7 +225,7 @@ const PICKER_PAGE = 20
 async function listArticles({ q = '', skip = 0, limit = PICKER_PAGE } = {}) {
   const filter = { isLive: true }
   const search = String(q).trim().slice(0, 100)
-  if (search) filter['publishedContent.title'] = { $regex: escapeRegex(search), $options: 'i' }
+  if (search) filter['publishedContent.title'] = { $regex: escapeRegExp(search), $options: 'i' }
 
   const size = Math.min(Math.max(parseInt(limit, 10) || PICKER_PAGE, 1), 50)
   const from = Math.max(parseInt(skip, 10) || 0, 0)
