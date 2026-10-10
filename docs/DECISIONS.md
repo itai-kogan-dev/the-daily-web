@@ -281,9 +281,9 @@ the same thing, and feed links act on their `data-` attributes rather than an
 
 - Two parallel aggregations, one for the page and one for the count. `$facet`
   would save a round trip but its count branch would re-sort the whole feed.
-- The pipeline ends with an explicit `$project`. `draftContent` is unapproved
-  and `editorNote` is between reporter and editor - neither may reach a public
-  endpoint.
+- The pipeline ends with an explicit `$project`. `draftContent` and
+  `editorContent` are unapproved and `editorNote` is between reporter and
+  editor - none of them may reach a public endpoint.
 - `?page=999` re-runs against the last real page instead of showing an empty one.
 - Unknown values (`?sort=sideways`, `?category=gossip`, `?page=-2`) fall back to
   the defaults, so an old or mistyped link still lands on a working feed and
