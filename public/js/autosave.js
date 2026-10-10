@@ -5,8 +5,9 @@
 //
 // send(content, keepalive) makes the request and returns the fetch response.
 // onSaved(data) gets the server's answer. skip(content) can say there is
-// nothing worth saving yet. Returns the controls the page's buttons need.
-function setUpAutosave({ form, statusEl, send, onSaved = () => {}, skip = () => false }) {
+// nothing worth saving yet. exists() says whether the article is already
+// on the server. Returns the controls the page's buttons need.
+function setUpAutosave({ form, statusEl, send, onSaved = () => {}, skip = () => false, exists = () => true }) {
   const IDLE_MS = 1500     // save this long after typing stops
   const CEILING_MS = 10000 // ...but never go longer than this while typing
 
@@ -36,13 +37,17 @@ function setUpAutosave({ form, statusEl, send, onSaved = () => {}, skip = () => 
     ceilingTimer = null
   }
 
+  // true when everything typed so far is on the server
   async function run(keepalive) {
-    if (!unsaved) return
+    if (!unsaved) return true
     const content = readForm()
     // cleared before the request, so anything typed while it is in flight
     // is not swallowed
     stop()
-    if (skip(content)) return showStatus('')
+    if (skip(content)) {
+      showStatus('')
+      return true
+    }
 
     showStatus('Saving...')
     const res = await send(content, keepalive).catch(() => null)
@@ -53,9 +58,12 @@ function setUpAutosave({ form, statusEl, send, onSaved = () => {}, skip = () => 
       unsaved = true
       showStatus('Could not save, retrying...', 'error')
       setTimeout(save, 3000)
-      return
+      return false
     }
-    if (!res.ok) return showStatus(await readError(res), 'error')
+    if (!res.ok) {
+      showStatus(await readError(res), 'error')
+      return false
+    }
 
     const data = await res.json()
     onSaved(data)
@@ -67,16 +75,21 @@ function setUpAutosave({ form, statusEl, send, onSaved = () => {}, skip = () => 
       badge.className = 'badge status-' + data.status
     }
     showStatus('Saved ' + new Date(data.savedAt).toLocaleTimeString())
+    return true
   }
 
   // Saves run one after another. Two at once could both create the same new
-  // article, or race each other to the server. keepalive lets the request
-  // outlive the page when the tab is closing.
+  // article, or race each other to the server. Resolves to whether the save
+  // worked, so Publish and Send never go ahead without the latest edit.
   let queue = Promise.resolve()
-  function save({ keepalive = false } = {}) {
-    queue = queue.then(() => run(keepalive)).catch(() => showStatus('Could not save', 'error'))
+  function enqueue(keepalive) {
+    queue = queue.then(() => run(keepalive)).catch(() => {
+      showStatus('Could not save', 'error')
+      return false
+    })
     return queue
   }
+  const save = () => enqueue(false)
 
   function changed() {
     unsaved = true
@@ -91,9 +104,14 @@ function setUpAutosave({ form, statusEl, send, onSaved = () => {}, skip = () => 
 
   form.addEventListener('input', changed)
 
-  // closing the tab or switching away
+  // Closing the tab or switching away. keepalive lets the request outlive the
+  // page. An update goes straight out, because a save already in flight could
+  // hold it in the queue until the page is gone. A new article has to wait
+  // its turn, or it would be created twice.
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') save({ keepalive: true })
+    if (document.visibilityState !== 'hidden') return
+    if (exists()) run(true).catch(() => {})
+    else enqueue(true)
   })
 
   return { save, changed, stop }

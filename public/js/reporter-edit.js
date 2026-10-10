@@ -26,6 +26,7 @@ if (form) {
     statusEl: document.getElementById('save-status'),
     // typed something then deleted it again - nothing worth creating yet
     skip: content => !articleId && isBlank(content),
+    exists: () => Boolean(articleId),
     send: (content, keepalive) => fetch(articleId ? `/reporter/api/article/${articleId}` : '/reporter/api/article', {
       method: articleId ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -93,7 +94,11 @@ if (form) {
     submitBtn.disabled = true
 
     // flush anything still waiting, or we would submit a stale draft
-    await autosave.save()
+    if (!(await autosave.save())) {
+      showSubmitError('Your latest changes could not be saved, so nothing was sent')
+      submitBtn.disabled = false
+      return
+    }
 
     // still nothing saved, so there is no article to send
     if (!articleId) {

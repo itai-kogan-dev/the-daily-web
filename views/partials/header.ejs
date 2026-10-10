@@ -1,7 +1,13 @@
 <%# locals, because an error caught before the auth middleware ran has neither %>
 <% const viewer = locals.user || { role: 'guest' } %>
 <% const path = locals.currentPath || '' %>
-<% const here = href => path === href ? 'aria-current="page"' : '' %>
+<%# a section stays marked on every page inside it - Manage users is a
+    section of its own, even though its address starts with /editor %>
+<% const here = href => {
+  if (path === href) return 'aria-current="page"'
+  const inside = path.startsWith(href + '/') && !(href === '/editor' && path.startsWith('/editor/users'))
+  return inside ? 'aria-current="true"' : ''
+} %>
 <header class="site-header">
   <nav>
     <a class="brand" href="/"><span>The</span> Daily Web</a>

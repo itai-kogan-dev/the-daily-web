@@ -21,7 +21,7 @@
       <%# what is in progress: the editor's form while it waits for approval,
           the reporter's draft while it is with them %>
       <% if (canEdit || withReporter) { %>
-        <div id="version-draft" role="tabpanel">
+        <div id="version-draft"<%- compare ? ' role="tabpanel" aria-labelledby="tab-draft"' : '' %>>
           <% if (canEdit) { %>
             <form id="review-form" class="stack">
               <%- include('../partials/article-fields') %>
@@ -33,7 +33,7 @@
       <% } %>
 
       <% if (showLive) { %>
-        <div id="version-live" role="tabpanel"<%= compare ? ' hidden' : '' %>>
+        <div id="version-live"<%- compare ? ' role="tabpanel" aria-labelledby="tab-live" hidden' : '' %>>
           <%- include('../partials/article-pane', { label: 'Live now · what readers see', content: article.publishedContent }) %>
         </div>
       <% } %>

@@ -43,7 +43,11 @@
   async function act(button, request) {
     showError('')
     button.disabled = true
-    if (autosave) await autosave.save()
+    if (autosave && !(await autosave.save())) {
+      button.disabled = false
+      showError('Your latest changes could not be saved, so nothing was sent')
+      return
+    }
 
     const res = await request().catch(() => null)
     if (!res || !res.ok) {

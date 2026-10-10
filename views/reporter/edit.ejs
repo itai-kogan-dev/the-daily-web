@@ -17,7 +17,7 @@
         <%- include('../partials/version-tabs', { draftLabel: canEdit ? 'Your draft' : 'Sent for approval' }) %>
       <% } %>
 
-      <div id="version-draft" role="tabpanel">
+      <div id="version-draft"<%- showLive ? ' role="tabpanel" aria-labelledby="tab-draft"' : '' %>>
         <% if (canEdit) { %>
           <form id="article-form" class="stack" data-id="<%= article ? article._id : '' %>">
             <%- include('../partials/article-fields') %>
@@ -28,7 +28,7 @@
       </div>
 
       <% if (showLive) { %>
-        <div id="version-live" role="tabpanel" hidden>
+        <div id="version-live" role="tabpanel" aria-labelledby="tab-live" hidden>
           <%- include('../partials/article-pane', { label: 'Live now · what readers see', content: article.publishedContent }) %>
         </div>
       <% } %>
