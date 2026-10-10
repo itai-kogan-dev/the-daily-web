@@ -215,13 +215,8 @@ async function findArticleViews(articleId, { range = 'all', interval, tz } = {})
 
 const PICKER_PAGE = 20
 
-// The picker on the analytics page: live articles, most read first, a page
-// at a time - the client asks for the next one as the list scrolls.
-//
-// _id is the last tiebreaker so equal view counts always come back in the
-// same order; without it two articles on 0 views can swap between pages.
-// The rollup can still move an article up between two page loads, so the
-// client also skips ids it already has.
+// Live articles for the analytics picker, most read first, a page at a time.
+// _id breaks ties, so articles with equal views never swap between pages.
 async function listArticles({ q = '', skip = 0, limit = PICKER_PAGE } = {}) {
   const filter = { isLive: true }
   const search = String(q).trim().slice(0, 100)

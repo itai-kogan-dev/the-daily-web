@@ -68,7 +68,6 @@ function assertTransition(from, to) {
   }
 }
 
-// reporter sends their work to the editor
 function submitForReview(article) {
   assertTransition(article.status, STATUS.PENDING_EDITOR)
   assertPublishable(article)
@@ -113,10 +112,9 @@ function returnForRevision(article, note) {
   return article
 }
 
-// Who may change or remove an article depends on whose hands it is in. The
-// editor acts on what was sent for approval; an article still with the
-// reporter is theirs until they send it. Between the two rules below every
-// article always has exactly one person who can delete it.
+// Who may change or remove an article depends on whose hands it is in: the
+// editor edits what was sent for approval and deletes that or anything live;
+// the reporter deletes their own unpublished drafts.
 function canEditorEdit(article) {
   return article.status === STATUS.PENDING_EDITOR
 }

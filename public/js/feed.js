@@ -297,7 +297,7 @@ if (form && results) {
     return note
   }
 
-  // The chips sit outside #feed-results, so they are marked rather than
+  // The pills sit outside #feed-results, so they are marked rather than
   // rebuilt. Only the filter row - the ones on the cards are rebuilt anyway.
   function markActive(feed) {
     for (const chip of document.querySelectorAll('[data-sort]')) {
@@ -305,7 +305,7 @@ if (form && results) {
     }
     for (const chip of document.querySelectorAll('.pills [data-category]')) {
       // The API answers with null when no category is selected, while the All
-      // chip carries an empty string. Without the fallback All never matches.
+      // pill carries an empty string. Without the fallback All never matches.
       chip.classList.toggle('active', chip.dataset.category === (feed.category || ''))
     }
   }
@@ -402,7 +402,7 @@ if (form && results) {
 
   function render(feed, state, { append = false } = {}) {
     // Appending is only for the next page of the same feed. Anything else -
-    // a new search, a chip, back/forward - starts from a clean list.
+    // a new search, a pill, back/forward - starts from a clean list.
     const list = append ? document.getElementById('feed-list') : null
     if (append && list) {
       for (const article of feed.items) list.append(buildCard(article))

@@ -65,6 +65,7 @@ function pickSort(sort) {
   return sort === 'popular' ? { viewCount: -1, publishedAt: -1 } : { publishedAt: -1 }
 }
 
+// One page of the feed: filter, sort, skip to the page, then add the byline.
 function buildRowsPipeline(options) {
   const { page, sort } = options
 

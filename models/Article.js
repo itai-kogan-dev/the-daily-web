@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 // Values are what we store and compare in code, labels are what gets shown.
 // Split like this so changing the wording on screen never touches the DB.
 // Listed in workflow order - write it, send it, maybe get it back, it goes
-// live. The dashboard tabs follow this order.
+// live. The filter pills follow this order.
 const STATUS = {
   IN_PROGRESS:    'in_progress',     // בהכנה
   PENDING_EDITOR: 'pending_editor',  // ממתינה לאישור עורך

@@ -1,10 +1,6 @@
-// Fills the sidebar weather widget from /api/weather. Loaded by the sidebar
-// partial, so every page that has the sidebar gets it.
-//
-// The weather is always the reader's own: we ask the browser where they are.
-// There is no default city - weather for somewhere else would look like
-// theirs - so every way of not getting a location ends in a plain message
-// saying what happened, never in an empty box or the wrong city.
+// Fills the sidebar weather widget from /api/weather, for wherever the browser
+// says the reader is. There is no default city - weather for somewhere else
+// would look like theirs - so without a location it says why instead.
 (() => {
   const widget = document.getElementById('weather-widget')
   const body = widget && widget.querySelector('.weather-body')
@@ -127,10 +123,8 @@
           showMessage("We couldn't find your location, so weather isn't available right now.", 'Try again')
         }
       },
-      // The timer only starts once the reader allows it, but the first fix
-      // after a fresh grant can take a while - 8 seconds was not enough and
-      // looked like nothing happened until a reload. A position from the last
-      // 30 minutes is fine for weather and comes back at once.
+      // the first position after allowing access can be slow, so wait up to
+      // 30s; one from the last 30 minutes is fine for weather
       { timeout: 30000, maximumAge: 30 * 60 * 1000 }
     )
   }

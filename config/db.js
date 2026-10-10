@@ -10,9 +10,9 @@ async function connectDb() {
   await mongoose.connect(uri, { serverSelectionTimeoutMS: 10000 })
   console.log('[db] connected')
 
-  // Mongoose reconnects on its own after a network blip; these lines are how
-  // we find out it happened, and that requests failing in between were not a
-  // bug in the code
+  // Mongoose reconnects on its own after a network blip. These lines log it,
+  // so requests that failed in between are not mistaken for a bug.
+
   // 'disconnecting' only fires when we close the connection ourselves (the
   // seed does, when it is done) - that is not worth an error line
   let closing = false

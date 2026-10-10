@@ -3,14 +3,9 @@ const ViewBucket = require('../models/ViewBucket')
 
 const INTERVAL_MS = ViewBucket.BUCKET_MINUTES * 60 * 1000
 
-// Article.viewCount is a rollup of the buckets, so the feed can sort by
-// popularity on an index. docs/DECISIONS.md explains why it is not incremented
-// per view: one document per article would stay hot for its whole life.
-//
-// Each run only looks at articles that got a view since the previous run, so
-// the cost follows how many articles are being read right now, not how many
-// articles exist. The first run after a start has nothing to compare against
-// and does all of them, which also repairs anything missed while we were down.
+// Keeps Article.viewCount (the "most read" sort) equal to the sum of its view
+// buckets. Each run only recounts articles viewed since the last run; the
+// first run after a start recounts all of them, repairing anything missed.
 let lastRunAt = null
 let running = false
 

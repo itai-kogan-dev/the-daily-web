@@ -291,7 +291,7 @@ const updateMarkers = {
   }
 }
 
-function markersFor(data) {
+function buildMarkers(data) {
   let n = 0
   return data.updates.map(update => ({
     x: new Date(update.at).getTime(),
@@ -300,8 +300,10 @@ function markersFor(data) {
   }))
 }
 
+// The x axis is a plain number axis in milliseconds rather than a Chart.js
+// time axis, so no date library is needed - the tick labels format the dates.
 function renderChart(data) {
-  const markers = markersFor(data)
+  const markers = buildMarkers(data)
   const from = new Date(data.from).getTime()
   const to = new Date(data.to).getTime()
 

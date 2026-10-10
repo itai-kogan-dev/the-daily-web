@@ -55,11 +55,10 @@ async function startServer() {
   app.listen(port, () => console.log(`[web] http://localhost:${port}`))
 }
 
-// Express catches errors inside requests. These catch the rest - a timer, a
-// promise nobody awaited. An uncaught exception leaves the process in an
-// unknown state, so we log it and exit for the process manager to restart;
-// a stray rejection is logged and the server keeps going. Only the ones
-// that exit say [fatal].
+// Express catches errors inside requests; these catch the rest. A stray
+// rejection is logged and the server keeps going. An uncaught exception
+// leaves the process in an unknown state, so it is logged as [fatal] and the
+// server stops - nothing restarts it, run npm start again.
 process.on('unhandledRejection', err => {
   console.error('[error] unhandled rejection, continuing -', err && err.stack ? err.stack : err)
 })

@@ -25,7 +25,6 @@ async function showUsers(req, res) {
   res.render('editor/users', { users, currentUserId: req.session.user.id, ROLE_LABELS })
 }
 
-// empty form. nothing is written until the create call below runs.
 function showNewUser(req, res) {
   res.render('editor/user-edit', {
     account: null,

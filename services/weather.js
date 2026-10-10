@@ -1,11 +1,6 @@
-// The sidebar weather widget: the weather where the reader is, and the name
-// of the place so they can see it is theirs. Every page with a sidebar asks
-// for it, so the answer is cached here and the weather service hears from us
-// at most once per CACHE_MS per place, however many readers there are.
-//
-// Open-Meteo rather than OpenWeather: it needs no API key, so there is no
-// secret to share between four laptops and nothing to leak into the repo.
-// It has no place names, so those come from OpenStreetMap's Nominatim.
+// The weather for the sidebar, from Open-Meteo (free, no API key) with the
+// place name from OpenStreetMap's Nominatim. Cached per place, so the services
+// hear from us at most once per CACHE_MS per place, however many readers.
 
 const { makeError } = require('../utils/makeError')
 
@@ -155,13 +150,10 @@ function formatAnswer(entry, stale) {
   return { ...entry.data, fetchedAt: new Date(entry.fetchedAt), stale }
 }
 
-// Fresh cache -> the cache. Otherwise one request goes out per place, and
-// anyone who asks for that place while it is on its way waits for that same
-// one instead of sending their own - a cold cache under load would otherwise
-// mean a request per reader.
-//
-// If the weather service is down we keep serving the last answer, marked
-// stale, rather than an error: an hour old temperature beats an empty box.
+// Served from the cache while it is under 15 minutes old. Otherwise one request
+// goes out per place, and readers asking for that place meanwhile wait for it
+// instead of sending their own. If the weather service is down, the last
+// answer is served marked stale - it can then be older than 15 minutes.
 async function getWeather({ lat, lon } = {}) {
   const place = resolvePlace(lat, lon)
   const key = `${place.lat},${place.lon}`
