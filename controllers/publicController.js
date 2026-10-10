@@ -209,7 +209,9 @@ function listPageNumbers(current, pages, span = 2) {
 async function findLiveArticle(id) {
   if (!mongoose.Types.ObjectId.isValid(id)) throw makeError(404, 'Article not found')
 
+  // unapproved content and the editor's notes never reach a reader's page
   const article = await Article.findOne({ _id: id, isLive: true })
+    .select('-draftContent -editorContent -editorNote')
     .populate('author', 'displayName')
     .lean()
 

@@ -77,8 +77,7 @@ routes/           one file per area - maps URLs to handlers
 controllers/      request handlers - every route calls one of these
 services/         logic: article workflow, view counting and rollup,
                   analytics, weather, image storage
-models/           Mongoose schemas: User, Article, Comment, ViewBucket,
-                  EditorDraft
+models/           Mongoose schemas: User, Article, Comment, ViewBucket
 utils/            small helpers shared by controllers and services
 views/            EJS pages and partials
 public/           browser JS and CSS
@@ -92,9 +91,10 @@ Things worth knowing before you change anything - each is explained in
 - **Article states.** `in_progress -> pending_editor -> published` or
   `needs_revision`. Every status change goes through
   `services/articleWorkflow.js`, which rejects illegal moves.
-- **Two copies of the content.** Readers see `publishedContent`; reporters edit
-  `draftContent`. Approving copies one over the other, so a live article stays
-  unchanged while its update waits for approval.
+- **Separate copies of the content.** Readers see `publishedContent`; reporters
+  edit `draftContent`. Approving copies one over the other, so a live article
+  stays unchanged while its update waits for approval. The editor's unsent
+  edits are a third copy, `editorContent`, folded in on publish or send back.
 - **Views are counted in 5 minute buckets** (`ViewBucket`), not one document per
   view. `Article.viewCount`, used to sort by popularity, is recalculated from
   the buckets every 5 minutes.

@@ -6,7 +6,6 @@ const User = require('../models/User')
 const Article = require('../models/Article')
 const Comment = require('../models/Comment')
 const ViewBucket = require('../models/ViewBucket')
-const EditorDraft = require('../models/EditorDraft')
 const imageStore = require('../services/imageStore')
 const fs = require('fs')
 const path = require('path')
@@ -166,7 +165,7 @@ async function seed() {
   await Promise.all([
     User.deleteMany({}), Article.deleteMany({}),
     Comment.deleteMany({}), ViewBucket.deleteMany({}),
-    EditorDraft.deleteMany({}), imageStore.clearImages()
+    imageStore.clearImages()
   ])
 
   imagePaths = await uploadSeedImages()

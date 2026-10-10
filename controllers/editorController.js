@@ -3,7 +3,6 @@ const Article = require('../models/Article')
 const { STATUS, STATUS_LABELS, CATEGORIES, CATEGORY_LABELS } = Article
 const Comment = require('../models/Comment')
 const ViewBucket = require('../models/ViewBucket')
-const EditorDraft = require('../models/EditorDraft')
 const workflow = require('../services/articleWorkflow')
 const imageStore = require('../services/imageStore')
 const { makeError } = require('../utils/makeError')
@@ -72,10 +71,8 @@ async function showReview(req, res) {
   // reporter submitted. opening the page never creates anything - the first
   // autosave does that. Only an article waiting for approval can be edited.
   const canEdit = workflow.canEditorEdit(article)
-  const draft = canEdit ? await EditorDraft.findOne({ article: article._id }).lean() : null
-  const content = draft
-    ? draft.content
-    : article.draftContent.toObject()
+  const hasDraft = canEdit && Boolean(article.editorContent)
+  const content = (hasDraft ? article.editorContent : article.draftContent).toObject()
 
   const comments = await Comment.find({ article: article._id })
     .sort({ createdAt: 1 })
@@ -84,7 +81,7 @@ async function showReview(req, res) {
   res.render('editor/review', {
     article,
     content,
-    hasDraft: Boolean(draft),
+    hasDraft,
     canEdit,
     canDelete: workflow.canEditorDelete(article),
     changed: workflow.listChangedFields(article.publishedContent, content),
@@ -102,28 +99,31 @@ async function editDraft(req, res) {
     throw makeError(403, 'Only articles waiting for approval can be edited')
   }
 
-  const existing = await EditorDraft.findOne({ article: article._id })
-  const seed = existing ? existing.content : article.draftContent
-  const content = workflow.readContent(req.body, seed)
+  const content = workflow.readContent(req.body, article.editorContent || article.draftContent)
 
-  const draft = await EditorDraft.findOneAndUpdate(
-    { article: article._id },
-    { article: article._id, editor: req.session.user.id, content },
-    { upsert: true, returnDocument: 'after', runValidators: true }
+  // Matched on the status too, so a save that lands just after a publish or
+  // send back cannot leave a copy behind. timestamps: false keeps the
+  // article's updatedAt, which orders the staff lists, for real changes only.
+  const result = await Article.updateOne(
+    { _id: article._id, status: STATUS.PENDING_EDITOR },
+    { $set: { editorContent: content } },
+    { timestamps: false, runValidators: true }
   )
+  if (result.matchedCount === 0) throw makeError(403, 'Only articles waiting for approval can be edited')
 
   res.json({
-    savedAt: draft.updatedAt,
+    savedAt: new Date(),
     status: article.status,
     statusLabel: STATUS_LABELS[article.status]
   })
 }
 
 // What the editor saw is what goes out, so their own copy, when there is one,
-// replaces the submitted draft before publishing or sending back.
-async function applyEditorDraft(article) {
-  const draft = await EditorDraft.findOne({ article: article._id })
-  if (draft) article.draftContent = draft.content.toObject()
+// replaces the submitted draft before publishing or sending back. Cleared in
+// the same save, so it never outlives the review.
+function applyEditorContent(article) {
+  if (article.editorContent) article.draftContent = article.editorContent.toObject()
+  article.editorContent = null
 }
 
 // approval. the workflow owns the transition, this just carries the article
@@ -131,10 +131,9 @@ async function applyEditorDraft(article) {
 async function publishArticle(req, res) {
   const article = await findArticle(req.params.id)
 
-  await applyEditorDraft(article)
+  applyEditorContent(article)
   workflow.publish(article, req.session.user.id)
   await article.save()
-  await EditorDraft.deleteMany({ article: article._id })
 
   res.json({ status: article.status, isLive: article.isLive, publishedAt: article.publishedAt })
 }
@@ -149,10 +148,9 @@ async function returnArticle(req, res) {
   if (!note) throw makeError(400, 'Write a note so the reporter knows what to fix')
   if (note.length > 1000) throw makeError(400, 'The note is too long')
 
-  await applyEditorDraft(article)
+  applyEditorContent(article)
   workflow.returnForRevision(article, note)
   await article.save()
-  await EditorDraft.deleteMany({ article: article._id })
 
   res.json({ status: article.status, editorNote: article.editorNote })
 }
@@ -165,7 +163,6 @@ async function deleteArticle(req, res) {
 
   await Comment.deleteMany({ article: article._id })
   await ViewBucket.deleteMany({ article: article._id })
-  await EditorDraft.deleteMany({ article: article._id })
   await article.deleteOne()
 
   res.json({ deleted: true })

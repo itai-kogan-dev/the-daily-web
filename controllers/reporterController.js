@@ -1,7 +1,6 @@
 const mongoose = require('mongoose')
 const Article = require('../models/Article')
 const { STATUS, STATUS_LABELS, CATEGORIES, CATEGORY_LABELS } = Article
-const EditorDraft = require('../models/EditorDraft')
 const workflow = require('../services/articleWorkflow')
 const imageStore = require('../services/imageStore')
 const { makeError } = require('../utils/makeError')
@@ -150,10 +149,9 @@ async function submitArticle(req, res) {
   // the workflow checks both that the move is legal and that the article is
   // complete enough to leave the reporter
   workflow.submitForReview(article)
-  await article.save()
-
   // the editor starts from what was just sent, never from an older copy
-  await EditorDraft.deleteMany({ article: article._id })
+  article.editorContent = null
+  await article.save()
 
   res.json({ status: article.status, statusLabel: STATUS_LABELS[article.status] })
 }
@@ -166,7 +164,6 @@ async function deleteArticle(req, res) {
     throw makeError(403, 'Only a draft that has never been published can be deleted')
   }
 
-  await EditorDraft.deleteMany({ article: article._id })
   await article.deleteOne()
 
   res.json({ deleted: true })

@@ -51,9 +51,9 @@ Whole file is behind `requireRole('editor')`.
 | GET | `/editor` | All articles, filterable by status (`?status=`), 50 a page (`?page=`), pending first. |
 | GET | `/editor/article/:id` | Review. Has to show what is live now next to what is waiting. |
 | GET | `/editor/analytics` | Impact analytics page. |
-| PATCH | `/editor/api/article/:id` | Autosave of the editor's own copy (`EditorDraft`), folded in on publish or send back. Only while `pending_editor`. |
-| POST | `/editor/api/article/:id/publish` | Approve. Copies draft over published, sets `isLive`, adds an `updateEvent`. |
-| POST | `/editor/api/article/:id/return` | Body `{ note }`. Sends it back for revision. |
+| PATCH | `/editor/api/article/:id` | Autosave of the editor's own copy (`editorContent` on the article), folded in on publish or send back. Only while `pending_editor`. |
+| POST | `/editor/api/article/:id/publish` | Approve. Folds in the editor's copy, copies draft over published, sets `isLive`, adds an `updateEvent`. |
+| POST | `/editor/api/article/:id/return` | Body `{ note }`. Folds in the editor's copy and sends it back for revision. |
 | DELETE | `/editor/api/article/:id` | Delete. Only while `pending_editor`, or when the article is live. |
 | DELETE | `/editor/api/article/:id/views` | Clear the view stats for one article. |
 

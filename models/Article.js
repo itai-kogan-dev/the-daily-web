@@ -30,8 +30,8 @@ const CATEGORY_LABELS = {
 }
 
 // One version of the content. Rule: anything a reporter can edit goes here.
-// Two copies exist so readers keep seeing publishedContent while the reporter
-// works on draftContent.
+// Separate copies exist so readers keep seeing publishedContent while the
+// reporter works on draftContent and the editor on editorContent.
 // _id: false because we never look up a version on its own.
 const contentSchema = new mongoose.Schema({
   title:    { type: String, required: true, trim: true },
@@ -54,6 +54,10 @@ const articleSchema = new mongoose.Schema({
 
   publishedContent: { type: contentSchema, default: null },   // null until first approval
   draftContent:     { type: contentSchema, required: true },
+
+  // the editor's private working copy while the article waits for approval.
+  // Folded over draftContent on publish or send back, null the rest of the time
+  editorContent:    { type: contentSchema, default: null },
 
   editorNote:  { type: String, default: '', maxlength: 1000 },   // why the editor sent it back
   publishedAt: { type: Date, default: null },   // first publish only, never changes

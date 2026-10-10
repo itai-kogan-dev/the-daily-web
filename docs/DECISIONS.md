@@ -37,10 +37,10 @@ there and nothing else changes hands:
 | `published` | read only, delete | edit, which starts a new version |
 
 Editing outside `pending_editor` is refused on the server too, not just hidden.
-The editor's edits go to a private copy that is only applied on publish or send
-back - an edit made while the reporter still had the article sat there and later
-replaced whatever the reporter sent. The same copy is cleared when a reporter
-submits, so the editor always starts from what was actually sent.
+The editor's edits go to a private copy, `editorContent`, that is only applied
+on publish or send back, and cleared in the same save. It can only be written
+while the article is `pending_editor`, and it is also cleared when the reporter
+sends a new version, so the editor always starts from what was actually sent.
 
 Delete follows whose hands the article is in. The reporter can delete a draft
 that never went live - autosave creates an article on the first keystroke, so a
@@ -63,6 +63,10 @@ The feed queries on `isLive`, never on `status`.
 `publishedContent` is what readers get, `draftContent` is what the reporter
 edits. Approving copies draft over published. That is what keeps the approved
 version on the site while an update is being written and reviewed.
+
+The editor's unfinished edits are a third copy, `editorContent`, on the same
+article. Its autosave skips the article's timestamps, so an editor typing does
+not make the article look freshly updated or reorder the staff lists.
 
 Anything a reporter can edit lives inside those objects - including the title
 and the category. If the title sat on the article itself there would be one
@@ -277,9 +281,9 @@ the same thing, and feed links act on their `data-` attributes rather than an
 
 - Two parallel aggregations, one for the page and one for the count. `$facet`
   would save a round trip but its count branch would re-sort the whole feed.
-- The pipeline ends with an explicit `$project`. `draftContent` is unapproved
-  and `editorNote` is between reporter and editor - neither may reach a public
-  endpoint.
+- The pipeline ends with an explicit `$project`. `draftContent` and
+  `editorContent` are unapproved and `editorNote` is between reporter and
+  editor - none of them may reach a public endpoint.
 - `?page=999` re-runs against the last real page instead of showing an empty one.
 - Unknown values (`?sort=sideways`, `?category=gossip`, `?page=-2`) fall back to
   the defaults, so an old or mistyped link still lands on a working feed and
