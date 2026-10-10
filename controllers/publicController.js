@@ -5,6 +5,7 @@ const viewCounter = require('../services/viewCounter')
 const { makeError } = require('../utils/makeError')
 const { escapeRegExp } = require('../utils/escapeRegExp')
 const { readString } = require('../utils/readString')
+const { readPage } = require('../utils/paging')
 const { recordComment } = require('../middleware/rateLimit')
 const { CATEGORIES, CATEGORY_LABELS } = Article
 
@@ -31,7 +32,7 @@ const COMMENTS_LIMIT = 100
 // or a hand typed query still lands on a working page.
 function readQuery(query = {}) {
   return {
-    page: Math.min(PAGE_MAX, Math.max(1, parseInt(query.page, 10) || 1)),
+    page: readPage(query.page, PAGE_MAX),
     sort: SORTS.includes(query.sort) ? query.sort : DEFAULT_SORT,
     category: CATEGORIES.includes(query.category) ? query.category : null,
     // capped to the length of the search box. A hand typed URL is the only way

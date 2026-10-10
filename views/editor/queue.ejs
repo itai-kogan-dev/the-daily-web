@@ -48,14 +48,7 @@
       <% }) %>
     </ul>
 
-    <% if (pages > 1) { %>
-      <% const pageLink = n => '/editor?' + new URLSearchParams({ ...(filter ? { status: filter } : {}), page: n }) %>
-      <nav class="feed-pager" aria-label="Pages">
-        <% if (page > 1) { %><a class="btn btn-ghost" href="<%= pageLink(page - 1) %>" rel="prev">Previous</a><% } else { %><span></span><% } %>
-        <span class="muted">Page <%= page %> of <%= pages %></span>
-        <% if (page < pages) { %><a class="btn btn-ghost" href="<%= pageLink(page + 1) %>" rel="next">Next</a><% } else { %><span></span><% } %>
-      </nav>
-    <% } %>
+    <%- include('../partials/pager', { pager }) %>
   <% } %>
 </main>
 

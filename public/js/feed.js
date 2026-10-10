@@ -547,7 +547,7 @@ if (form && results) {
 
   // Start from the server-rendered page rather than fetching it again, and remove
   // its pager - one way through the feed is enough.
-  const serverPager = results.querySelector('.feed-pager')
+  const serverPager = results.querySelector('.pager')
   if (serverPager) serverPager.remove()
   const initial = readInitialState()
   baseState = { ...initial.state, page: 1 }

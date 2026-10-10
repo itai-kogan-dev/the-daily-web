@@ -1,4 +1,4 @@
-const { isApiRequest } = require('./auth')
+const { isApiRequest } = require('../utils/isApiRequest')
 
 // nothing matched any route
 function handleNotFound(req, res) {

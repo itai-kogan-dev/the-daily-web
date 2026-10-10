@@ -5,6 +5,7 @@ const EditorDraft = require('../models/EditorDraft')
 const workflow = require('../services/articleWorkflow')
 const imageStore = require('../services/imageStore')
 const { makeError } = require('../utils/makeError')
+const { PAGE_SIZE, buildPager } = require('../utils/paging')
 
 // A reporter can work on an article in these states. pending_editor is missing
 // on purpose - it is with the editor, and the spec has no transition out of it
@@ -34,23 +35,35 @@ async function showDashboard(req, res) {
   // made up value shows everything rather than erroring.
   const filter = statuses.includes(req.query.status) ? req.query.status : null
 
-  const query = { author }
+  // aggregate() does not cast like find() does, so the id has to be an ObjectId
+  const query = { author: new mongoose.Types.ObjectId(author) }
   if (filter) query.status = filter
 
-  const articles = await Article.find(query).sort({ updatedAt: -1 }).lean()
-
   // counted over all of their articles, so the pills stay right while filtered
-  const counts = await Article.countByStatus({ author: new mongoose.Types.ObjectId(author) })
+  const counts = await Article.countByStatus({ author: query.author })
+  const pager = buildPager('/reporter', filter, req.query.page, filter ? counts[filter] : counts.all)
 
   // Anything the editor sent back goes to the top - it is the only thing on
-  // this page that is actually waiting on the reporter.
-  const needsWork = articles.filter(article => article.status === STATUS.NEEDS_REVISION)
-  const rest = articles.filter(article => article.status !== STATUS.NEEDS_REVISION)
+  // this page that is actually waiting on the reporter. Decided in the
+  // database, so it holds across pages, the same as the editor's queue.
+  const articles = await Article.aggregate([
+    { $match: query },
+    // only what a row shows, so the sort does not carry whole articles
+    { $project: {
+      status: 1, isLive: 1, editorNote: 1, updatedAt: 1,
+      'draftContent.title': 1, 'draftContent.summary': 1, 'draftContent.imagePath': 1, 'draftContent.category': 1,
+      needsWork: { $eq: ['$status', STATUS.NEEDS_REVISION] }
+    }},
+    { $sort: { needsWork: -1, updatedAt: -1, _id: -1 } },
+    { $skip: pager.skip },
+    { $limit: PAGE_SIZE }
+  ])
 
   res.render('reporter/dashboard', {
-    articles: [...needsWork, ...rest],
+    articles,
     counts,
     filter,
+    pager,
     statuses,
     STATUS, STATUS_LABELS, CATEGORY_LABELS
   })

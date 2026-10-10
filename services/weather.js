@@ -1,6 +1,6 @@
 // The weather for the sidebar, from Open-Meteo (free, no API key) with the
 // place name from OpenStreetMap's Nominatim. Cached per place, so the services
-// hear from us at most once per CACHE_MS per place, however many readers.
+// hear from us about once per reading per place, however many readers.
 
 const { makeError } = require('../utils/makeError')
 
@@ -111,6 +111,7 @@ async function fetchWeather(place) {
     current: 'temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day',
     daily: 'temperature_2m_max,temperature_2m_min',
     timezone: 'auto',
+    timeformat: 'unixtime',   // the reading's time as seconds since 1970, no time zone sums
     forecast_days: '1'
   })
 
@@ -123,17 +124,15 @@ async function fetchWeather(place) {
   // TypeError somewhere below
   const now = body && body.current
   const daily = body && body.daily
-  if (!now || typeof now.temperature_2m !== 'number' ||
+  if (!now || typeof now.time !== 'number' || typeof now.temperature_2m !== 'number' ||
       !daily || !Array.isArray(daily.temperature_2m_max) || !Array.isArray(daily.temperature_2m_min)) {
     throw new Error('weather service sent an answer we do not understand')
   }
 
-  // the reading's time comes as local time plus the place's UTC offset
-  const observed = Date.parse(now.time + 'Z') - (body.utc_offset_seconds || 0) * 1000
 
   const { text, icon } = describe(now.weather_code, now.is_day)
   return {
-    observedAt: Number.isFinite(observed) ? new Date(observed).toISOString() : null,
+    observedAt: now.time * 1000,
     temperature: Math.round(now.temperature_2m),
     feelsLike: Math.round(now.apparent_temperature),
     high: Math.round(daily.temperature_2m_max[0]),
@@ -145,7 +144,7 @@ async function fetchWeather(place) {
   }
 }
 
-const cache = new Map()      // place key -> { data, fetchedAt }, oldest first
+const cache = new Map()      // place key -> { data, fetchedAt, expiresAt }, oldest first
 const inFlight = new Map()   // place key -> the request already on its way
 
 function remember(key, entry) {
@@ -158,8 +157,10 @@ function remember(key, entry) {
 // 15 minutes after the reading, never longer than 15 minutes after our fetch,
 // and at least a minute so an old reading does not mean a fetch per reader
 function computeExpiry(data, fetchedAt) {
-  const observed = data.observedAt ? Date.parse(data.observedAt) : fetchedAt
-  return Math.min(fetchedAt + CACHE_MS, Math.max(fetchedAt + MIN_REFRESH_MS, observed + CACHE_MS))
+  let expiresAt = data.observedAt + CACHE_MS
+  if (expiresAt < fetchedAt + MIN_REFRESH_MS) expiresAt = fetchedAt + MIN_REFRESH_MS
+  if (expiresAt > fetchedAt + CACHE_MS) expiresAt = fetchedAt + CACHE_MS
+  return expiresAt
 }
 
 function formatAnswer(entry, stale) {

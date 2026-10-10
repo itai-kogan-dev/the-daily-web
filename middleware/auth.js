@@ -1,17 +1,11 @@
 const User = require('../models/User')
 const { ROLES } = User
+const { isApiRequest } = require('../utils/isApiRequest')
 
 // Anyone without a session is a guest. Returning a real object instead of null
 // means every request has a user, so permission checks look the same everywhere.
 function getCurrentUser(req) {
   return (req.session && req.session.user) || { role: ROLES.GUEST, displayName: 'Guest' }
-}
-
-// API routes get JSON errors, page routes get a redirect. originalUrl and
-// not path, because path is relative to where the router is mounted - but
-// without the query string, or a search for "/api/" would turn a page into JSON.
-function isApiRequest(req) {
-  return req.originalUrl.split('?')[0].includes('/api/')
 }
 
 // what every rendered page gets for free: who is looking, and where they are
@@ -64,4 +58,4 @@ function requireRole(...roles) {
   }
 }
 
-module.exports = { attachViewData, requireRole, isApiRequest }
+module.exports = { attachViewData, requireRole }

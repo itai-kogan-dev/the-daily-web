@@ -1,0 +1,8 @@
+<%# Previous / Next for a staff list. Takes the pager built by utils/paging.js %>
+<% if (pager.pages > 1) { %>
+  <nav class="pager" aria-label="Pages">
+    <% if (pager.prevHref) { %><a class="btn btn-ghost" href="<%= pager.prevHref %>" rel="prev">Previous</a><% } else { %><span></span><% } %>
+    <span class="muted">Page <%= pager.page %> of <%= pager.pages %></span>
+    <% if (pager.nextHref) { %><a class="btn btn-ghost" href="<%= pager.nextHref %>" rel="next">Next</a><% } else { %><span></span><% } %>
+  </nav>
+<% } %>

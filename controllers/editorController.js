@@ -8,6 +8,7 @@ const workflow = require('../services/articleWorkflow')
 const imageStore = require('../services/imageStore')
 const { makeError } = require('../utils/makeError')
 const { readString } = require('../utils/readString')
+const { PAGE_SIZE, buildPager } = require('../utils/paging')
 
 // bad id and missing article end up the same - 404 via the error handler
 async function findArticle(id) {
@@ -21,10 +22,6 @@ async function findArticle(id) {
   return article
 }
 
-// A page of the queue at a time. With thousands of articles, one page of all
-// of them was several megabytes of HTML and seconds to build.
-const QUEUE_PAGE = 50
-
 // whole queue, not just one reporter's share. a made up ?status= shows
 // everything, same as the reporter dashboard does
 async function showQueue(req, res) {
@@ -37,29 +34,33 @@ async function showQueue(req, res) {
 
   // counted over everything, so the pills stay right while filtered
   const counts = await Article.countByStatus()
-  const total = filter ? counts[filter] : counts.all
-  const pages = Math.max(1, Math.ceil(total / QUEUE_PAGE))
-  const page = Math.min(pages, Math.max(1, parseInt(req.query.page, 10) || 1))
+  const pager = buildPager('/editor', filter, req.query.page, filter ? counts[filter] : counts.all)
 
   // pending first - it is the only thing actually waiting on the editor. The
   // order is decided in the database, so it holds across pages, not just
   // within one
-  const rows = await Article.aggregate([
+  const articles = await Article.aggregate([
     { $match: query },
-    { $addFields: { waiting: { $eq: ['$status', STATUS.PENDING_EDITOR] } } },
+    // only what a queue row shows, so the sort does not carry whole articles
+    { $project: {
+      status: 1, isLive: 1, author: 1, updatedAt: 1,
+      'draftContent.title': 1, 'draftContent.summary': 1, 'draftContent.imagePath': 1, 'draftContent.category': 1,
+      waiting: { $eq: ['$status', STATUS.PENDING_EDITOR] }
+    }},
     { $sort: { waiting: -1, updatedAt: -1, _id: -1 } },
-    { $skip: (page - 1) * QUEUE_PAGE },
-    { $limit: QUEUE_PAGE }
+    { $skip: pager.skip },
+    { $limit: PAGE_SIZE },
+    // the byline, looked up for these rows only - same as the public feed
+    { $lookup: { from: 'users', localField: 'author', foreignField: '_id', as: 'author', pipeline: [{ $project: { displayName: 1 } }] } },
+    { $unwind: { path: '$author', preserveNullAndEmptyArrays: true } }
   ])
-  const articles = await Article.populate(rows, { path: 'author', select: 'displayName' })
 
   res.render('editor/queue', {
     articles,
     counts,
     filter,
     statuses,
-    page,
-    pages,
+    pager,
     STATUS, STATUS_LABELS, CATEGORY_LABELS
   })
 }

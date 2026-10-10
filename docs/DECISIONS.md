@@ -173,10 +173,12 @@ the one we most need. At our traffic a synchronous append costs microseconds.
 If the file cannot be written - a full disk, say - the server keeps running and
 logs to the terminal only.
 
-## The editor queue is paged
+## The staff lists are paged
 
-The queue shows 50 articles a page, pending ones first. The order is worked out
-in the database, so "pending first" holds across pages and not just within one.
+The editor's queue and the reporter's dashboard show 50 articles a page, with
+what is waiting on that person first - pending for the editor, sent back for
+the reporter. The order is worked out in the database, so it holds across pages
+and not just within one. Both use `utils/paging.js` and `views/partials/pager.ejs`.
 With 5,000 articles the unpaged queue was a 4 MB page that took 2-4 seconds;
 paged it is about 46 KB and under half a second.
 
