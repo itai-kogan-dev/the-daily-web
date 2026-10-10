@@ -61,7 +61,7 @@ function getZoneOffset(date, timeZone) {
 }
 
 // rounds down to the start of the point the time falls in, in local time
-function findBinStart(date, step, timeZone) {
+function getBinStart(date, step, timeZone) {
   const offset = getZoneOffset(date, timeZone)
   const local = Math.floor((date.getTime() + offset) / step) * step
   return local - getZoneOffset(new Date(local - offset), timeZone)
@@ -71,12 +71,12 @@ function findBinStart(date, step, timeZone) {
 // line would be drawn straight across a quiet night as if it were busy.
 function buildEmptySeries(from, to, step, timeZone) {
   const series = new Map()
-  let at = findBinStart(from, step, timeZone)
+  let at = getBinStart(from, step, timeZone)
   while (at <= to.getTime()) {
     series.set(at, 0)
     // a step and a half always lands inside the next point, even on the
     // 23 and 25 hour days that DST makes
-    at = findBinStart(new Date(at + step * 1.5), step, timeZone)
+    at = getBinStart(new Date(at + step * 1.5), step, timeZone)
   }
   return series
 }
@@ -156,11 +156,11 @@ async function findArticleViews(articleId, { range = 'all', interval, tz } = {})
 
   // from the start of the first point, not the exact moment: the bucket a
   // publication falls in started a few minutes before it
-  const from = new Date(findBinStart(start, step, timeZone))
+  const from = new Date(getBinStart(start, step, timeZone))
 
   const series = buildEmptySeries(from, now, step, timeZone)
   for (const row of await loadViews(article._id, from, now, chosen)) {
-    const key = findBinStart(row.at, step, timeZone)
+    const key = getBinStart(row.at, step, timeZone)
     if (series.has(key)) series.set(key, series.get(key) + row.views)
   }
   const points = [...series].map(([x, y]) => ({ x, y }))
@@ -216,7 +216,6 @@ async function findArticleViews(articleId, { range = 'all', interval, tz } = {})
     updates
   }
 }
-
 
 const PICKER_PAGE = 20
 

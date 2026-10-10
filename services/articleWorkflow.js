@@ -18,7 +18,8 @@ function isValidImageSource(value) {
   return /^\/images\/[a-f0-9]{24}$/i.test(value)
 }
 
-// a JSON body can carry anything, so a field that is not text keeps its value
+// A JSON body can carry anything, so a field that is not text keeps its
+// current value. Unlike utils/readString, which turns it into ''.
 const readText = (value, current) => (typeof value === 'string' ? value : current || '')
 
 // The article fields from a request body, for both the reporter's and the

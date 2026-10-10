@@ -224,7 +224,7 @@ function splitParagraphs(body) {
     .filter(Boolean)
 }
 
-function findLastUpdate(article) {
+function getLastUpdate(article) {
   const events = article.updateEvents || []
   // publish() records an event on the first publication too, so one event
   // means "published once", not "published and then updated".
@@ -261,7 +261,7 @@ async function showArticle(req, res) {
     paragraphs: splitParagraphs(content.body),
     // null until an editor has approved a second version, so the page can say
     // "first published" instead of claiming it was never updated
-    updatedAt: findLastUpdate(article),
+    updatedAt: getLastUpdate(article),
     comments: await findComments(article._id),
     CATEGORY_LABELS,
     // the category link back to the feed, filtered

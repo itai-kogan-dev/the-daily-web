@@ -78,4 +78,4 @@ function startLogFile({
   return { dir, file: () => path.join(dir, `app-${day}.log`) }
 }
 
-module.exports = { startLogFile, formatTimestamp }
+module.exports = { startLogFile }

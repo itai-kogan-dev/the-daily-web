@@ -49,7 +49,6 @@ async function showEditUser(req, res) {
   })
 }
 
-
 // the schema lowercases and trims the username on save, but lookups and
 // duplicate checks run before that, so the same normalising happens here first
 function readUsername(body) {
