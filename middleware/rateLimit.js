@@ -8,7 +8,7 @@ const MAX_COMMENTS = 3
 // A guest has no session until this writes to one, so reading the site still
 // creates nothing. The count sits in MongoDB with the other sessions, so it
 // also survives a restart.
-function commentRateLimit(req, res, next) {
+function limitComments(req, res, next) {
   const now = Date.now()
 
   // a sliding window, not a counter per clock minute - that would allow three
@@ -26,4 +26,4 @@ function commentRateLimit(req, res, next) {
   next()
 }
 
-module.exports = { commentRateLimit }
+module.exports = { limitComments }

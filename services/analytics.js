@@ -49,7 +49,7 @@ function resolveTimeZone(tz) {
 }
 
 // how far ahead of UTC a time zone is at a given moment, DST included
-function zoneOffset(date, timeZone) {
+function getZoneOffset(date, timeZone) {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone, hourCycle: 'h23',
     year: 'numeric', month: 'numeric', day: 'numeric',
@@ -61,22 +61,22 @@ function zoneOffset(date, timeZone) {
 }
 
 // rounds down to the start of the point the time falls in, in local time
-function binStart(date, step, timeZone) {
-  const offset = zoneOffset(date, timeZone)
+function findBinStart(date, step, timeZone) {
+  const offset = getZoneOffset(date, timeZone)
   const local = Math.floor((date.getTime() + offset) / step) * step
-  return local - zoneOffset(new Date(local - offset), timeZone)
+  return local - getZoneOffset(new Date(local - offset), timeZone)
 }
 
 // Buckets only exist where there were views. Without the empty points the
 // line would be drawn straight across a quiet night as if it were busy.
-function emptySeries(from, to, step, timeZone) {
+function buildEmptySeries(from, to, step, timeZone) {
   const series = new Map()
-  let at = binStart(from, step, timeZone)
+  let at = findBinStart(from, step, timeZone)
   while (at <= to.getTime()) {
     series.set(at, 0)
     // a step and a half always lands inside the next point, even on the
     // 23 and 25 hour days that DST makes
-    at = binStart(new Date(at + step * 1.5), step, timeZone)
+    at = findBinStart(new Date(at + step * 1.5), step, timeZone)
   }
   return series
 }
@@ -134,7 +134,7 @@ function measureImpact(events, buckets, publishedAt, now) {
 
 // Everything the graph needs for one article, shaped for Chart.js: points are
 // { x, y } with x in ms, so the client hands them straight to a dataset.
-async function articleViews(articleId, { range = 'all', interval, tz } = {}) {
+async function findArticleViews(articleId, { range = 'all', interval, tz } = {}) {
   const article = await Article.findById(articleId)
     .populate('updateEvents.editor', 'displayName')
     .lean()
@@ -151,11 +151,11 @@ async function articleViews(articleId, { range = 'all', interval, tz } = {}) {
 
   // from the start of the first point, not the exact moment: the bucket a
   // publication falls in started a few minutes before it
-  const from = new Date(binStart(start, step, timeZone))
+  const from = new Date(findBinStart(start, step, timeZone))
 
-  const series = emptySeries(from, now, step, timeZone)
+  const series = buildEmptySeries(from, now, step, timeZone)
   for (const row of await loadViews(article._id, from, now, chosen)) {
-    const key = binStart(row.at, step, timeZone)
+    const key = findBinStart(row.at, step, timeZone)
     if (series.has(key)) series.set(key, series.get(key) + row.views)
   }
   const points = [...series].map(([x, y]) => ({ x, y }))
@@ -255,4 +255,4 @@ async function listArticles({ q = '', skip = 0, limit = PICKER_PAGE } = {}) {
   }
 }
 
-module.exports = { articleViews, listArticles }
+module.exports = { findArticleViews, listArticles }

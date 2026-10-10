@@ -9,7 +9,7 @@
       <nav class="breadcrumb" aria-label="Breadcrumb">
         <a href="/">The Daily Web</a>
         <span aria-hidden="true">&rsaquo;</span>
-        <a href="<%= feedLink({ category: content.category }) %>">
+        <a href="<%= buildFeedLink({ category: content.category }) %>">
           <%= CATEGORY_LABELS[content.category] %>
         </a>
       </nav>

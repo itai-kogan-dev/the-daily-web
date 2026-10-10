@@ -20,7 +20,7 @@ viewBucketSchema.index({ article: 1, bucketStart: 1 }, { unique: true })
 viewBucketSchema.index({ bucketStart: 1 })
 
 // rounds a timestamp down to the start of its window
-viewBucketSchema.statics.bucketFor = function (date = new Date()) {
+viewBucketSchema.statics.getBucketStart = function (date = new Date()) {
   const ms = BUCKET_MINUTES * 60 * 1000
   return new Date(Math.floor(date.getTime() / ms) * ms)
 }

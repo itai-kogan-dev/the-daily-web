@@ -24,7 +24,7 @@
     try { sessionStorage.setItem(STORE_KEY, JSON.stringify(coords)) } catch { /* private mode */ }
   }
 
-  function row(label, value) {
+  function buildRow(label, value) {
     const item = document.createElement('div')
     const dt = document.createElement('dt')
     const dd = document.createElement('dd')
@@ -59,10 +59,10 @@
     const details = document.createElement('dl')
     details.className = 'weather-details'
     details.append(
-      row('High / low', `${w.high}° / ${w.low}°`),
-      row('Feels like', `${w.feelsLike}°`),
-      row('Humidity', `${w.humidity}%`),
-      row('Wind', `${w.wind} km/h`)
+      buildRow('High / low', `${w.high}° / ${w.low}°`),
+      buildRow('Feels like', `${w.feelsLike}°`),
+      buildRow('Humidity', `${w.humidity}%`),
+      buildRow('Wind', `${w.wind} km/h`)
     )
 
     const updated = document.createElement('p')

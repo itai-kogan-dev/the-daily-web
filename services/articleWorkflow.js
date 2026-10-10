@@ -135,7 +135,7 @@ function canReporterDelete(article) {
 const CONTENT_FIELDS = { title: 'title', category: 'category', summary: 'summary', body: 'body', imagePath: 'image' }
 
 // which parts of a draft differ from the live version, for the review pages
-function changedFields(live, draft) {
+function listChangedFields(live, draft) {
   if (!live || !draft) return []
   return Object.entries(CONTENT_FIELDS)
     .filter(([key]) => (live[key] || '') !== (draft[key] || ''))
@@ -144,7 +144,7 @@ function changedFields(live, draft) {
 
 module.exports = {
   readContent,
-  changedFields,
+  listChangedFields,
   canEditorEdit,
   canEditorDelete,
   canReporterDelete,

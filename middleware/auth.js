@@ -3,7 +3,7 @@ const { ROLES } = User
 
 // Anyone without a session is a guest. Returning a real object instead of null
 // means every request has a user, so permission checks look the same everywhere.
-function currentUser(req) {
+function getCurrentUser(req) {
   return (req.session && req.session.user) || { role: ROLES.GUEST, displayName: 'Guest' }
 }
 
@@ -15,7 +15,7 @@ function isApiRequest(req) {
 
 // what every rendered page gets for free: who is looking, and where they are
 function attachViewData(req, res, next) {
-  res.locals.user = currentUser(req)
+  res.locals.user = getCurrentUser(req)
   res.locals.currentPath = req.path
   next()
 }
@@ -46,7 +46,7 @@ async function refreshSessionUser(req) {
 function requireRole(...roles) {
   return async (req, res, next) => {
     await refreshSessionUser(req)
-    const user = currentUser(req)
+    const user = getCurrentUser(req)
     res.locals.user = user
 
     if (user.role === ROLES.GUEST) {

@@ -80,7 +80,7 @@ async function showEditor(req, res) {
     imageName: await imageStore.findImageName(article.draftContent.imagePath),
     canEdit: EDITABLE.includes(article.status),
     canDelete: workflow.canReporterDelete(article),
-    changed: workflow.changedFields(article.publishedContent, article.draftContent),
+    changed: workflow.listChangedFields(article.publishedContent, article.draftContent),
     CATEGORIES, CATEGORY_LABELS, STATUS, STATUS_LABELS
   })
 }

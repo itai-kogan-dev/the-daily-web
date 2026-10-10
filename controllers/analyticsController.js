@@ -20,7 +20,7 @@ async function listArticles(req, res) {
 async function showArticleViews(req, res) {
   if (!mongoose.isValidObjectId(req.params.id)) throw makeError(404, 'Article not found')
 
-  const data = await analytics.articleViews(req.params.id, req.query)
+  const data = await analytics.findArticleViews(req.params.id, req.query)
   if (!data) throw makeError(404, 'Article not found')
   res.json(data)
 }

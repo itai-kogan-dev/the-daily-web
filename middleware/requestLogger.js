@@ -19,7 +19,7 @@ const SLOW_MS = 1000
 // Every request gets a short id, sent back in X-Request-Id. The error handler
 // prints the same id, so a crash in the log can be matched to the request
 // that caused it even when many requests are interleaved.
-function requestLogger(req, res, next) {
+function logRequest(req, res, next) {
   const started = process.hrtime.bigint()
   req.id = crypto.randomBytes(3).toString('hex')
   res.set('X-Request-Id', req.id)
@@ -42,4 +42,4 @@ function requestLogger(req, res, next) {
   next()
 }
 
-module.exports = { requestLogger }
+module.exports = { logRequest }

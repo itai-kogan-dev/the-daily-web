@@ -14,12 +14,12 @@ const INTERVAL_MS = ViewBucket.BUCKET_MINUTES * 60 * 1000
 let lastRunAt = null
 let running = false
 
-async function rollup() {
+async function rollUpViews() {
   const startedAt = new Date()
 
-  // bucketFor rounds down, so a view that lands in the current window just
+  // getBucketStart rounds down, so a view that lands in the current window just
   // after the last run started is still picked up - its bucket started earlier
-  const changedSince = lastRunAt ? ViewBucket.bucketFor(lastRunAt) : null
+  const changedSince = lastRunAt ? ViewBucket.getBucketStart(lastRunAt) : null
   const match = changedSince ? { bucketStart: { $gte: changedSince } } : {}
 
   const articleIds = await ViewBucket.distinct('article', match)
@@ -56,7 +56,7 @@ async function runOnce() {
   if (running) return
   running = true
   try {
-    const updated = await rollup()
+    const updated = await rollUpViews()
     if (updated) console.log(`[views] rollup updated ${updated} articles`)
   } catch (err) {
     console.error('[views] rollup failed -', err.message)

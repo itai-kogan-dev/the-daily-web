@@ -91,7 +91,7 @@ function setUpAutosave({ form, statusEl, send, onSaved = () => {}, skip = () => 
   }
   const save = () => enqueue(false)
 
-  function changed() {
+  function markChanged() {
     unsaved = true
     showStatus('Unsaved changes', 'pending')
 
@@ -102,7 +102,7 @@ function setUpAutosave({ form, statusEl, send, onSaved = () => {}, skip = () => 
     if (!ceilingTimer) ceilingTimer = setTimeout(save, CEILING_MS)
   }
 
-  form.addEventListener('input', changed)
+  form.addEventListener('input', markChanged)
 
   // Closing the tab or switching away. keepalive lets the request outlive the
   // page. An update goes straight out, because a save already in flight could
@@ -114,5 +114,5 @@ function setUpAutosave({ form, statusEl, send, onSaved = () => {}, skip = () => 
     else enqueue(true)
   })
 
-  return { save, changed, stop }
+  return { save, markChanged, stop }
 }

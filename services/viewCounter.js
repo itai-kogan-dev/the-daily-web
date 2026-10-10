@@ -9,7 +9,7 @@ const ViewBucket = require('../models/ViewBucket')
 // hot for the life of the article while a bucket is replaced every 5 minutes.
 // services/viewRollup.js does that.
 async function increment(articleId) {
-  const bucket = { article: articleId, bucketStart: ViewBucket.bucketFor() }
+  const bucket = { article: articleId, bucketStart: ViewBucket.getBucketStart() }
 
   try {
     await ViewBucket.updateOne(bucket, { $inc: { count: 1 } }, { upsert: true })

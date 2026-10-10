@@ -49,7 +49,7 @@ if (form) {
   setUpImageField({
     uploadUrl: '/reporter/api/image',
     onChange: () => {
-      autosave.changed()
+      autosave.markChanged()
       autosave.save()
     }
   })

@@ -21,14 +21,14 @@ const pad = (n, width = 2) => String(n).padStart(width, '0')
 
 // local time with its offset, so a line reads as the time it happened here
 // and still converts exactly to any other zone
-function timestamp(date = new Date()) {
+function formatTimestamp(date = new Date()) {
   const offset = -date.getTimezoneOffset()
   const sign = offset >= 0 ? '+' : '-'
-  return `${localDay(date)}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}` +
+  return `${formatLocalDay(date)}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}` +
     `.${pad(date.getMilliseconds(), 3)}${sign}${pad(Math.floor(Math.abs(offset) / 60))}:${pad(Math.abs(offset) % 60)}`
 }
 
-function localDay(date = new Date()) {
+function formatLocalDay(date = new Date()) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 
@@ -44,9 +44,9 @@ function startLogFile({
   // the one we most need. Appending a line is microseconds at our scale.
   function write(level, args) {
     try {
-      const today = localDay()
+      const today = formatLocalDay()
       if (today !== day) openFor(today)
-      fs.writeSync(fd, `${timestamp()} ${LEVELS[level]} ${util.format(...args)}\n`)
+      fs.writeSync(fd, `${formatTimestamp()} ${LEVELS[level]} ${util.format(...args)}\n`)
     } catch (err) {
       // a full disk or a deleted folder must never take the server down -
       // the terminal still has everything
@@ -87,4 +87,4 @@ function startLogFile({
   return { dir, file: () => path.join(dir, `app-${day}.log`) }
 }
 
-module.exports = { startLogFile, timestamp }
+module.exports = { startLogFile, formatTimestamp }

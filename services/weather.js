@@ -68,7 +68,7 @@ let nextNameAt = 0        // when Nominatim may next be asked
 // The city, town or village a place is in, or null if Nominatim cannot say.
 // A missing name never costs the reader their weather - the widget falls
 // back to "near you".
-async function placeName(place, key) {
+async function findPlaceName(place, key) {
   if (names.has(key)) return names.get(key)
 
   // queue behind the previous lookup, so a burst of new places still asks
@@ -151,7 +151,7 @@ function remember(key, entry) {
   if (cache.size > MAX_PLACES) cache.delete(cache.keys().next().value)
 }
 
-function answer(entry, stale) {
+function formatAnswer(entry, stale) {
   return { ...entry.data, fetchedAt: new Date(entry.fetchedAt), stale }
 }
 
@@ -167,11 +167,11 @@ async function getWeather({ lat, lon } = {}) {
   const key = `${place.lat},${place.lon}`
 
   const cached = cache.get(key)
-  if (cached && Date.now() - cached.fetchedAt < CACHE_MS) return answer(cached, false)
+  if (cached && Date.now() - cached.fetchedAt < CACHE_MS) return formatAnswer(cached, false)
 
   let pending = inFlight.get(key)
   if (!pending) {
-    pending = Promise.all([fetchWeather(place), placeName(place, key)])
+    pending = Promise.all([fetchWeather(place), findPlaceName(place, key)])
       .then(([data, city]) => remember(key, { data: { city, ...data }, fetchedAt: Date.now() }))
       .catch(err => {
         // logged here, once per failed refresh, not once per waiting reader
@@ -187,10 +187,10 @@ async function getWeather({ lat, lon } = {}) {
   } catch {
     const last = cache.get(key)
     if (!last) throw makeError(503, 'Weather is not available right now')
-    return answer(last, true)
+    return formatAnswer(last, true)
   }
 
-  return answer(cache.get(key), false)
+  return formatAnswer(cache.get(key), false)
 }
 
 module.exports = { getWeather, CACHE_MS }

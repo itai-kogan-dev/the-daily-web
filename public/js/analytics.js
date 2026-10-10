@@ -2,13 +2,13 @@
 // update. The page is a shell - everything comes from /api/analytics.
 
 // the chart's colours come from the tokens in main.css, so it matches the site
-const token = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim()
-const SERIES_COLOR = token('--primary')
-const SERIES_FILL = token('--ring')
-const INK = token('--muted')
-const GRID = token('--line')
-const MARKER = token('--brand')
-if (window.Chart) Chart.defaults.font.family = token('--sans')
+const readToken = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+const SERIES_COLOR = readToken('--primary')
+const SERIES_FILL = readToken('--ring')
+const INK = readToken('--muted')
+const GRID = readToken('--line')
+const MARKER = readToken('--brand')
+if (window.Chart) Chart.defaults.font.family = readToken('--sans')
 
 const $ = id => document.getElementById(id)
 
@@ -23,7 +23,7 @@ let chart = null
 
 // --- formatting ---
 
-const number = n => n.toLocaleString('en-US')
+const formatNumber = n => n.toLocaleString('en-US')
 const dateTime = new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 const dateOnly = new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric' })
 const timeOnly = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' })
@@ -72,7 +72,7 @@ function renderItem(article) {
   title.textContent = article.title
   const meta = document.createElement('span')
   meta.className = 'muted'
-  meta.textContent = `${number(article.viewCount)} views · ${article.updates} update${article.updates === 1 ? '' : 's'}`
+  meta.textContent = `${formatNumber(article.viewCount)} views · ${article.updates} update${article.updates === 1 ? '' : 's'}`
 
   button.append(title, meta)
   const item = document.createElement('li')
@@ -114,7 +114,7 @@ async function loadList(q = picker.q, { append = false } = {}) {
   if (append) $('an-list').append(...items)
   else $('an-list').replaceChildren(...items)
 
-  const total = number(body.total)
+  const total = formatNumber(body.total)
   $('an-list-hint').textContent = picker.q
     ? `${total} matching`
     : `Most read first · ${total} articles`
@@ -194,12 +194,12 @@ function render(data) {
   // the tile and caption describe what is on the graph, the table keeps all
   const from = new Date(data.from)
   const updates = data.updates.filter(update => update.kind === 'update' && new Date(update.at) >= from)
-  $('an-total').textContent = number(data.total)
-  $('an-updates').textContent = number(updates.length)
+  $('an-total').textContent = formatNumber(data.total)
+  $('an-updates').textContent = formatNumber(updates.length)
 
   const peak = data.points.reduce((best, point) => (point.y > best.y ? point : best), { y: 0 })
   $('an-peak-label').textContent = 'Busiest ' + INTERVAL_NAMES[data.interval]
-  $('an-peak').textContent = peak.y ? `${number(peak.y)} · ${formatBin(peak.x)}` : '-'
+  $('an-peak').textContent = peak.y ? `${formatNumber(peak.y)} · ${formatBin(peak.x)}` : '-'
 
   const caption = `Views per ${INTERVAL_NAMES[data.interval]}, ${dateOnly.format(new Date(data.from))} to ${dateOnly.format(new Date(data.to))}`
   $('an-caption').textContent = caption +
@@ -229,8 +229,8 @@ function renderImpact(updates) {
       update.label,
       dateTime.format(new Date(update.at)),
       update.editor || '-',
-      impact ? number(impact.before) : '-',
-      impact ? number(impact.after) : '-',
+      impact ? formatNumber(impact.before) : '-',
+      impact ? formatNumber(impact.after) : '-',
       impact ? formatChange(impact.change) : 'Too close to compare'
     ]
     const row = document.createElement('tr')
@@ -270,7 +270,7 @@ const updateMarkers = {
 
       ctx.setLineDash([])
       ctx.fillStyle = MARKER
-      ctx.font = `600 11px ${token('--sans')}`
+      ctx.font = `600 11px ${readToken('--sans')}`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'bottom'
       ctx.fillText(marker.short, px, area.top - 3)
@@ -346,7 +346,7 @@ function renderChart(data) {
           beginAtZero: true,
           grid: { color: GRID },
           border: { display: false },
-          ticks: { color: INK, precision: 0, maxTicksLimit: 6, callback: value => number(value) }
+          ticks: { color: INK, precision: 0, maxTicksLimit: 6, callback: value => formatNumber(value) }
         }
       },
       plugins: {
@@ -356,7 +356,7 @@ function renderChart(data) {
           displayColors: false,
           callbacks: {
             title: items => formatBin(items[0].parsed.x),
-            label: item => `${number(item.parsed.y)} views`,
+            label: item => `${formatNumber(item.parsed.y)} views`,
             // say so when the point the reader is on contains an update
             footer: items => {
               const start = items[0].parsed.x

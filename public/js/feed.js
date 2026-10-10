@@ -14,7 +14,7 @@ if (form && results) {
 
   // The address bar is the only state. A reload, a bookmark and the back button
   // then all mean the same thing without any of it being kept twice.
-  function currentState() {
+  function readState() {
     const params = new URLSearchParams(location.search)
     return {
       q: (params.get('q') || '').trim(),
@@ -25,8 +25,8 @@ if (form && results) {
   }
 
   // Defaults are left out so the address stays short and copyable. Mirrors
-  // feedLink() in controllers/publicController.js.
-  function toQuery(state) {
+  // buildFeedLink() in controllers/publicController.js.
+  function buildQuery(state) {
     const params = new URLSearchParams()
     if (state.q) params.set('q', state.q)
     if (state.category) params.set('category', state.category)
@@ -35,12 +35,12 @@ if (form && results) {
     return params.toString()
   }
 
-  function feedHref(state) {
-    const query = toQuery(state)
+  function buildFeedHref(state) {
+    const query = buildQuery(state)
     return query ? `/?${query}` : '/'
   }
 
-  function el(tag, className, text) {
+  function createEl(tag, className, text) {
     const node = document.createElement(tag)
     if (className) node.className = className
     // textContent, never innerHTML: a headline is a reporter's text and must
@@ -50,16 +50,16 @@ if (form && results) {
   }
 
   function buildCard(article) {
-    const item = el('li', 'list-item')
+    const item = createEl('li', 'list-item')
     item.dataset.articleId = article.id
 
     if (article.imagePath) {
-      const link = el('a', 'list-thumb')
+      const link = createEl('a', 'list-thumb')
       link.href = `/article/${article.id}`
       link.tabIndex = -1
       link.setAttribute('aria-hidden', 'true')
 
-      const img = el('img')
+      const img = createEl('img')
       img.src = article.imagePath
       img.alt = ''
       img.loading = 'lazy'
@@ -69,32 +69,32 @@ if (form && results) {
       item.append(link)
     }
 
-    const body = el('div', 'list-body')
+    const body = createEl('div', 'list-body')
 
-    const title = el('a', 'list-title', article.title)
+    const title = createEl('a', 'list-title', article.title)
     title.href = `/article/${article.id}`
     body.append(title)
 
-    if (article.summary) body.append(el('p', 'list-summary', article.summary))
+    if (article.summary) body.append(createEl('p', 'list-summary', article.summary))
 
-    const meta = el('div', 'meta')
+    const meta = createEl('div', 'meta')
 
-    const category = el('a', 'meta-category', article.categoryLabel)
-    category.href = feedHref({ ...currentState(), category: article.category, page: 1 })
+    const category = createEl('a', 'meta-category', article.categoryLabel)
+    category.href = buildFeedHref({ ...readState(), category: article.category, page: 1 })
     category.dataset.feedNav = ''
     category.dataset.category = article.category
     meta.append(category)
 
-    meta.append(el('span', null, article.authorName))
+    meta.append(createEl('span', null, article.authorName))
 
-    const time = el('time', null, new Date(article.publishedAt).toLocaleDateString('en-GB'))
+    const time = createEl('time', null, new Date(article.publishedAt).toLocaleDateString('en-GB'))
     time.dateTime = article.publishedAt
     meta.append(time)
 
     // en-US on purpose, and the same choice the template makes: a de-DE browser
     // would otherwise write 8.264 where the server wrote 8,264, and the number
     // would change shape the moment a card is redrawn.
-    meta.append(el('span', null, `${Number(article.viewCount || 0).toLocaleString('en-US')} views`))
+    meta.append(createEl('span', null, `${Number(article.viewCount || 0).toLocaleString('en-US')} views`))
 
     body.append(meta)
     item.append(body)
@@ -126,8 +126,8 @@ if (form && results) {
   let countSig = null
   let countToken = 0
 
-  function initialFeedState() {
-    const state = currentState()
+  function readInitialState() {
+    const state = readState()
     const page = Math.max(1, parseInt((results.dataset && results.dataset.page) || state.page, 10) || 1)
     const pages = Math.max(page, parseInt((results.dataset && results.dataset.pages) || page, 10) || page)
     const total = Math.max(0, parseInt((results.dataset && results.dataset.total) || '0', 10) || 0)
@@ -137,15 +137,15 @@ if (form && results) {
 
   function ensureMoreUI() {
     if (!sentinel) {
-      sentinel = el('div', 'feed-sentinel')
+      sentinel = createEl('div', 'feed-sentinel')
       sentinel.setAttribute('aria-hidden', 'true')
     }
     if (!moreWrap) {
-      moreWrap = el('div', 'feed-more')
-      moreLink = el('a', 'btn', 'Load more articles')
+      moreWrap = createEl('div', 'feed-more')
+      moreLink = createEl('a', 'btn', 'Load more articles')
       moreLink.dataset.feedNav = ''
       moreLink.dataset.more = ''
-      moreNote = el('p', 'feed-more-note')
+      moreNote = createEl('p', 'feed-more-note')
       moreNote.setAttribute('role', 'status')
       moreWrap.append(moreLink, moreNote)
     }
@@ -176,7 +176,7 @@ if (form && results) {
     observer.observe(sentinel)
   }
 
-  function articleCountText(total) {
+  function formatArticleCount(total) {
     return `${total} ${total === 1 ? 'article' : 'articles'}`
   }
 
@@ -185,17 +185,17 @@ if (form && results) {
   function updateCount() {
     if (!countEl) return
     if (unreadOnly) {
-      const n = unreadTotal()
+      const n = countUnread()
       countEl.textContent = n === 1 ? '1 unread article' : `${n} unread articles`
     } else {
-      countEl.textContent = articleCountText(loadedTotal)
+      countEl.textContent = formatArticleCount(loadedTotal)
     }
   }
 
-  function unreadTotal() {
+  function countUnread() {
     // No id set yet, or its fetch failed: count the loaded cards rather than
     // showing nothing.
-    if (!countIds) return visibleCards().length
+    if (!countIds) return getVisibleCards().length
     let read = null
     try {
       read = new Set(window.DailyWebRead ? window.DailyWebRead.list() : [])
@@ -226,7 +226,7 @@ if (form && results) {
     const mine = ++countToken
     let ids = null
     try {
-      const res = await fetch(`/api/articles/ids?${toQuery({ ...baseState, page: 1 })}`)
+      const res = await fetch(`/api/articles/ids?${buildQuery({ ...baseState, page: 1 })}`)
       if (!res.ok) throw new Error(res.status)
       ids = (await res.json()).ids
     } catch {
@@ -253,7 +253,7 @@ if (form && results) {
       moreLink.hidden = false
       moreNote.textContent = ''
       const nextPage = loadedPage + 1
-      moreLink.href = feedHref({ ...baseState, page: nextPage })
+      moreLink.href = buildFeedHref({ ...baseState, page: nextPage })
       moreLink.dataset.page = String(nextPage)
       moreLink.textContent = 'Load more articles'
       observeSentinel()
@@ -264,12 +264,12 @@ if (form && results) {
       if (!announceEnd) {
         moreNote.textContent = ''
       } else if (unreadOnly) {
-        const visible = visibleCards().length
+        const visible = getVisibleCards().length
         moreNote.textContent = visible
-          ? `That's all ${articleCountText(loadedTotal)} - ${visible} unread.`
-          : `You've read all ${articleCountText(loadedTotal)}.`
+          ? `That's all ${formatArticleCount(loadedTotal)} - ${visible} unread.`
+          : `You've read all ${formatArticleCount(loadedTotal)}.`
       } else {
-        moreNote.textContent = `That's all ${articleCountText(loadedTotal)}.`
+        moreNote.textContent = `That's all ${formatArticleCount(loadedTotal)}.`
       }
     }
   }
@@ -281,11 +281,11 @@ if (form && results) {
   }
 
   function buildEmpty(feed) {
-    const note = el('p', 'feed-empty muted')
+    const note = createEl('p', 'feed-empty muted')
 
     if (feed.q || feed.category) {
       note.append('Nothing matches that. ')
-      const reset = el('a', null, 'Show everything')
+      const reset = createEl('a', null, 'Show everything')
       reset.href = '/'
       reset.dataset.feedNav = ''
       reset.dataset.reset = ''
@@ -321,7 +321,7 @@ if (form && results) {
     }
   }
 
-  function visibleCards() {
+  function getVisibleCards() {
     const list = document.getElementById('feed-list')
     if (!list) return []
     return Array.from(list.children).filter(card => !card.hidden)
@@ -339,11 +339,11 @@ if (form && results) {
     return visible
   }
 
-  function maybeFillUnread() {
+  function fillUnread() {
     if (!unreadOnly) return
     // A filtered page can render short, so keep loading until a full page of
     // unread cards is on screen or the feed itself runs out.
-    if (visibleCards().length < pageSize) loadMore()
+    if (getVisibleCards().length < pageSize) loadMore()
   }
 
   function setUnreadOnly(value) {
@@ -352,7 +352,7 @@ if (form && results) {
     applyUnread()
     refreshUnreadCount()
     setMore()
-    maybeFillUnread()
+    fillUnread()
   }
 
   // The browser restores the checkbox when the reader comes back from an
@@ -386,14 +386,14 @@ if (form && results) {
     }
     // A checkbox, not a button: the on/off state lives in the control itself,
     // so it needs no aria-pressed and announces as a switch would.
-    const wrap = el('label', 'feed-toggle')
-    const box = el('input')
+    const wrap = createEl('label', 'feed-toggle')
+    const box = createEl('input')
     box.type = 'checkbox'
     box.dataset.feedUnread = '1'
-    const track = el('span', 'feed-toggle-track')
+    const track = createEl('span', 'feed-toggle-track')
     track.setAttribute('aria-hidden', 'true')
-    track.append(el('span', 'feed-toggle-thumb'))
-    wrap.append(box, track, el('span', 'feed-toggle-label', 'Unread only'))
+    track.append(createEl('span', 'feed-toggle-thumb'))
+    wrap.append(box, track, createEl('span', 'feed-toggle-label', 'Unread only'))
     box.addEventListener('change', () => setUnreadOnly(box.checked))
     chips[0].parentNode.append(wrap)
     unreadToggle = box
@@ -411,7 +411,7 @@ if (form && results) {
       results.replaceChildren()
 
       if (feed.items.length) {
-        const fresh = el('ul', 'list feed-list')
+        const fresh = createEl('ul', 'list feed-list')
         fresh.id = 'feed-list'
         for (const article of feed.items) fresh.append(buildCard(article))
         results.append(fresh)
@@ -435,7 +435,7 @@ if (form && results) {
     applyUnread()
     refreshUnreadCount()
     setMore()
-    maybeFillUnread()
+    fillUnread()
   }
 
   function setStatus(text) {
@@ -464,9 +464,9 @@ if (form && results) {
       loadingMore = true
     }
 
-    const query = toQuery(state)
+    const query = buildQuery(state)
     if (push && !append) {
-      const url = feedHref(state)
+      const url = buildFeedHref(state)
       // pushState does nothing when the URL is already the one asked for
       if (url !== location.pathname + location.search) history.pushState(null, '', url)
     }
@@ -510,7 +510,7 @@ if (form && results) {
     searchInput.addEventListener('input', () => {
       clearTimeout(typing)
       typing = setTimeout(
-        () => load({ ...currentState(), q: searchInput.value.trim(), page: 1 }, { syncInput: false }),
+        () => load({ ...readState(), q: searchInput.value.trim(), page: 1 }, { syncInput: false }),
         TYPING_MS
       )
     })
@@ -519,7 +519,7 @@ if (form && results) {
   form.addEventListener('submit', event => {
     event.preventDefault()
     clearTimeout(typing)
-    load({ ...currentState(), q: searchInput.value.trim(), page: 1 }, { syncInput: false })
+    load({ ...readState(), q: searchInput.value.trim(), page: 1 }, { syncInput: false })
   })
 
   // One handler for every link the feed owns. The href is deliberately ignored
@@ -545,7 +545,7 @@ if (form && results) {
       return
     }
 
-    const next = { ...currentState(), page: 1 }
+    const next = { ...readState(), page: 1 }
 
     if (data.reset !== undefined) Object.assign(next, { q: '', category: '', sort: 'date' })
     if (data.sort) next.sort = data.sort
@@ -559,7 +559,7 @@ if (form && results) {
   // changed - so no push this time, just pick the new state up. The input sync
   // happens inside load().
   window.addEventListener('popstate', () => {
-    load(currentState(), { push: false })
+    load(readState(), { push: false })
   })
 
   // Coming back from an article - back button, tab switch, another tab - can
@@ -573,7 +573,7 @@ if (form && results) {
     applyUnread()
     await refreshUnreadCount()
     setMore()
-    maybeFillUnread()
+    fillUnread()
   }
 
   window.addEventListener('pageshow', refreshOnReturn)
@@ -590,7 +590,7 @@ if (form && results) {
   // the page would give keyboard and screen-reader users two ways to move.
   const serverPager = results.querySelector('.feed-pager')
   if (serverPager) serverPager.remove()
-  const initial = initialFeedState()
+  const initial = readInitialState()
   baseState = { ...initial.state, page: 1 }
   loadedPage = initial.page
   loadedPages = initial.pages
